@@ -31,11 +31,23 @@ export interface PeriodMarker {
 
 export function timeToMinutes(timeStr: string): number {
   if (!timeStr) return 0;
-  const parts = timeStr.trim().split(':');
-  if (parts.length < 2) return 0;
-  const hours = parseInt(parts[0], 10);
-  const minutes = parseInt(parts[1], 10);
-  return (isNaN(hours) ? 0 : hours * 60) + (isNaN(minutes) ? 0 : minutes);
+  const trimmed = timeStr.trim();
+  const match = trimmed.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (!match) return 0;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = match[2] ? parseInt(match[2], 10) : 0;
+  const meridiem = match[3]?.toLowerCase();
+
+  if (isNaN(hours) || isNaN(minutes)) return 0;
+
+  if (meridiem === 'pm' && hours < 12) {
+    hours += 12;
+  } else if (meridiem === 'am' && hours === 12) {
+    hours = 0;
+  }
+
+  return hours * 60 + minutes;
 }
 
 export function formatMinutesTo12Hour(minutes: number): string {

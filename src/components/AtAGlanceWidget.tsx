@@ -1,7 +1,12 @@
 import React from 'react';
-import { RoutineEvent } from '../types/routine';
+import { RoutineEvent, TermFinalExam } from '../types/routine';
 import { timeToMinutes, formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
+import {
+  getTermFinalRelativeLabel,
+  isTermFinalUpcoming,
+  sortTermFinalsChronologically,
+} from '../utils/termFinalUtils';
 
 interface AtAGlanceWidgetProps {
   events: RoutineEvent[];
@@ -10,6 +15,10 @@ interface AtAGlanceWidgetProps {
   selectedGroup?: 'All' | 'Group A' | 'Group B';
   assignmentsCount?: number;
   onOpenAssignments?: () => void;
+  isTermFinalMode?: boolean;
+  termFinals?: TermFinalExam[];
+  nowMs?: number;
+  onSelectTermFinal?: (exam: TermFinalExam) => void;
 }
 
 const DAY_TO_WEEKDAY: Record<string, number> = {
@@ -29,12 +38,227 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   selectedGroup = 'All',
   assignmentsCount = 0,
   onOpenAssignments,
+  isTermFinalMode = false,
+  termFinals = [],
+  nowMs,
+  onSelectTermFinal,
 }) => {
   const isDark = theme === 'dark';
-  const now = new Date();
+  const effectiveNowMs = nowMs ?? Date.now();
+  const now = new Date(effectiveNowMs);
   const todayDayNum = now.getDay();
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
+  const renderHeader = (title: string) => (
+    <div className="flex items-center justify-between gap-2 mb-3 px-1">
+      <h2
+        className={`text-xs font-semibold tracking-normal uppercase font-sans ${
+          isDark ? 'text-stone-100' : 'text-stone-900'
+        }`}
+      >
+        {title}
+      </h2>
+
+      {onOpenAssignments && (
+        <button
+          type="button"
+          onClick={onOpenAssignments}
+          className={`relative px-3 py-1 rounded-full text-xs font-medium inline-flex items-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
+            isDark
+              ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:bg-[#24211E] hover:border-stone-700'
+              : 'bg-white border-stone-300 text-stone-900 hover:bg-stone-50 hover:border-stone-400'
+          }`}
+        >
+          {assignmentsCount > 0 && (
+            <span
+              className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 pointer-events-none ${
+                isDark ? 'ring-[#141312]' : 'ring-[#FAF9F6]'
+              }`}
+              aria-hidden="true"
+            />
+          )}
+          <span>Assignments</span>
+        </button>
+      )}
+    </div>
+  );
+
+  // TERM FINAL MODE: UPCOMING EXAMS
+  if (isTermFinalMode) {
+    const upcomingFinals = sortTermFinalsChronologically(termFinals).filter((exam) =>
+      isTermFinalUpcoming(exam, effectiveNowMs)
+    );
+    const heroExam = upcomingFinals[0] || null;
+    const remainingExams = upcomingFinals.slice(1);
+
+    return (
+      <section className="mb-6 select-none">
+        {renderHeader('Upcoming Exams')}
+
+        {upcomingFinals.length === 0 ? (
+          <div
+            className={`py-5 text-center text-xs font-sans ${
+              isDark ? 'text-stone-400' : 'text-stone-500'
+            }`}
+          >
+            No upcoming exams in queue
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {heroExam && (() => {
+              const relativeLabel = getTermFinalRelativeLabel(heroExam, effectiveNowMs);
+              const datePrefix =
+                relativeLabel === 'Active Now'
+                  ? `Active Now · ${heroExam.displayDate}`
+                  : relativeLabel
+                  ? `${relativeLabel}, ${heroExam.displayDate}`
+                  : `${heroExam.weekdayShort}, ${heroExam.displayDate}`;
+              const timeRange = `${formatTo12Hour(heroExam.startTime)} – ${formatTo12Hour(heroExam.endTime)}`;
+
+              return (
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSelectTermFinal?.(heroExam);
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onSelectTermFinal?.(heroExam);
+                    }
+                  }}
+                  className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] shadow-sm ${
+                    isDark
+                      ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700'
+                      : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400'
+                  }`}
+                >
+                  {/* Date & Start–End Time Window */}
+                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                    <span
+                      className={`text-sm sm:text-base font-semibold font-sans tabular-nums ${
+                        relativeLabel === 'Active Now'
+                          ? isDark
+                            ? 'text-emerald-400'
+                            : 'text-emerald-700'
+                          : isDark
+                          ? 'text-stone-300'
+                          : 'text-stone-600'
+                      }`}
+                    >
+                      {datePrefix} · {timeRange}
+                    </span>
+                    <span
+                      className={`text-[11px] font-semibold uppercase tracking-wide ${
+                        isDark ? 'text-stone-400' : 'text-stone-500'
+                      }`}
+                    >
+                      Term Final
+                    </span>
+                  </div>
+
+                  {/* Course Code & Title */}
+                  <div
+                    className={`text-xl sm:text-2xl font-bold tracking-tight leading-tight ${
+                      isDark ? 'text-stone-100' : 'text-stone-900'
+                    }`}
+                  >
+                    {heroExam.courseCode}
+                  </div>
+                  {heroExam.courseTitle && (
+                    <div
+                      className={`mt-1 text-sm sm:text-base font-medium leading-snug ${
+                        isDark ? 'text-stone-300' : 'text-stone-600'
+                      }`}
+                    >
+                      {heroExam.courseTitle}
+                    </div>
+                  )}
+
+                  {/* Room */}
+                  <div
+                    className={`mt-3 pt-2.5 border-t flex items-center justify-between text-sm font-semibold tabular-nums ${
+                      isDark
+                        ? 'border-stone-800 text-stone-200'
+                        : 'border-stone-200 text-stone-700'
+                    }`}
+                  >
+                    <span>Room {heroExam.room || 'TBA'}</span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Remaining Upcoming Term Final Exams */}
+            {remainingExams.length > 0 && (
+              <div
+                className={`mt-2 divide-y ${
+                  isDark ? 'divide-stone-800' : 'divide-stone-200'
+                }`}
+              >
+                {remainingExams.map((exam) => {
+                  const relativeLabel = getTermFinalRelativeLabel(exam, effectiveNowMs);
+                  const dateTimeCompact = `${relativeLabel || exam.displayDate}, ${formatTo12Hour(exam.startTime)}`;
+
+                  return (
+                    <div
+                      key={exam.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectTermFinal?.(exam);
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onSelectTermFinal?.(exam);
+                        }
+                      }}
+                      className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-all duration-150 ease-out active:scale-[0.98] ${
+                        isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`text-xs font-medium font-sans tabular-nums shrink-0 ${
+                            isDark ? 'text-stone-400' : 'text-stone-500'
+                          }`}
+                        >
+                          {dateTimeCompact}
+                        </span>
+                        <span
+                          className={`text-xs sm:text-sm font-semibold tracking-normal truncate ${
+                            isDark ? 'text-stone-100' : 'text-stone-900'
+                          }`}
+                        >
+                          {exam.courseCode}
+                        </span>
+                      </div>
+
+                      <span
+                        className={`text-xs font-sans tabular-nums shrink-0 ${
+                          isDark ? 'text-stone-400' : 'text-stone-500'
+                        }`}
+                      >
+                        {exam.room || 'TBA'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+    );
+  }
+
+  // STANDARD WEEKLY MODE: UPCOMING CLASSES
   const getUpcomingEvents = (): { event: RoutineEvent; relativeLabel: string }[] => {
     // Filter active classes and respect section/group filter
     const activeEvents = events.filter((e) => {
@@ -120,50 +344,19 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
   return (
     <section className="mb-6 select-none">
-      {/* Upcoming Classes Header directly on page background */}
-      <div className="flex items-center justify-between gap-2 mb-3 px-1">
-        <h2
-          className={`text-xs font-semibold tracking-normal uppercase font-sans ${
-            isDark ? 'text-white' : 'text-[#0F172A]'
-          }`}
-        >
-          Upcoming Classes
-        </h2>
-
-        {onOpenAssignments && (
-          <button
-            type="button"
-            onClick={onOpenAssignments}
-            className={`relative px-3 py-1 rounded-full text-xs font-medium inline-flex items-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
-              isDark
-                ? 'bg-[#18181B] border-neutral-800 text-[#F4F4F5] hover:bg-[#27272A] hover:border-neutral-700'
-                : 'bg-white border-slate-300 text-[#0F172A] hover:bg-slate-50 hover:border-slate-400'
-            }`}
-          >
-            {assignmentsCount > 0 && (
-              <span
-                className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 pointer-events-none ${
-                  isDark ? 'ring-[#121212]' : 'ring-white'
-                }`}
-                aria-hidden="true"
-              />
-            )}
-            <span>Assignments</span>
-          </button>
-        )}
-      </div>
+      {renderHeader('Upcoming Classes')}
 
       {upcomingList.length === 0 ? (
         <div
           className={`py-5 text-center text-xs font-sans ${
-            isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+            isDark ? 'text-stone-400' : 'text-stone-500'
           }`}
         >
           No upcoming classes in queue
         </div>
       ) : (
         <div className="flex flex-col">
-          {/* 1st (Closest) Upcoming Class: Clean Elevated White Hero Card */}
+          {/* 1st (Closest) Upcoming Class: Crisp Elevated Hero Card */}
           {heroItem && (() => {
             const { event, relativeLabel } = heroItem;
             const { code, title } = splitSubject(event.subject);
@@ -187,8 +380,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 }}
                 className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] shadow-sm ${
                   isDark
-                    ? 'bg-[#121212] border-white/15 text-white hover:border-white/25'
-                    : 'bg-white border-slate-300 text-[#0F172A] hover:border-slate-400'
+                    ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700'
+                    : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400'
                 }`}
               >
                 {/* Flat inline day & time row */}
@@ -204,8 +397,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                           ? 'text-amber-300'
                           : 'text-amber-700'
                         : isDark
-                        ? 'text-slate-300'
-                        : 'text-slate-600'
+                        ? 'text-stone-300'
+                        : 'text-stone-600'
                     }`}
                   >
                     {formatInlineDayTime(event, relativeLabel, true)}
@@ -230,7 +423,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 {/* Large Course Code & Title */}
                 <div
                   className={`text-xl sm:text-2xl font-bold tracking-tight leading-tight ${
-                    isDark ? 'text-white' : 'text-[#0F172A]'
+                    isDark ? 'text-stone-100' : 'text-stone-900'
                   }`}
                 >
                   {code}
@@ -238,7 +431,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 {title && (
                   <div
                     className={`mt-1 text-sm sm:text-base font-medium leading-snug ${
-                      isDark ? 'text-slate-300' : 'text-slate-600'
+                      isDark ? 'text-stone-300' : 'text-stone-600'
                     }`}
                   >
                     {title}
@@ -249,8 +442,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 <div
                   className={`mt-3 pt-2.5 border-t flex items-center justify-between text-sm font-semibold tabular-nums ${
                     isDark
-                      ? 'border-neutral-800 text-slate-200'
-                      : 'border-slate-200 text-slate-700'
+                      ? 'border-stone-800 text-stone-200'
+                      : 'border-stone-200 text-stone-700'
                   }`}
                 >
                   <span>Room {event.room || 'TBA'}</span>
@@ -263,7 +456,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
           {secondaryItems.length > 0 && (
             <div
               className={`mt-2 divide-y ${
-                isDark ? 'divide-[#27272A]' : 'divide-slate-200'
+                isDark ? 'divide-stone-800' : 'divide-stone-200'
               }`}
             >
               {secondaryItems.map(({ event, relativeLabel }, index) => {
@@ -286,20 +479,20 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       }
                     }}
                     className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-all duration-150 ease-out active:scale-[0.98] ${
-                      isDark ? 'hover:bg-slate-800/60' : 'hover:bg-slate-100/70'
+                      isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
                     }`}
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <span
                         className={`text-xs font-medium font-sans tabular-nums shrink-0 ${
-                          isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                          isDark ? 'text-stone-400' : 'text-stone-500'
                         }`}
                       >
                         {formatInlineDayTime(event, relativeLabel, false)}
                       </span>
                       <span
                         className={`text-xs sm:text-sm font-semibold tracking-normal truncate ${
-                          isDark ? 'text-[#F4F4F5]' : 'text-[#0F172A]'
+                          isDark ? 'text-stone-100' : 'text-stone-900'
                         }`}
                       >
                         {code}
@@ -308,7 +501,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
                     <span
                       className={`text-xs font-sans tabular-nums shrink-0 ${
-                        isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                        isDark ? 'text-stone-400' : 'text-stone-500'
                       }`}
                     >
                       {event.room || 'TBA'}

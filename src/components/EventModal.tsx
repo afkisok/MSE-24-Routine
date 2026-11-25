@@ -91,7 +91,8 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
   if (!event) return null;
 
   const alternating = parseAlternatingSchedule(event.type, event.subject, event.syllabus);
-  const isExam = alternating.category === 'EXAM';
+  const isTermFinal = (event.type || '').trim().toLowerCase() === 'tf';
+  const isExam = alternating.category === 'EXAM' || isTermFinal;
   const isLab = alternating.category === 'LAB';
   const isCancelled = event.status === 'Cancelled';
 
@@ -133,8 +134,8 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
       <div
         className={`relative w-full max-w-lg rounded-t-[28px] sm:rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto border transform-gpu will-change-transform overscroll-y-contain ${
           isDark
-            ? 'bg-[#18181B] border-[#27272A] text-[#F4F4F5]'
-            : 'bg-white border-[#E2E8F0] text-[#0F172A]'
+            ? 'bg-[#1C1A18] border-stone-800 text-stone-100'
+            : 'bg-white border-stone-200 text-stone-900'
         }`}
         style={sheetStyle}
         onClick={(e) => e.stopPropagation()}
@@ -149,7 +150,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           <div className="flex justify-center -mt-1 mb-3 pt-1">
             <div
               className={`w-12 h-1.5 rounded-full transition-colors ${
-                isDark ? 'bg-zinc-700' : 'bg-zinc-300'
+                isDark ? 'bg-stone-700' : 'bg-stone-300'
               }`}
             />
           </div>
@@ -157,7 +158,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           {/* Top Header Strip: Flat Borderless Uppercase Metadata */}
           <div
             className={`flex items-center gap-2 flex-wrap pb-3 mb-3.5 border-b transition-colors ${
-              isDark ? 'border-[#27272A]' : 'border-[#E2E8F0]'
+              isDark ? 'border-stone-800' : 'border-stone-200'
             }`}
           >
             <span
@@ -167,16 +168,16 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
                     ? 'text-emerald-300'
                     : 'text-[#064E3B]'
                   : isDark
-                  ? 'text-[#D4D4D8]'
-                  : 'text-[#0F172A]'
+                  ? 'text-stone-300'
+                  : 'text-stone-900'
               }`}
             >
-              {isLab ? 'Lab' : isExam ? 'Exam' : 'Lecture'}
+              {isTermFinal ? 'Term Final' : isLab ? 'Lab' : isExam ? 'Exam' : 'Lecture'}
             </span>
 
             {alternating.groupTag && !isCancelled && (
               <>
-                <span className="text-slate-400">·</span>
+                <span className="text-stone-400">·</span>
                 <span
                   className={`text-[11px] font-semibold uppercase tracking-wider ${
                     isDark ? 'text-emerald-300' : 'text-[#064E3B]'
@@ -189,7 +190,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
 
             {isLab && !isCancelled && rawSyllabus.length === 0 && alternating.hasReportDue && (
               <>
-                <span className="text-slate-400">·</span>
+                <span className="text-stone-400">·</span>
                 <span
                   className={`text-[11px] font-semibold uppercase tracking-wider ${
                     isDark ? 'text-emerald-300' : 'text-[#064E3B]'
@@ -200,21 +201,21 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
               </>
             )}
 
-            <span className="text-slate-400">·</span>
+            <span className="text-stone-400">·</span>
             <span
               className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
-              {event.day}
+              {event.dateLabel || event.day}
             </span>
 
             {marksEyebrowText && (
               <>
-                <span className="text-slate-400">·</span>
+                <span className="text-stone-400">·</span>
                 <span
                   className={`text-[11px] font-semibold uppercase tracking-wider tabular-nums ${
-                    isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                    isDark ? 'text-stone-400' : 'text-stone-500'
                   }`}
                 >
                   {marksEyebrowText}
@@ -224,7 +225,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
 
             {isCancelled && (
               <>
-                <span className="text-slate-400">·</span>
+                <span className="text-stone-400">·</span>
                 <span
                   className={`text-[11px] font-semibold uppercase tracking-wider ${
                     isDark ? 'text-rose-300' : 'text-rose-700'
@@ -241,10 +242,10 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
         <h2
           className={`text-lg sm:text-xl font-bold tracking-tight leading-snug mb-3 ${
             isCancelled
-              ? 'line-through text-slate-500'
+              ? 'line-through text-stone-500'
               : isDark
-              ? 'text-[#F4F4F5]'
-              : 'text-[#0F172A]'
+              ? 'text-stone-100'
+              : 'text-stone-900'
           }`}
         >
           {event.subject}
@@ -253,7 +254,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
         {/* Borderless Vertical Metadata List with 1px Dividers */}
         <div
           className={`flex flex-col divide-y mb-4 ${
-            isDark ? 'divide-[#27272A]' : 'divide-[#E2E8F0]'
+            isDark ? 'divide-stone-800' : 'divide-stone-200'
           }`}
         >
           {/* SYLLABUS (first borderless row above TIME when syllabus exists) */}
@@ -261,14 +262,14 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             <div className="py-3 first:pt-1">
               <div
                 className={`text-[11px] font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                  isDark ? 'text-stone-400' : 'text-stone-500'
                 }`}
               >
                 Syllabus
               </div>
               <div
                 className={`text-sm font-medium mt-1 leading-relaxed space-y-1 ${
-                  isDark ? 'text-[#F4F4F5]' : 'text-[#0F172A]'
+                  isDark ? 'text-stone-100' : 'text-stone-900'
                 }`}
               >
                 {syllabusLines.map((line, i) => (
@@ -282,14 +283,14 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           <div className="py-3 first:pt-1">
             <div
               className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
               Time
             </div>
             <div
               className={`text-sm font-semibold mt-1 font-sans tabular-nums ${
-                isDark ? 'text-[#F4F4F5]' : 'text-[#0F172A]'
+                isDark ? 'text-stone-100' : 'text-stone-900'
               }`}
             >
               {formatTo12Hour(event.startTime)} – {formatTo12Hour(event.endTime)}
@@ -300,47 +301,49 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           <div className="py-3">
             <div
               className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
               Room
             </div>
             <div
               className={`text-sm font-semibold mt-1 font-sans ${
-                isDark ? 'text-[#F4F4F5]' : 'text-[#0F172A]'
+                isDark ? 'text-stone-100' : 'text-stone-900'
               }`}
             >
               {event.room || 'Room TBA'}
             </div>
           </div>
 
-          {/* FACULTY */}
-          <div className="py-3">
-            <div
-              className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
-              }`}
-            >
-              Faculty
+          {/* FACULTY (omitted on Term Finals when not provided) */}
+          {(!isTermFinal || Boolean((event.teacher || '').trim())) && (
+            <div className="py-3">
+              <div
+                className={`text-[11px] font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-stone-400' : 'text-stone-500'
+                }`}
+              >
+                Faculty
+              </div>
+              <div className={`text-sm font-semibold mt-1 ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>
+                {event.teacher || 'Not designated'}
+              </div>
             </div>
-            <div className={`text-sm font-semibold mt-1 ${isDark ? 'text-[#F4F4F5]' : 'text-[#0F172A]'}`}>
-              {event.teacher || 'Not designated'}
-            </div>
-          </div>
+          )}
 
           {/* Assigned Lab Group (when Lab) */}
           {alternating.category === 'LAB' && (
             <div className="py-3">
               <div
                 className={`text-[11px] font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                  isDark ? 'text-stone-400' : 'text-stone-500'
                 }`}
               >
                 Assigned Lab Group
               </div>
               <div
                 className={`text-sm font-semibold mt-1 ${
-                  isDark ? 'text-[#F4F4F5]' : 'text-[#0F172A]'
+                  isDark ? 'text-stone-100' : 'text-stone-900'
                 }`}
               >
                 {alternating.groupTag === 'GRP A'
@@ -364,8 +367,8 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             }}
             className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 shadow-sm border ${
               isDark
-                ? 'bg-[#F4F4F5] text-[#18181B] hover:bg-white border-[#F4F4F5]'
-                : 'bg-[#0F172A] text-white hover:bg-slate-800 border-[#0F172A]'
+                ? 'bg-stone-100 text-stone-900 hover:bg-stone-200 border-stone-100'
+                : 'bg-stone-900 text-stone-50 hover:bg-stone-800 border-stone-900'
             }`}
           >
             Close

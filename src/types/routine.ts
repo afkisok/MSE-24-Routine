@@ -16,6 +16,26 @@ export interface RoutineEvent {
   status: EventStatus;
   syllabus?: string;
   marks?: string;
+  dateLabel?: string; // Optional formatted exam date e.g. "Sat, Dec 12" for Term Finals
+}
+
+export interface TermFinalExam {
+  id: string;
+  rawDate: string;
+  dateISO: string;      // Canonical local "YYYY-MM-DD"
+  displayDate: string;  // e.g. "Dec 12"
+  weekdayShort: string; // e.g. "Sat"
+  weekdayLong: 'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday';
+  startTime: string;
+  endTime: string;
+  courseCode: string;
+  courseTitle: string;
+  subject: string;
+  room: string;
+  teacher: string;
+  status: EventStatus;
+  syllabus?: string;
+  marks?: string;
 }
 
 export interface ChangeLogItem {

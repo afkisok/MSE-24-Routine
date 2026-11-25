@@ -162,8 +162,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
       <div
         className={`w-full max-w-lg rounded-t-[24px] sm:rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[90vh] transform-gpu will-change-transform overscroll-y-contain ${
           isDark
-            ? 'bg-[#18181B] border-[#27272A] text-[#F4F4F5] shadow-black/80'
-            : 'bg-white border-[#E2E8F0] text-[#0F172A] shadow-slate-300/50'
+            ? 'bg-[#1C1A18] border-stone-800 text-stone-100 shadow-black/80'
+            : 'bg-white border-stone-200 text-stone-900 shadow-stone-300/50'
         }`}
         style={sheetStyle}
         onClick={(e) => e.stopPropagation()}
@@ -176,13 +176,13 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
           {...dragHandleProps}
           style={{ touchAction: 'none' }}
           className={`cursor-grab active:cursor-grabbing border-b ${
-            isDark ? 'border-[#27272A]' : 'border-[#E2E8F0]'
+            isDark ? 'border-stone-800' : 'border-stone-200'
           }`}
         >
           <div className="flex justify-center pt-2.5 pb-1">
             <div
               className={`w-12 h-1.5 rounded-full transition-colors ${
-                isDark ? 'bg-zinc-700' : 'bg-zinc-300'
+                isDark ? 'bg-stone-700' : 'bg-stone-300'
               }`}
             />
           </div>
@@ -190,7 +190,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
           <div className="flex items-center gap-3 min-w-0">
             <div
               className={`w-8 h-8 rounded-full font-sans font-semibold text-xs flex items-center justify-center shrink-0 border tracking-normal ${
-                isDark ? 'bg-white text-[#0F172A] border-white' : 'bg-[#0F172A] text-white border-[#0F172A]'
+                isDark ? 'bg-stone-100 text-stone-900 border-stone-100' : 'bg-stone-900 text-stone-50 border-stone-900'
               }`}
             >
               B24
@@ -202,7 +202,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               {/* Minimal Flat Inline Feed Status */}
               <div
                 className={`mt-0.5 text-xs font-sans tabular-nums flex items-center gap-1.5 flex-wrap ${
-                  isDark ? 'text-slate-400' : 'text-slate-500'
+                  isDark ? 'text-stone-400' : 'text-stone-500'
                 }`}
               >
                 <span
@@ -210,19 +210,19 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                     syncStatus.status === 'error'
                       ? 'text-rose-500'
                       : isDark
-                      ? 'text-slate-200'
-                      : 'text-slate-700'
+                      ? 'text-stone-200'
+                      : 'text-stone-700'
                   }`}
                 >
                   {statusText}
                 </span>
-                <span className="text-slate-400">·</span>
+                <span className="text-stone-400">·</span>
                 <span>
                   {totalEventsCount} {totalEventsCount === 1 ? 'session' : 'sessions'}
                 </span>
                 {formattedSyncTime && (
                   <>
-                    <span className="text-slate-400">·</span>
+                    <span className="text-stone-400">·</span>
                     <span>{formattedSyncTime}</span>
                   </>
                 )}
@@ -236,8 +236,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
             aria-label="Close admin configuration"
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-95 border cursor-pointer shrink-0 ${
               isDark
-                ? 'bg-[#27272A] border-[#3F3F46] text-zinc-400 hover:text-white hover:bg-[#3F3F46]'
-                : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-200'
+                ? 'bg-[#24211E] border-stone-700 text-stone-400 hover:text-stone-100 hover:bg-stone-800'
+                : 'bg-stone-100 border-stone-200 text-stone-500 hover:text-stone-900 hover:bg-stone-200'
             }`}
           >
             <X className="w-4 h-4" />
@@ -252,7 +252,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
             <label
               htmlFor="admin-csv-url-input"
               className={`block text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
               Google Sheets CSV Endpoint
@@ -266,8 +266,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
               className={`w-full px-3 py-2 text-xs font-mono rounded-lg border overflow-x-auto whitespace-nowrap transition-colors focus:outline-none ${
                 isDark
-                  ? 'bg-[#121212] text-white border-[#3F3F46] placeholder-slate-500 focus:border-white'
-                  : 'bg-white text-[#0F172A] border-slate-300 placeholder-slate-400 focus:border-[#0F172A]'
+                  ? 'bg-[#141312] text-stone-100 border-stone-700 placeholder-stone-500 focus:border-stone-200'
+                  : 'bg-white text-stone-900 border-stone-300 placeholder-stone-400 focus:border-stone-900'
               }`}
             />
 
@@ -278,8 +278,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 disabled={syncStatus.status === 'syncing'}
                 className={`py-2 px-3 rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border disabled:opacity-60 ${
                   isDark
-                    ? 'bg-white text-[#0F172A] border-white hover:bg-slate-200'
-                    : 'bg-[#0F172A] text-white border-[#0F172A] hover:bg-slate-800'
+                    ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
+                    : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
                 }`}
               >
                 {savedSuccess ? (
@@ -300,8 +300,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 onClick={handleResetToDefault}
                 className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border ${
                   isDark
-                    ? 'bg-[#27272A] border-[#3F3F46] text-slate-200 hover:text-white hover:bg-[#3F3F46]'
-                    : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-slate-200'
+                    ? 'bg-[#24211E] border-stone-700 text-stone-200 hover:text-stone-100 hover:bg-stone-800'
+                    : 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-stone-200'
                 }`}
               >
                 Restore Default
@@ -313,8 +313,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 disabled={syncStatus.status === 'syncing'}
                 className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border disabled:opacity-60 ${
                   isDark
-                    ? 'bg-transparent border-[#3F3F46] text-slate-300 hover:text-white hover:bg-[#27272A]'
-                    : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50'
+                    ? 'bg-transparent border-stone-700 text-stone-300 hover:text-stone-100 hover:bg-[#24211E]'
+                    : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
                 }`}
               >
                 Force Sync
@@ -325,12 +325,12 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
           {/* Secondary Tools Section */}
           <div
             className={`pt-4 border-t space-y-2.5 ${
-              isDark ? 'border-[#27272A]' : 'border-[#E2E8F0]'
+              isDark ? 'border-stone-800' : 'border-stone-200'
             }`}
           >
             <span
               className={`block text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
               Utilities
@@ -358,8 +358,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                   }}
                   className={`py-1.5 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border ${
                     isDark
-                      ? 'bg-transparent border-[#3F3F46] text-slate-300 hover:bg-[#27272A]'
-                      : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                      ? 'bg-transparent border-stone-700 text-stone-300 hover:bg-[#24211E]'
+                      : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
                   }`}
                 >
                   <FileCode className="w-3.5 h-3.5" />
@@ -373,10 +373,10 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
         {/* Footer */}
         <div
           className={`px-5 py-3 border-t flex items-center justify-between text-[11px] ${
-            isDark ? 'border-[#27272A]' : 'border-[#E2E8F0]'
+            isDark ? 'border-stone-800' : 'border-stone-200'
           }`}
         >
-          <span className={isDark ? 'text-slate-400' : 'text-slate-500'}>
+          <span className={isDark ? 'text-stone-400' : 'text-stone-500'}>
             Saved locally on this device
           </span>
           <button
@@ -384,8 +384,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
             onClick={handleRequestClose}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 active:scale-95 border ${
               isDark
-                ? 'bg-[#F4F4F5] text-[#18181B] border-[#F4F4F5] hover:bg-white'
-                : 'bg-[#0F172A] text-white border-[#0F172A] hover:bg-slate-800'
+                ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
+                : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
             }`}
           >
             Done

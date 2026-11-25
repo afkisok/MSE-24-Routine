@@ -101,8 +101,8 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
           shake ? 'animate-shake' : ''
         } ${
           isDark
-            ? 'bg-[#18181B] border-[#27272A] text-white shadow-black/80'
-            : 'bg-white border-[#E2E8F0] text-[#0F172A] shadow-slate-300/50'
+            ? 'bg-[#1C1A18] border-stone-800 text-stone-100 shadow-black/80'
+            : 'bg-white border-stone-200 text-stone-900 shadow-stone-300/50'
         }`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -123,7 +123,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               <h2 id="pin-dialog-title" className="text-sm font-semibold tracking-normal leading-tight">
                 Admin Verification
               </h2>
-              <p className={`text-[11px] ${isDark ? 'text-zinc-400' : 'text-slate-500'}`}>
+              <p className={`text-[11px] ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                 Enter 4-digit PIN for access
               </p>
             </div>
@@ -134,8 +134,8 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
             type="button"
             className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 active:scale-95 cursor-pointer ${
               isDark
-                ? 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                ? 'text-stone-400 hover:text-stone-100 hover:bg-stone-800'
+                : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
             }`}
           >
             <X className="w-4 h-4" />
@@ -155,11 +155,11 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
                   className={`w-11 h-12 rounded-xl flex items-center justify-center text-lg font-semibold tabular-nums border transition-all ${
                     isFilled
                       ? isDark
-                        ? 'border-amber-400 bg-amber-400/10 text-white'
-                        : 'border-[#0F172A] bg-slate-50 text-[#0F172A]'
+                        ? 'border-amber-400 bg-amber-400/10 text-stone-100'
+                        : 'border-stone-900 bg-stone-100 text-stone-900'
                       : isDark
-                      ? 'border-[#334155] bg-[#121212]'
-                      : 'border-slate-200 bg-white'
+                      ? 'border-stone-800 bg-[#141312]'
+                      : 'border-stone-200 bg-white'
                   } ${error ? 'border-rose-500 text-rose-500' : ''}`}
                 >
                   {isFilled ? '•' : ''}
@@ -194,8 +194,8 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               onClick={onClose}
               className={`flex-1 py-2 px-3 text-xs font-medium rounded-full cursor-pointer transition-all active:scale-95 border ${
                 isDark
-                  ? 'border-zinc-700 text-zinc-300 hover:bg-zinc-800'
-                  : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                  ? 'border-stone-700 text-stone-300 hover:bg-stone-800'
+                  : 'border-stone-200 text-stone-600 hover:bg-stone-100'
               }`}
             >
               Cancel
@@ -205,8 +205,8 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               disabled={pin.length < 4}
               className={`flex-1 py-2 px-3 text-xs font-semibold rounded-full cursor-pointer transition-all active:scale-95 border disabled:opacity-40 ${
                 isDark
-                  ? 'bg-white text-zinc-900 border-white hover:bg-zinc-100'
-                  : 'bg-[#0F172A] text-white border-[#0F172A] hover:bg-slate-800'
+                  ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
+                  : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
               }`}
             >
               Verify

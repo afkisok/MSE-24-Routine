@@ -11,8 +11,8 @@
 
   body {
     scrollbar-gutter: stable;
-    background-color: #FFFFFF;
-    color: #0F172A;
+    background-color: #FAF9F6;
+    color: #1C1917;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow-x: hidden;
     transition: background-color 150ms ease, color 150ms ease;
@@ -22,10 +22,10 @@
     color-scheme: dark;
   }
 
-  /* Deep neutral charcoal/zinc (#121212) instead of tinted blue/navy */
+  /* Warm obsidian dark mode canvas (#141312) */
   html.dark body {
-    background-color: #121212;
-    color: #F4F4F5;
+    background-color: #141312;
+    color: #F5F5F4;
   }
 
   h1, h2, h3, h4, h5, h6, .font-heading {
@@ -40,80 +40,30 @@
   }
 }
 
-/* Precision utility scrollbar */
+/* Warm stone precision scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #F8FAFC;
+  background: #FAF9F6;
   border-radius: 2px;
 }
 html.dark ::-webkit-scrollbar-track {
-  background: #121212;
+  background: #141312;
 }
 ::-webkit-scrollbar-thumb {
-  background: #CBD5E1;
+  background: #D6D3D1;
   border-radius: 2px;
 }
 html.dark ::-webkit-scrollbar-thumb {
-  background: #27272A;
+  background: #292524;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94A3B8;
+  background: #A8A29E;
 }
 html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #3F3F46;
-}
-
-/* Neutral Industrial Dark Palette Overrides */
-html.dark .bg-\[\#0F172A\],
-html.dark .bg-\[\#0B1120\],
-html.dark .bg-\[\#0B1924\] {
-  background-color: #121212 !important;
-}
-
-/* Cards & modal surfaces: Muted neutral dark gray (#18181B) */
-html.dark .bg-\[\#131D31\],
-html.dark .bg-\[\#1E293B\],
-html.dark .bg-slate-900,
-html.dark .bg-slate-900\/80,
-html.dark .bg-slate-900\/60 {
-  background-color: #18181B !important;
-}
-
-/* Secondary controls & elevated surfaces */
-html.dark .bg-slate-800 {
-  background-color: #27272A !important;
-}
-
-/* Borders and grid lines: Desaturated zinc (#27272A) */
-html.dark .border-\[\#334155\],
-html.dark .border-slate-700,
-html.dark .border-slate-800 {
-  border-color: #27272A !important;
-}
-
-/* Primary text: Crisp off-white (#F4F4F5) */
-html.dark .text-white {
-  color: #F4F4F5 !important;
-}
-
-/* Secondary labels: Muted gray (#A1A1AA) */
-html.dark .text-slate-400,
-html.dark .text-slate-500 {
-  color: #A1A1AA !important;
-}
-
-/* Mid-tone zinc (#D4D4D8) */
-html.dark .text-slate-200,
-html.dark .text-slate-300 {
-  color: #D4D4D8 !important;
-}
-
-/* Subtle dividers */
-html.dark .text-slate-600 {
-  color: #52525B !important;
+  background: #44403C;
 }
 
 /* Utility Buttons & Controls */
@@ -122,31 +72,31 @@ html.dark .text-slate-600 {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  background-color: #0F172A;
-  color: #FFFFFF;
+  background-color: #1C1917;
+  color: #FAFAF9;
   padding: 6px 14px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.01em;
-  border: 1px solid #0F172A;
+  border: 1px solid #1C1917;
   transition: all 120ms ease;
   cursor: pointer;
   user-select: none;
 }
 .aviation-btn-primary:hover {
-  background-color: #1E293B;
-  border-color: #1E293B;
+  background-color: #292524;
+  border-color: #292524;
 }
 
 html.dark .aviation-btn-primary {
-  background-color: #F4F4F5;
-  color: #121212;
-  border-color: #F4F4F5;
+  background-color: #F5F5F4;
+  color: #1C1917;
+  border-color: #F5F5F4;
 }
 html.dark .aviation-btn-primary:hover {
-  background-color: #E4E4E7;
-  border-color: #E4E4E7;
+  background-color: #E7E5E4;
+  border-color: #E7E5E4;
 }
 
 .aviation-btn-secondary {
@@ -155,29 +105,29 @@ html.dark .aviation-btn-primary:hover {
   justify-content: center;
   gap: 6px;
   background-color: #FFFFFF;
-  color: #0F172A;
+  color: #1C1917;
   padding: 6px 12px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 500;
-  border: 1px solid #CBD5E1;
+  border: 1px solid #D6D3D1;
   transition: all 120ms ease;
   cursor: pointer;
   user-select: none;
 }
 .aviation-btn-secondary:hover {
-  background-color: #F8FAFC;
-  border-color: #94A3B8;
+  background-color: #F5F5F4;
+  border-color: #A8A29E;
 }
 
 html.dark .aviation-btn-secondary {
-  background-color: #18181B;
-  color: #F4F4F5;
-  border-color: #27272A;
+  background-color: #1C1A18;
+  color: #F5F5F4;
+  border-color: #292524;
 }
 html.dark .aviation-btn-secondary:hover {
-  background-color: #27272A;
-  border-color: #3F3F46;
+  background-color: #24211E;
+  border-color: #44403C;
 }
 
 /* Horizontal scrolling track container */
@@ -206,21 +156,9 @@ html.dark .aviation-btn-secondary:hover {
 }
 
 html.dark .badge-group {
-  background-color: #18181B;
+  background-color: #1C1A18;
   color: #6EE7B7;
   border-color: rgba(5, 150, 105, 0.7);
-}
-
-/* Retain Solid Amber/Gold Accents for Exam Blocks */
-.compact-exam {
-  background-color: #D97706 !important;
-  border-color: #B45309 !important;
-  color: #FFFFFF !important;
-}
-html.dark .compact-exam {
-  background-color: #D97706 !important;
-  border-color: #F59E0B !important;
-  color: #FFFFFF !important;
 }
 
 /* Shake animation for PIN error */
@@ -260,4 +198,3 @@ html.dark .compact-exam {
     scroll-behavior: auto !important;
   }
 }
-

@@ -2,7 +2,6 @@ import React from 'react';
 import { RoutineEvent } from '../types/routine';
 import { calculateSlotGeometry, formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
-import { FileText } from 'lucide-react';
 
 interface SlotCardProps {
   event: RoutineEvent;
@@ -22,6 +21,22 @@ function extractCourseCode(subject: string): string {
     return subject.slice(0, colonIndex).trim();
   }
   return subject.trim();
+}
+
+/**
+ * Extracts 4-digit course number from course code (e.g. "MSE 2101" -> "2101"), falling back to "CT"
+ */
+function extractCourseNumber(courseCode: string): string {
+  if (!courseCode) return 'CT';
+  const match = courseCode.match(/\b(\d{4})\b/) || courseCode.match(/(\d{4})/);
+  return match ? match[1] : 'CT';
+}
+
+/**
+ * Compact 12-hour start time without AM/PM suffix (e.g. "15:30" -> "3:30")
+ */
+function formatCompactStartTime(timeStr: string): string {
+  return formatTo12Hour(timeStr).replace(/\s*(am|pm)$/i, '').trim();
 }
 
 /**
@@ -59,37 +74,37 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   const isCancelled = event.status === 'Cancelled';
   const isExam = meta.category === 'EXAM';
   const isLab = meta.category === 'LAB';
-  const isCompactExam = isExam && durationMinutes < 35 && !isCancelled;
+  const isNarrowExam = isExam && durationMinutes < 45 && !isCancelled;
   const isDark = theme === 'dark';
 
   const courseCode = extractCourseCode(event.subject);
+  const courseNumber = extractCourseNumber(courseCode);
   const facultyInitials = extractFacultyInitials(event.teacher);
   const formattedStartTime = formatTo12Hour(event.startTime);
+  const compactStartTime = formatCompactStartTime(event.startTime);
 
-  // Card theme classes
+  const rawTypeLower = (event.type || '').trim().toLowerCase();
+  const wideExamPillLabel = rawTypeLower === 'ct' ? 'CT' : 'Exam';
+
+  // Unified Card Theme Classes
   const getThemeClasses = () => {
     if (isCancelled) {
       return isDark
-        ? 'bg-transparent border-dashed border-slate-700 text-slate-500 hover:border-slate-600'
-        : 'bg-transparent border-dashed border-slate-300 text-slate-400 hover:border-slate-400';
+        ? 'bg-transparent border-dashed border-stone-700 text-stone-500 hover:border-stone-600'
+        : 'bg-transparent border-dashed border-stone-300 text-stone-400 hover:border-stone-400';
     }
 
-    if (isCompactExam) {
-      return isDark
-        ? 'compact-exam bg-[#D97706] border-[#F59E0B] text-white shadow-xs hover:bg-[#F59E0B] hover:text-slate-950'
-        : 'compact-exam bg-[#D97706] border-[#B45309] text-white shadow-xs hover:bg-[#B45309]';
-    }
-
+    // Inverted High-Contrast Warm-Stone CT / Exam Surface
     if (isExam) {
       return isDark
-        ? 'bg-[#27272A] border-amber-500/80 text-amber-100 shadow-xs hover:border-amber-400'
-        : 'bg-amber-50/90 border-[#D97706] text-[#78350F] shadow-xs hover:bg-amber-100/90 hover:border-[#B45309]';
+        ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs hover:bg-stone-200 hover:border-stone-200'
+        : 'bg-stone-900 border-stone-900 text-stone-50 shadow-xs hover:bg-stone-800 hover:border-stone-800';
     }
 
-    // Active Classes (Theory & Lab unified crisp surface)
+    // Active Classes (Theory & Lab unified crisp stone surface)
     return isDark
-      ? 'bg-[#1F1F23] border-[#3F3F46] text-[#FAFAFA] shadow-xs hover:border-slate-400 hover:bg-[#27272A]'
-      : 'bg-white border-slate-300 text-[#09090B] shadow-xs hover:border-slate-400';
+      ? 'bg-[#23201D] border-stone-800 text-stone-100 shadow-xs hover:border-stone-700 hover:bg-[#2A2623]'
+      : 'bg-white border-stone-300 text-stone-900 shadow-xs hover:border-stone-400';
   };
 
   // 0. CANCELED SLOT CARD: Completely greyed out, showing only struck-through course code + CANCELED
@@ -116,19 +131,19 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         }}
         title={`Canceled: ${event.subject}`}
         className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] flex flex-col justify-center h-[calc(100%-8px)] px-2.5 py-2 focus-visible:outline-none focus-visible:ring-1 ${
-          isDark ? 'focus-visible:ring-white' : 'focus-visible:ring-[#0F172A]'
+          isDark ? 'focus-visible:ring-stone-100' : 'focus-visible:ring-stone-900'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'}`}
       >
         <div
           className={`font-semibold text-sm font-sans tracking-normal line-through whitespace-nowrap overflow-visible ${
-            isDark ? 'text-slate-500' : 'text-slate-400'
+            isDark ? 'text-stone-500' : 'text-stone-400'
           }`}
         >
           {courseCode}
         </div>
         <div
           className={`text-[10px] font-medium font-sans uppercase tracking-wider mt-0.5 leading-none ${
-            isDark ? 'text-slate-500' : 'text-slate-400'
+            isDark ? 'text-stone-500' : 'text-stone-400'
           }`}
         >
           CANCELED
@@ -137,8 +152,8 @@ export const SlotCard: React.FC<SlotCardProps> = ({
     );
   }
 
-  // 1. NARROW EXAM COMPACT CARD (< 35 mins)
-  if (isCompactExam) {
+  // 1. NARROW CT / EXAM BLOCK (< 45 mins): Three compact centered lines on inverted stone card
+  if (isNarrowExam) {
     return (
       <div
         onClick={(e) => {
@@ -149,12 +164,6 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           left: `${leftPercent}%`,
           width: `${widthPercent}%`,
           boxSizing: 'border-box',
-          padding: '4px 3px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          overflow: 'visible',
         }}
         role="button"
         tabIndex={0}
@@ -165,21 +174,33 @@ export const SlotCard: React.FC<SlotCardProps> = ({
             onSelect(event);
           }
         }}
-        title={`Exam / CT: ${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] group focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white ${getThemeClasses()} ${
-          isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'
-        } ${isHighlighted ? 'ring-2 ring-emerald-500 animate-slot-pulse z-20' : ''}`}
+        title={`CT / Exam: ${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1.5 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
+          isDark ? 'focus-visible:ring-stone-900' : 'focus-visible:ring-stone-50'
+        } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
+          isHighlighted ? 'ring-2 ring-emerald-500 animate-slot-pulse z-20' : ''
+        }`}
       >
-        <div className="text-[9px] font-sans font-semibold tracking-normal uppercase opacity-95 shrink-0 leading-none">
-          Exam
+        <div
+          className={`text-[9px] font-sans font-semibold uppercase tracking-wider leading-none shrink-0 ${
+            isDark ? 'text-stone-600' : 'text-stone-300'
+          }`}
+        >
+          CT
         </div>
-        <div className="my-auto flex flex-col items-center justify-center text-center">
-          <span className="font-sans font-bold text-xs sm:text-sm tracking-normal uppercase leading-none drop-shadow-2xs">
-            CT
-          </span>
+        <div
+          className={`font-sans font-bold text-xs sm:text-sm tracking-tight tabular-nums leading-none whitespace-nowrap ${
+            isDark ? 'text-stone-900' : 'text-stone-50'
+          }`}
+        >
+          {courseNumber}
         </div>
-        <div className="text-[9px] font-sans font-semibold tabular-nums whitespace-nowrap shrink-0 leading-none opacity-95">
-          {formattedStartTime}
+        <div
+          className={`text-[9px] font-sans font-medium tabular-nums whitespace-nowrap shrink-0 leading-none ${
+            isDark ? 'text-stone-600' : 'text-stone-300'
+          }`}
+        >
+          {compactStartTime}
         </div>
       </div>
     );
@@ -199,7 +220,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
     }
   }
 
-  // 2. STANDARD UNBOXED SLOT CARD (THREE-TIER VERTICAL STACK)
+  // 2. STANDARD & WIDE EXAM SLOT CARD (THREE-TIER VERTICAL STACK)
   return (
     <div
       onClick={(e) => {
@@ -222,72 +243,66 @@ export const SlotCard: React.FC<SlotCardProps> = ({
       }}
       title={`${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
       className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] group flex flex-col justify-between h-[calc(100%-8px)] px-2.5 py-2 focus-visible:outline-none focus-visible:ring-1 ${
-        isDark ? 'focus-visible:ring-white' : 'focus-visible:ring-[#0F172A]'
+        isExam
+          ? isDark
+            ? 'focus-visible:ring-stone-900'
+            : 'focus-visible:ring-stone-50'
+          : isDark
+          ? 'focus-visible:ring-stone-100'
+          : 'focus-visible:ring-stone-900'
       } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
         isHighlighted ? 'ring-2 ring-emerald-500 animate-slot-pulse z-20' : ''
       }`}
     >
-      {/* SOLID AMBER BANNER FOR REGULAR EXAM / CT ONLY (high-priority indicator retained) */}
-      {isExam && (
-        <div
-          className={`-mx-2.5 -mt-2 px-2.5 py-0.5 mb-1 flex items-center justify-between text-[9px] font-semibold font-sans tracking-normal uppercase shrink-0 border-b ${
-            isDark
-              ? 'bg-[#B45309] text-amber-50 border-amber-600/50'
-              : 'bg-[#D97706] text-white border-amber-700'
-          }`}
-        >
-          <span className="flex items-center gap-1">
-            <FileText className="w-2.5 h-2.5 text-amber-200" />
-            Exam / CT
-          </span>
-          <span className="text-[8px] font-sans font-medium tabular-nums truncate ml-1 opacity-95">
-            {event.marks || 'Assessment'}
-          </span>
-        </div>
-      )}
-
-      {/* TOP ROW: Micro metadata only */}
+      {/* TOP ROW: Inline uppercase EXAM/CT label or Lab group label on left, Start Time on right */}
       <div className="flex items-center justify-between gap-1.5 leading-none shrink-0 min-h-[14px] overflow-visible">
-        {/* Left: Lab group indicator */}
-        {isLab && (
+        {isExam ? (
+          <span
+            className={`text-[10px] font-sans font-semibold uppercase tracking-wider leading-none shrink-0 ${
+              isDark ? 'text-stone-600' : 'text-stone-300'
+            }`}
+          >
+            {wideExamPillLabel}
+          </span>
+        ) : isLab ? (
           <div className="min-w-0 truncate">
             <span
               className={`text-[10px] font-medium tracking-tight truncate font-sans ${
-                isDark ? 'text-zinc-400' : 'text-zinc-500'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
               {labSubline}
             </span>
           </div>
-        )}
+        ) : null}
 
         {/* Right: Start Time (e.g. "8:50 AM", "2:30 PM") */}
         <span
           className={`text-[11px] font-sans font-medium whitespace-nowrap shrink-0 tabular-nums ml-auto overflow-visible ${
             isExam
               ? isDark
-                ? 'text-amber-300 font-semibold'
-                : 'text-amber-900 font-semibold'
+                ? 'text-stone-600'
+                : 'text-stone-300'
               : isDark
-              ? 'text-zinc-400'
-              : 'text-zinc-500'
+              ? 'text-stone-400'
+              : 'text-stone-500'
           }`}
         >
           {formattedStartTime}
         </span>
       </div>
 
-      {/* MIDDLE AREA: Full Width Spacious Course Code with no sibling elements */}
+      {/* MIDDLE AREA: Full Width Spacious Course Code */}
       <div className="my-auto py-1 w-full overflow-visible">
         <div
           className={`font-semibold text-sm font-sans tracking-normal whitespace-nowrap overflow-visible ${
             isExam
               ? isDark
-                ? 'text-amber-100'
-                : 'text-[#78350F]'
+                ? 'text-stone-900'
+                : 'text-stone-50'
               : isDark
-              ? 'text-zinc-100'
-              : 'text-[#09090B]'
+              ? 'text-stone-100'
+              : 'text-stone-900'
           }`}
         >
           {courseCode}
@@ -299,17 +314,27 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         className={`text-[11px] font-sans tabular-nums shrink-0 truncate flex items-center gap-1 leading-none ${
           isExam
             ? isDark
-              ? 'text-amber-200/90'
-              : 'text-amber-900/90'
+              ? 'text-stone-600'
+              : 'text-stone-300'
             : isDark
-            ? 'text-zinc-400'
-            : 'text-zinc-500'
+            ? 'text-stone-400'
+            : 'text-stone-500'
         }`}
       >
         <span className="font-medium truncate">{event.room || 'TBA'}</span>
         {facultyInitials && (
           <>
-            <span className={isExam ? 'text-amber-500/50' : isDark ? 'text-zinc-600' : 'text-zinc-400'}>
+            <span
+              className={
+                isExam
+                  ? isDark
+                    ? 'text-stone-400'
+                    : 'text-stone-500'
+                  : isDark
+                  ? 'text-stone-600'
+                  : 'text-stone-400'
+              }
+            >
               ·
             </span>
             <span className="font-normal truncate">{facultyInitials}</span>

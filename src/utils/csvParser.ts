@@ -1,4 +1,5 @@
-import { RoutineEvent, RoutineAssignment, EventType, EventStatus } from '../types/routine';
+import { RoutineEvent, RoutineAssignment, TermFinalExam, EventType, EventStatus } from '../types/routine';
+import { parseExamDate, sortTermFinalsChronologically } from './termFinalUtils';
 
 /**
  * Standard CSV parser that handles quotes and commas
@@ -48,24 +49,57 @@ export function parseCSV(csvText: string): string[][] {
   return rows;
 }
 
+function splitCourseCodeAndTitle(rawSubject: string): { courseCode: string; courseTitle: string } {
+  const cleaned = (rawSubject || '').trim();
+  if (!cleaned) return { courseCode: '', courseTitle: '' };
+
+  const colonIdx = cleaned.indexOf(':');
+  if (colonIdx !== -1) {
+    return {
+      courseCode: cleaned.slice(0, colonIdx).trim(),
+      courseTitle: cleaned.slice(colonIdx + 1).trim(),
+    };
+  }
+
+  const dashMatch = cleaned.match(/^(.+?)\s+[-–—]\s+(.+)$/);
+  if (dashMatch) {
+    return {
+      courseCode: dashMatch[1].trim(),
+      courseTitle: dashMatch[2].trim(),
+    };
+  }
+
+  return { courseCode: cleaned, courseTitle: '' };
+}
+
 /**
- * Converts parsed CSV rows into separated weekly RoutineEvent[] and active RoutineAssignment[]
+ * Converts parsed CSV rows into separated weekly RoutineEvent[], active RoutineAssignment[],
+ * and chronological TermFinalExam[] (Type = TF).
  * Expected headers (case-insensitive):
- * day, startTime, endTime, subject, teacher, room, type, status, syllabus, marks
+ * day, startTime, endTime, subject (and/or courseCode, courseTitle), teacher, room, type, status, syllabus, marks
  */
 export function parseRoutineCSVRows(rows: string[][]): {
   events: RoutineEvent[];
   assignments: RoutineAssignment[];
+  termFinals: TermFinalExam[];
 } {
-  if (rows.length < 2) return { events: [], assignments: [] };
+  if (rows.length < 2) return { events: [], assignments: [], termFinals: [] };
 
   const headers = rows[0].map((h) => h.toLowerCase().trim().replace(/[^a-z0-9]/g, ''));
 
-  const dayIdx = headers.findIndex((h) => h.includes('day'));
+  const dayIdx = headers.findIndex((h) => h.includes('day') || h === 'date');
   const startIdx = headers.findIndex((h) => h.includes('start'));
   const endIdx = headers.findIndex((h) => h.includes('end'));
-  const subjectIdx = headers.findIndex((h) => h.includes('subject') || h.includes('course'));
-  const teacherIdx = headers.findIndex((h) => h.includes('teacher') || h.includes('instructor'));
+  const courseCodeIdx = headers.findIndex((h) => h === 'coursecode' || h === 'code');
+  const courseTitleIdx = headers.findIndex((h) => h === 'coursetitle' || h === 'title');
+  const subjectIdx = headers.findIndex(
+    (h) => h.includes('subject') || h === 'course' || h === 'coursename'
+  );
+  const fallbackSubjectIdx =
+    subjectIdx >= 0 ? subjectIdx : headers.findIndex((h) => h.includes('course'));
+  const teacherIdx = headers.findIndex(
+    (h) => h.includes('teacher') || h.includes('instructor') || h.includes('faculty')
+  );
   const roomIdx = headers.findIndex((h) => h.includes('room'));
   const typeIdx = headers.findIndex((h) => h.includes('type'));
   const statusIdx = headers.findIndex((h) => h.includes('status'));
@@ -84,6 +118,7 @@ export function parseRoutineCSVRows(rows: string[][]): {
 
   const events: RoutineEvent[] = [];
   const assignments: RoutineAssignment[] = [];
+  const termFinals: TermFinalExam[] = [];
 
   for (let r = 1; r < rows.length; r++) {
     const row = rows[r];
@@ -97,7 +132,7 @@ export function parseRoutineCSVRows(rows: string[][]): {
     const lowerType = rawType.toLowerCase();
     const lowerStatus = rawStatus.toLowerCase();
 
-    // Route Assignment rows (by day or type, case-insensitive) out of the weekly grid
+    // 1. Route Assignment rows (by day or type, case-insensitive) out of the weekly grid
     const isAssignmentRow =
       lowerDay === 'assignment' ||
       lowerDay === 'assignments' ||
@@ -109,7 +144,7 @@ export function parseRoutineCSVRows(rows: string[][]): {
         continue;
       }
 
-      const subject = (subjectIdx >= 0 ? row[subjectIdx] : '')?.trim() || '';
+      const subject = (fallbackSubjectIdx >= 0 ? row[fallbackSubjectIdx] : '')?.trim() || '';
       const syllabus = (syllabusIdx >= 0 ? row[syllabusIdx] : '')?.trim() || '';
       if (!subject && !syllabus) continue;
 
@@ -131,13 +166,89 @@ export function parseRoutineCSVRows(rows: string[][]): {
       continue;
     }
 
+    // 2. Route Term Final (Type = TF) rows into dedicated chronological exam list
+    const isTermFinalRow =
+      lowerType === 'tf' || lowerType === 'term final' || lowerType === 'termfinal';
+
+    if (isTermFinalRow) {
+      const parsedDate = parseExamDate(rawDay);
+      if (!parsedDate) continue;
+
+      const startTime = (startIdx >= 0 ? row[startIdx] : '')?.trim() || '10:00';
+      const endTime = (endIdx >= 0 ? row[endIdx] : '')?.trim() || '13:00';
+
+      const explicitCode = (courseCodeIdx >= 0 ? row[courseCodeIdx] : '')?.trim() || '';
+      const explicitTitle = (courseTitleIdx >= 0 ? row[courseTitleIdx] : '')?.trim() || '';
+      const rawSubject = (subjectIdx >= 0 ? row[subjectIdx] : '')?.trim() || '';
+
+      let courseCode = explicitCode;
+      let courseTitle = explicitTitle;
+
+      if (!courseCode && !courseTitle && rawSubject) {
+        const split = splitCourseCodeAndTitle(rawSubject);
+        courseCode = split.courseCode;
+        courseTitle = split.courseTitle;
+      } else if (courseCode && !courseTitle && rawSubject && rawSubject !== courseCode) {
+        const split = splitCourseCodeAndTitle(rawSubject);
+        courseTitle = split.courseTitle || (split.courseCode !== courseCode ? split.courseCode : '');
+      }
+
+      if (!courseCode && !courseTitle) continue;
+
+      const subject =
+        courseCode && courseTitle
+          ? `${courseCode}: ${courseTitle}`
+          : courseCode || courseTitle;
+
+      const room = (roomIdx >= 0 ? row[roomIdx] : '')?.trim() || '';
+      const teacher = (teacherIdx >= 0 ? row[teacherIdx] : '')?.trim() || '';
+      const syllabus = (syllabusIdx >= 0 ? row[syllabusIdx] : '')?.trim() || '';
+      const marks = (marksIdx >= 0 ? row[marksIdx] : '')?.trim() || '';
+
+      const status: EventStatus =
+        lowerStatus === 'cancelled' || lowerStatus === 'canceled'
+          ? 'Cancelled'
+          : lowerStatus === 'rescheduled'
+          ? 'Rescheduled'
+          : 'Normal';
+
+      termFinals.push({
+        id: `tf-${r}`,
+        rawDate: rawDay,
+        dateISO: parsedDate.dateISO,
+        displayDate: parsedDate.displayDate,
+        weekdayShort: parsedDate.weekdayShort,
+        weekdayLong: parsedDate.weekdayLong,
+        startTime,
+        endTime,
+        courseCode: courseCode || courseTitle,
+        courseTitle,
+        subject,
+        room,
+        teacher,
+        status,
+        syllabus,
+        marks,
+      });
+      continue;
+    }
+
     if (row.length < 3) continue;
 
     const dayMatch = validDays.find((d) => d.toLowerCase() === lowerDay) || 'Sunday';
 
     const startTime = (startIdx >= 0 ? row[startIdx] : '')?.trim() || '08:00';
     const endTime = (endIdx >= 0 ? row[endIdx] : '')?.trim() || '08:50';
-    const subject = (subjectIdx >= 0 ? row[subjectIdx] : '')?.trim() || 'Unnamed Course';
+
+    const explicitCode = (courseCodeIdx >= 0 ? row[courseCodeIdx] : '')?.trim() || '';
+    const explicitTitle = (courseTitleIdx >= 0 ? row[courseTitleIdx] : '')?.trim() || '';
+    const rawSubject = (fallbackSubjectIdx >= 0 ? row[fallbackSubjectIdx] : '')?.trim() || '';
+    const subject =
+      rawSubject ||
+      (explicitCode && explicitTitle
+        ? `${explicitCode}: ${explicitTitle}`
+        : explicitCode || explicitTitle || 'Unnamed Course');
+
     const teacher = (teacherIdx >= 0 ? row[teacherIdx] : '')?.trim() || '';
     const room = (roomIdx >= 0 ? row[roomIdx] : '')?.trim() || '';
 
@@ -159,7 +270,7 @@ export function parseRoutineCSVRows(rows: string[][]): {
 
     const effectiveRawStatus = rawStatus || 'Normal';
     const status: EventStatus =
-      effectiveRawStatus.toLowerCase() === 'cancelled'
+      effectiveRawStatus.toLowerCase() === 'cancelled' || effectiveRawStatus.toLowerCase() === 'canceled'
         ? 'Cancelled'
         : effectiveRawStatus.toLowerCase() === 'rescheduled'
         ? 'Rescheduled'
@@ -183,7 +294,11 @@ export function parseRoutineCSVRows(rows: string[][]): {
     });
   }
 
-  return { events, assignments };
+  return {
+    events,
+    assignments,
+    termFinals: sortTermFinalsChronologically(termFinals),
+  };
 }
 
 /**

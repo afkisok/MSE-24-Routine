@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { RoutineEvent, RoutineAssignment, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
+import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
 import { baselineTestData } from './data/baselineData';
 import {
   DAY_START_MINUTES,
@@ -10,9 +10,11 @@ import {
 import { parseAlternatingSchedule } from './utils/alternatingLabEngine';
 import { parseCSV, parseRoutineCSVRows } from './utils/csvParser';
 import { processDifferentialLogs } from './utils/deltaLogEngine';
+import { isWithinTermFinalWindow, termFinalToRoutineEvent } from './utils/termFinalUtils';
 import { Header } from './components/Header';
 import { AtAGlanceWidget } from './components/AtAGlanceWidget';
 import { MasterTimelineGrid } from './components/MasterTimelineGrid';
+import { TermFinalsList } from './components/TermFinalsList';
 import { EventModal } from './components/EventModal';
 import { AssignmentsModal } from './components/AssignmentsModal';
 import { AdminConfigModal } from './components/AdminConfigModal';
@@ -22,6 +24,7 @@ import { Clock } from 'lucide-react';
 
 const CACHED_EVENTS_KEY = 'mse24_cached_routine_events';
 const CACHED_ASSIGNMENTS_KEY = 'mse24_cached_routine_assignments';
+const CACHED_TERM_FINALS_KEY = 'mse24_cached_routine_term_finals';
 const CACHED_SYNC_TIME_KEY = 'mse24_cached_sync_time';
 const ADMIN_CSV_URL_KEY = 'admin_routine_csv_url';
 
@@ -65,6 +68,23 @@ export default function App() {
     return [];
   });
 
+  const [termFinals, setTermFinals] = useState<TermFinalExam[]>(() => {
+    try {
+      const cached = localStorage.getItem(CACHED_TERM_FINALS_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load cached term finals:', e);
+    }
+    return [];
+  });
+
+  const [showWeeklyOverride, setShowWeeklyOverride] = useState(false);
+
   const [selectedEvent, setSelectedEvent] = useState<RoutineEvent | null>(null);
   const [isAssignmentsModalOpen, setIsAssignmentsModalOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -100,6 +120,14 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+
+    let themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    if (!themeColorMeta) {
+      themeColorMeta = document.createElement('meta');
+      themeColorMeta.name = 'theme-color';
+      document.head.appendChild(themeColorMeta);
+    }
+    themeColorMeta.content = theme === 'dark' ? '#141312' : '#FAF9F6';
   }, [theme]);
 
   const handleToggleTheme = () => {
@@ -139,8 +167,19 @@ export default function App() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [currentMinuteOffset, setCurrentMinuteOffset] = useState<number | null>(null);
   const [todayName, setTodayName] = useState<string>('');
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
   const [highlightedEventKey, setHighlightedEventKey] = useState<string | null>(null);
   const highlightTimerRef = useRef<number | null>(null);
+
+  const hasActiveTermFinals = isWithinTermFinalWindow(termFinals, nowMs);
+  const isTermFinalView = hasActiveTermFinals && !showWeeklyOverride;
+
+  // Automatically reset manual weekly override once all TF exams expire or disappear
+  useEffect(() => {
+    if (!hasActiveTermFinals && showWeeklyOverride) {
+      setShowWeeklyOverride(false);
+    }
+  }, [hasActiveTermFinals, showWeeklyOverride]);
 
   // Sliding pill measurement for Group Toggle
   const groupTabRefs = useRef<Record<'All' | 'Group A' | 'Group B', HTMLButtonElement | null>>({
@@ -155,6 +194,7 @@ export default function App() {
   });
 
   useLayoutEffect(() => {
+    if (isTermFinalView) return;
     const updatePill = () => {
       const activeEl = groupTabRefs.current[selectedGroup];
       if (!activeEl) return;
@@ -168,7 +208,22 @@ export default function App() {
     updatePill();
     window.addEventListener('resize', updatePill);
     return () => window.removeEventListener('resize', updatePill);
-  }, [selectedGroup]);
+  }, [selectedGroup, isTermFinalView]);
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        setIsMounted(true);
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -209,8 +264,12 @@ export default function App() {
       if (!res.ok) throw new Error(`HTTP_${res.status}`);
       const csvText = await res.text();
       const rawRows = parseCSV(csvText);
-      const { events: parsed, assignments: parsedAssignments } = parseRoutineCSVRows(rawRows);
-      if (parsed.length === 0 && parsedAssignments.length === 0) {
+      const {
+        events: parsed,
+        assignments: parsedAssignments,
+        termFinals: parsedTermFinals,
+      } = parseRoutineCSVRows(rawRows);
+      if (parsed.length === 0 && parsedAssignments.length === 0 && parsedTermFinals.length === 0) {
         throw new Error('NO_VALID_DATA_ROWS');
       }
 
@@ -218,12 +277,14 @@ export default function App() {
         setEvents(parsed);
       }
       setAssignments(parsedAssignments);
+      setTermFinals(parsedTermFinals);
 
       try {
         if (parsed.length > 0) {
           localStorage.setItem(CACHED_EVENTS_KEY, JSON.stringify(parsed));
         }
         localStorage.setItem(CACHED_ASSIGNMENTS_KEY, JSON.stringify(parsedAssignments));
+        localStorage.setItem(CACHED_TERM_FINALS_KEY, JSON.stringify(parsedTermFinals));
         const nowISO = new Date().toISOString();
         localStorage.setItem(CACHED_SYNC_TIME_KEY, nowISO);
         setLastSyncTime(nowISO);
@@ -279,11 +340,14 @@ export default function App() {
     try {
       localStorage.removeItem(CACHED_EVENTS_KEY);
       localStorage.removeItem(CACHED_ASSIGNMENTS_KEY);
+      localStorage.removeItem(CACHED_TERM_FINALS_KEY);
     } catch (e) {
       console.warn('Failed to clear cached events:', e);
     }
     setEvents(baselineTestData);
     setAssignments([]);
+    setTermFinals([]);
+    setShowWeeklyOverride(false);
     processDifferentialLogs(baselineTestData);
     setSyncStatus({ status: 'idle', message: 'BASELINE_DEFAULT_RESTORED' });
   };
@@ -292,6 +356,7 @@ export default function App() {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
+      setNowMs(now.getTime());
       const day = now.toLocaleDateString('en-US', { weekday: 'long' });
       setTodayName(day);
 
@@ -417,137 +482,196 @@ export default function App() {
     <div
       className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
         isDark
-          ? 'bg-[#0F172A] text-white selection:bg-slate-700 selection:text-white'
-          : 'bg-white text-[#0F172A] selection:bg-slate-200 selection:text-slate-900'
+          ? 'bg-[#141312] text-stone-100 selection:bg-stone-800 selection:text-stone-100'
+          : 'bg-[#FAF9F6] text-stone-900 selection:bg-stone-200 selection:text-stone-900'
       }`}
     >
-      {/* Aviation Operations Header with B24 Hidden Admin Door and Discreet Refresh */}
+      {/* Aviation Operations Header with MSE '24 Hidden Admin Door and Discreet Refresh */}
       <Header
         onManualSync={() => fetchAndSync()}
         syncStatus={syncStatus}
         theme={theme}
         onToggleTheme={handleToggleTheme}
         onTriggerAdminVerification={() => setIsPinDialogOpen(true)}
+        isMounted={isMounted}
       />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-5 flex flex-col overflow-x-hidden">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-5 pb-7 flex flex-col overflow-x-hidden">
         {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
-        <AtAGlanceWidget
-          events={events}
-          onSelectEvent={(evt) => setSelectedEvent(evt)}
-          theme={theme}
-          selectedGroup={selectedGroup}
-          assignmentsCount={assignments.length}
-          onOpenAssignments={() => setIsAssignmentsModalOpen(true)}
-        />
-
-        {/* UNIFIED SCHEDULE MATRIX */}
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 px-1">
-            <div className="flex items-center gap-2">
-              <h2
-                className={`font-bold text-sm tracking-tight ${
-                  isDark ? 'text-white' : 'text-[#0F172A]'
-                }`}
-              >
-                Weekly Routine
-              </h2>
-            </div>
-
-            {/* Group Selector & Jump to Now Controls (Harmonized h-9 row) */}
-            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
-              {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
-              <div
-                className={`relative h-9 inline-flex items-center p-1 rounded-full border transition-colors box-border ${
-                  isDark ? 'bg-[#18181B] border-[#27272A]' : 'bg-slate-100 border-slate-200'
-                }`}
-                role="tablist"
-                aria-label="Filter schedule by Section or Lab Group"
-              >
-                {/* Sliding Active Indicator Pill */}
-                <div
-                  aria-hidden="true"
-                  style={{
-                    transform: `translateX(${pillStyle.left}px)`,
-                    width: `${pillStyle.width}px`,
-                    opacity: pillStyle.ready ? 1 : 0,
-                  }}
-                  className={`absolute top-1 bottom-1 left-0 rounded-full pointer-events-none ${
-                    pillStyle.ready ? 'transition-[transform,width] duration-200 ease-out' : ''
-                  } ${
-                    isDark ? 'bg-white shadow-xs' : 'bg-[#0F172A] shadow-xs'
-                  }`}
-                />
-                {(['All', 'Group A', 'Group B'] as const).map((groupOption) => {
-                  const isSelected = selectedGroup === groupOption;
-                  return (
-                    <button
-                      key={groupOption}
-                      ref={(el) => {
-                        groupTabRefs.current[groupOption] = el;
-                      }}
-                      type="button"
-                      role="tab"
-                      aria-selected={isSelected}
-                      onClick={() => setSelectedGroup(groupOption)}
-                      className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center ${
-                        isSelected
-                          ? isDark
-                            ? 'text-[#0F172A]'
-                            : 'text-white'
-                          : isDark
-                          ? 'text-zinc-400 hover:text-white'
-                          : 'text-slate-600 hover:text-slate-900'
-                      }`}
-                    >
-                      {groupOption}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Compact Tactile Micro-Pill "Jump to Now" Button (Harmonized h-9) */}
-              <button
-                type="button"
-                onClick={handleScrollToNow}
-                title="Jump view to current operating hour"
-                className={`h-9 px-3.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
-                  isDark
-                    ? 'bg-[#18181B] hover:bg-[#27272A] text-[#FAFAFA] border-[#27272A] shadow-2xs'
-                    : 'bg-white hover:bg-slate-50 text-[#09090B] border-slate-200 shadow-2xs'
-                }`}
-              >
-                <Clock className={`w-3.5 h-3.5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
-                <span>Now</span>
-              </button>
-            </div>
-          </div>
-
-          <MasterTimelineGrid
-            days={OPERATIONAL_DAYS}
+        <div
+          className={`transition-[opacity,transform] duration-300 ease-out delay-[50ms] ${
+            isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+          }`}
+        >
+          <AtAGlanceWidget
             events={events}
-            todayName={todayName}
-            currentMinuteOffset={currentMinuteOffset}
             onSelectEvent={(evt) => setSelectedEvent(evt)}
-            scrollRef={scrollContainerRef}
             theme={theme}
             selectedGroup={selectedGroup}
-            highlightedEventKey={highlightedEventKey}
+            assignmentsCount={assignments.length}
+            onOpenAssignments={() => setIsAssignmentsModalOpen(true)}
+            isTermFinalMode={isTermFinalView}
+            termFinals={termFinals}
+            nowMs={nowMs}
+            onSelectTermFinal={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
           />
         </div>
 
-        {/* Clean Production Footer */}
-        <footer
-          className={`mt-8 pt-4 pb-6 border-t flex items-center justify-center text-xs font-sans transition-colors ${
-            isDark
-              ? 'border-[#334155] text-slate-400'
-              : 'border-[#E2E8F0] text-slate-500'
-          }`}
-        >
-          <span className="font-medium text-center">
-            MSE 2K24 / Batch Routine
-          </span>
-        </footer>
+        {/* UNIFIED SCHEDULE MATRIX / TERM FINALS FULL-WIDTH VIEW */}
+        <div>
+          <div
+            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 px-1 transition-[opacity,transform] duration-300 ease-out delay-[100ms] ${
+              isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
+              <h2
+                className={`font-bold text-sm tracking-tight ${
+                  isDark ? 'text-stone-100' : 'text-stone-900'
+                }`}
+              >
+                {isTermFinalView ? 'Term Finals' : 'Weekly Routine'}
+              </h2>
+
+              {isTermFinalView && (
+                <button
+                  type="button"
+                  onClick={() => setShowWeeklyOverride(true)}
+                  className={`sm:hidden h-8 px-3 text-xs font-medium rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+                    isDark
+                      ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-300 hover:text-stone-100 border-stone-800'
+                      : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-900 border-stone-300'
+                  }`}
+                >
+                  Weekly Grid
+                </button>
+              )}
+            </div>
+
+            {isTermFinalView ? (
+              <button
+                type="button"
+                onClick={() => setShowWeeklyOverride(true)}
+                className={`hidden sm:inline-flex h-9 px-3.5 text-xs font-medium rounded-full items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+                  isDark
+                    ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-300 hover:text-stone-100 border-stone-800'
+                    : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-900 border-stone-300'
+                }`}
+              >
+                Weekly Grid
+              </button>
+            ) : (
+              /* Group Selector & Jump to Now Controls (Harmonized h-9 row) */
+              <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
+                <div
+                  className={`relative h-9 inline-flex items-center p-1 rounded-full border transition-colors box-border ${
+                    isDark ? 'bg-[#24211E] border-stone-800' : 'bg-stone-100 border-stone-200'
+                  }`}
+                  role="tablist"
+                  aria-label="Filter schedule by Section or Lab Group"
+                >
+                  {/* Sliding Active Indicator Pill */}
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      transform: `translateX(${pillStyle.left}px)`,
+                      width: `${pillStyle.width}px`,
+                      opacity: pillStyle.ready ? 1 : 0,
+                    }}
+                    className={`absolute top-1 bottom-1 left-0 rounded-full pointer-events-none ${
+                      pillStyle.ready ? 'transition-[transform,width] duration-200 ease-out' : ''
+                    } ${
+                      isDark ? 'bg-stone-100 shadow-xs' : 'bg-stone-900 shadow-xs'
+                    }`}
+                  />
+                  {(['All', 'Group A', 'Group B'] as const).map((groupOption) => {
+                    const isSelected = selectedGroup === groupOption;
+                    return (
+                      <button
+                        key={groupOption}
+                        ref={(el) => {
+                          groupTabRefs.current[groupOption] = el;
+                        }}
+                        type="button"
+                        role="tab"
+                        aria-selected={isSelected}
+                        onClick={() => setSelectedGroup(groupOption)}
+                        className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center ${
+                          isSelected
+                            ? isDark
+                              ? 'text-stone-900'
+                              : 'text-stone-50'
+                            : isDark
+                            ? 'text-stone-400 hover:text-stone-100'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                      >
+                        {groupOption}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Compact Tactile Micro-Pill "Jump to Now" Button (Harmonized h-9) */}
+                <button
+                  type="button"
+                  onClick={handleScrollToNow}
+                  title="Jump view to current operating hour"
+                  className={`h-9 px-3.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+                    isDark
+                      ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-100 border-stone-800 shadow-2xs'
+                      : 'bg-white hover:bg-stone-50 text-stone-900 border-stone-300 shadow-2xs'
+                  }`}
+                >
+                  <Clock className={`w-3.5 h-3.5 ${isDark ? 'text-stone-300' : 'text-stone-600'}`} />
+                  <span>Now</span>
+                </button>
+
+                {hasActiveTermFinals && (
+                  <button
+                    type="button"
+                    onClick={() => setShowWeeklyOverride(false)}
+                    className={`h-9 px-3.5 text-xs font-semibold rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+                      isDark
+                        ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
+                        : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
+                    }`}
+                  >
+                    Term Finals
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div
+            className={`transition-[opacity,transform] duration-300 ease-out delay-[150ms] ${
+              isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
+          >
+            {isTermFinalView ? (
+              <TermFinalsList
+                termFinals={termFinals}
+                nowMs={nowMs}
+                theme={theme}
+                onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
+              />
+            ) : (
+              <MasterTimelineGrid
+                days={OPERATIONAL_DAYS}
+                events={events}
+                todayName={todayName}
+                currentMinuteOffset={currentMinuteOffset}
+                onSelectEvent={(evt) => setSelectedEvent(evt)}
+                scrollRef={scrollContainerRef}
+                theme={theme}
+                selectedGroup={selectedGroup}
+                highlightedEventKey={highlightedEventKey}
+              />
+            )}
+          </div>
+        </div>
       </main>
 
       {/* Flight Manifest Modal Inspector */}

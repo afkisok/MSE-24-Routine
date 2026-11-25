@@ -39,7 +39,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-2xs select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-2xs select-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -47,20 +47,20 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
       <div
         className={`relative w-full max-w-2xl rounded-xs p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] transition-all border ${
           isDark
-            ? 'bg-[#0F172A] border-[#334155] text-white'
-            : 'bg-white border-[#E2E8F0] text-[#0F172A]'
+            ? 'bg-[#1C1A18] border-stone-800 text-stone-100'
+            : 'bg-white border-stone-200 text-stone-900'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div
           className={`flex items-center justify-between pb-3 mb-2 border-b transition-colors ${
-            isDark ? 'border-[#334155]' : 'border-[#E2E8F0]'
+            isDark ? 'border-stone-800' : 'border-stone-200'
           }`}
         >
           <div className="flex items-center gap-2">
             <div
               className={`w-7 h-7 rounded-2xs flex items-center justify-center font-mono transition-colors ${
-                isDark ? 'bg-white text-[#0F172A]' : 'bg-[#0F172A] text-white'
+                isDark ? 'bg-stone-100 text-stone-900' : 'bg-stone-900 text-stone-50'
               }`}
             >
               <FileCode className="w-4 h-4" />
@@ -68,12 +68,12 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             <div>
               <h3
                 className={`text-sm sm:text-base font-bold uppercase font-mono leading-tight ${
-                  isDark ? 'text-white' : 'text-[#0F172A]'
+                  isDark ? 'text-stone-100' : 'text-stone-900'
                 }`}
               >
                 Standalone Aviation Dashboard HTML
               </h3>
-              <p className={`text-[11px] font-mono ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <p className={`text-[11px] font-mono ${isDark ? 'text-stone-400' : 'text-stone-500'}`}>
                 Self-contained, zero-dependency public utility distribution file
               </p>
             </div>
@@ -83,8 +83,8 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             onClick={onClose}
             className={`w-7 h-7 rounded-2xs flex items-center justify-center transition-colors cursor-pointer border ${
               isDark
-                ? 'bg-[#1E293B] hover:bg-[#334155] text-slate-300 hover:text-white border-[#334155]'
-                : 'bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border-slate-200'
+                ? 'bg-[#24211E] hover:bg-stone-800 text-stone-300 hover:text-stone-100 border-stone-700'
+                : 'bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border-stone-200'
             }`}
             aria-label="Close dialog"
           >
@@ -92,7 +92,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
           </button>
         </div>
 
-        <p className={`text-xs mb-3 leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+        <p className={`text-xs mb-3 leading-relaxed ${isDark ? 'text-stone-300' : 'text-stone-600'}`}>
           Contains the complete Aviation Flight Schedule Dashboard utility runtime: dynamic 08:00–17:00 timeline scaling, 1px hairlines matrix, live CSV spreadsheet sync engine, exam alert blocks, and modal manifests in a single runnable HTML file.
         </p>
 
@@ -102,18 +102,18 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             onClick={handleCopy}
             className={`text-xs py-1.5 px-3.5 rounded-xs cursor-pointer font-mono font-semibold transition-colors border ${
               isDark
-                ? 'bg-white hover:bg-slate-100 text-[#0F172A] border-white'
+                ? 'bg-stone-100 hover:bg-stone-200 text-stone-900 border-stone-100'
                 : 'aviation-btn-primary'
             }`}
           >
             {copied ? (
               <>
-                <Check className={`w-3.5 h-3.5 ${isDark ? 'text-[#0F172A]' : 'text-white'}`} />
+                <Check className={`w-3.5 h-3.5 ${isDark ? 'text-stone-900' : 'text-stone-50'}`} />
                 <span>COPIED TO CLIPBOARD!</span>
               </>
             ) : (
               <>
-                <Copy className={`w-3.5 h-3.5 ${isDark ? 'text-[#0F172A]' : 'text-white'}`} />
+                <Copy className={`w-3.5 h-3.5 ${isDark ? 'text-stone-900' : 'text-stone-50'}`} />
                 <span>COPY HTML PAYLOAD</span>
               </>
             )}
@@ -123,11 +123,11 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             onClick={handleDownload}
             className={`text-xs py-1.5 px-3.5 rounded-xs cursor-pointer font-mono font-semibold transition-colors border ${
               isDark
-                ? 'bg-[#1E293B] hover:bg-[#334155] text-white border-[#334155]'
+                ? 'bg-[#24211E] hover:bg-stone-800 text-stone-100 border-stone-700'
                 : 'aviation-btn-secondary'
             }`}
           >
-            <Download className={`w-3.5 h-3.5 ${isDark ? 'text-slate-300' : 'text-slate-700'}`} />
+            <Download className={`w-3.5 h-3.5 ${isDark ? 'text-stone-300' : 'text-stone-700'}`} />
             <span>DOWNLOAD .HTML FILE</span>
           </button>
         </div>
@@ -136,8 +136,8 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
         <div
           className={`flex-1 min-h-[200px] overflow-hidden rounded-2xs p-3 font-mono text-[11px] border transition-colors ${
             isDark
-              ? 'border-[#334155] bg-[#0B1120] text-slate-300'
-              : 'border-[#E2E8F0] bg-slate-50 text-slate-700'
+              ? 'border-stone-800 bg-[#141312] text-stone-300'
+              : 'border-stone-200 bg-stone-50 text-stone-700'
           }`}
         >
           <pre className="overflow-y-auto max-h-[240px] leading-relaxed select-all">
@@ -148,14 +148,14 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
 
         <div
           className={`mt-3 pt-2.5 flex items-center justify-between text-[11px] font-mono border-t transition-colors ${
-            isDark ? 'border-[#334155] text-slate-400' : 'border-[#E2E8F0] text-slate-500'
+            isDark ? 'border-stone-800 text-stone-400' : 'border-stone-200 text-stone-500'
           }`}
         >
           <span>Ready for hosting on GitHub Pages, Cloudflare, or local offline run</span>
           <button
             onClick={onClose}
             className={`font-bold hover:underline cursor-pointer ${
-              isDark ? 'text-white' : 'text-[#0F172A]'
+              isDark ? 'text-stone-100' : 'text-stone-900'
             }`}
           >
             DISMISS

@@ -65,24 +65,24 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
       <div
         className={`rounded-[20px] overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
           isDark
-            ? 'bg-neutral-950 border-[#334155]'
-            : 'bg-slate-200/80 border-[#E2E8F0]'
+            ? 'bg-[#11100F] border-stone-800'
+            : 'bg-stone-100 border-stone-200'
         }`}
       >
       {/* 1. RIGID STATIC LEFT CONTAINER: Precision Day Track Column */}
       <div
         className={`w-24 sm:w-32 shrink-0 flex flex-col z-20 border-r transition-colors ${
           isDark
-            ? 'border-[#334155] bg-[#0B1120]'
-            : 'border-[#E2E8F0] bg-slate-50/70'
+            ? 'border-stone-800 bg-[#141312]'
+            : 'border-stone-200 bg-[#FAF9F6]'
         }`}
       >
         {/* Static Header Axis Box (h-10) */}
         <div
           className={`h-10 px-3 flex items-center justify-center text-center text-xs font-bold tracking-tight border-b transition-colors ${
             isDark
-              ? 'border-[#334155] bg-[#131D31] text-white'
-              : 'border-[#E2E8F0] bg-slate-100/80 text-[#0F172A]'
+              ? 'border-stone-800 bg-[#1C1A18] text-stone-100'
+              : 'border-stone-200 bg-stone-100 text-stone-900'
           }`}
         >
           <span>Day</span>
@@ -100,8 +100,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               key={`static-${day}`}
               className={`h-24 p-2 flex items-center justify-center transition-colors border-b last:border-b-0 ${
                 isDark
-                  ? `border-[#334155] ${isToday ? 'bg-[#131D31]' : 'bg-[#0B1120]'}`
-                  : `border-[#E2E8F0] ${isToday ? 'bg-slate-100/90' : 'bg-slate-50/40'}`
+                  ? `border-stone-800 ${isToday ? 'bg-[#1C1A18]' : 'bg-[#141312]'}`
+                  : `border-stone-200 ${isToday ? 'bg-stone-100' : 'bg-[#FAF9F6]'}`
               }`}
             >
               {/* Centered Day Identifier Card */}
@@ -109,20 +109,17 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 className={`w-full h-full rounded-xl p-2 flex flex-col items-center justify-center text-center transition-all border ${
                   isToday
                     ? isDark
-                      ? 'bg-[#1E293B] border-emerald-500 text-white shadow-xs'
-                      : 'bg-[#0F172A] border-[#0F172A] text-white shadow-xs'
+                      ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
+                      : 'bg-stone-900 border-stone-900 text-stone-50 shadow-xs'
                     : isDark
-                    ? 'bg-[#131D31] border-[#334155] text-white hover:border-slate-500'
-                    : 'bg-white border-[#E2E8F0] text-[#0F172A] hover:border-slate-300'
+                    ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700'
+                    : 'bg-white border-stone-200 text-stone-900 hover:border-stone-300'
                 }`}
               >
-                <div className="flex items-center justify-center gap-1.5 leading-none">
+                <div className="flex items-center justify-center leading-none">
                   <span className="text-base font-bold tracking-tight">
                     {day.slice(0, 3)}
                   </span>
-                  {isToday && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  )}
                 </div>
                 <div className="mt-1 flex items-center justify-center gap-1 text-[10px] tracking-normal opacity-85 leading-none">
                   <span>{dayEventsCount} {dayEventsCount === 1 ? 'class' : 'classes'}</span>
@@ -138,7 +135,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
         <div
           ref={scrollRef}
           className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors shadow-inner ${
-            isDark ? 'bg-neutral-950' : 'bg-slate-200/80'
+            isDark ? 'bg-[#11100F]' : 'bg-stone-100'
           }`}
           style={{
             touchAction: 'pan-x pan-y',
@@ -150,8 +147,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           <div
             className={`h-10 px-6 flex items-center select-none border-b transition-colors ${
               isDark
-                ? 'border-[#334155] bg-[#131D31]'
-                : 'border-[#E2E8F0] bg-slate-100/70'
+                ? 'border-stone-800 bg-[#1C1A18]'
+                : 'border-stone-200 bg-stone-100'
             }`}
           >
             <div className="relative w-full h-full flex items-center">
@@ -162,14 +159,14 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     <div
                       style={{ left: `${marker.leftPercent}%` }}
                       className={`absolute bottom-0 h-2 w-px border-l pointer-events-none ${
-                        isDark ? 'border-[#334155]' : 'border-slate-300'
+                        isDark ? 'border-stone-700' : 'border-stone-300'
                       }`}
                     />
                     {/* Vertically and horizontally centered label directly over marker tick */}
                     <div
                       style={{ left: `${marker.leftPercent}%` }}
                       className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center text-[10px] font-sans font-medium whitespace-nowrap tabular-nums leading-none pointer-events-none ${
-                        isDark ? 'text-slate-300' : 'text-slate-600'
+                        isDark ? 'text-stone-300' : 'text-stone-600'
                       }`}
                     >
                       {formatTo12Hour(marker.timeStr)}
@@ -190,14 +187,14 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       className={`px-1.5 py-0.5 rounded-2xs text-[9px] font-sans font-semibold tracking-normal shadow-xs uppercase border ${
                         isDark
                           ? 'bg-emerald-500 text-white border-emerald-400'
-                          : 'bg-[#0F172A] text-white border-slate-700'
+                          : 'bg-stone-900 text-stone-50 border-stone-800'
                       }`}
                     >
                       Now
                     </div>
                     <div
                       className={`w-0.5 h-full ${
-                        isDark ? 'bg-emerald-500' : 'bg-[#0F172A]'
+                        isDark ? 'bg-emerald-500' : 'bg-stone-900'
                       }`}
                     />
                   </div>
@@ -217,8 +214,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 key={`track-${day}`}
                 className={`h-24 px-6 py-1 transition-colors border-b last:border-b-0 ${
                   isDark
-                    ? `border-neutral-800/80 ${isToday ? 'bg-white/[0.03]' : 'bg-transparent'}`
-                    : `border-slate-300/60 ${isToday ? 'bg-slate-200/50' : 'bg-transparent'}`
+                    ? `border-stone-800/80 ${isToday ? 'bg-stone-100/[0.03]' : 'bg-transparent'}`
+                    : `border-stone-200 ${isToday ? 'bg-stone-200/45' : 'bg-transparent'}`
                 }`}
               >
                 <div className="relative w-full h-full">
@@ -229,7 +226,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                         key={`gridline-${day}-${marker.timeStr}`}
                         style={{ left: `${marker.leftPercent}%` }}
                         className={`absolute top-0 bottom-0 w-px border-l ${
-                          isDark ? 'border-[#334155]/35' : 'border-slate-300/40'
+                          isDark ? 'border-stone-800/70' : 'border-stone-300/45'
                         }`}
                       />
                     ))}
@@ -243,7 +240,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       <div
                         style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
                         className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-0.5 z-20 pointer-events-none ${
-                          isDark ? 'bg-emerald-500 opacity-90' : 'bg-[#0F172A] opacity-85'
+                          isDark ? 'bg-emerald-500 opacity-90' : 'bg-stone-900 opacity-85'
                         }`}
                       />
                     )}
@@ -253,7 +250,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     {dayEvents.length === 0 ? (
                       <div
                         className={`h-full flex items-center justify-center text-xs font-sans ${
-                          isDark ? 'text-slate-500' : 'text-slate-400'
+                          isDark ? 'text-stone-500' : 'text-stone-400'
                         }`}
                       >
                         No classes scheduled for {day}
@@ -291,8 +288,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
       <div
         className={`absolute top-0 bottom-0 right-0 w-8 sm:w-12 pointer-events-none transition-opacity duration-150 z-30 ${
           isDark
-            ? 'bg-gradient-to-l from-neutral-950/90 to-transparent'
-            : 'bg-gradient-to-l from-slate-200/90 to-transparent'
+            ? 'bg-gradient-to-l from-[#11100F]/95 to-transparent'
+            : 'bg-gradient-to-l from-stone-100/95 to-transparent'
         }`}
         style={{
           opacity: rightGradientOpacity,

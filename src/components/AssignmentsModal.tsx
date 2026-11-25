@@ -115,8 +115,8 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
       <div
         className={`relative w-full max-w-lg rounded-t-[28px] sm:rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border transform-gpu will-change-transform overscroll-y-contain ${
           isDark
-            ? 'bg-[#18181B] border-[#27272A] text-[#F4F4F5]'
-            : 'bg-white border-[#E2E8F0] text-[#0F172A]'
+            ? 'bg-[#1C1A18] border-stone-800 text-stone-100'
+            : 'bg-white border-stone-200 text-stone-900'
         }`}
         style={sheetStyle}
         onClick={(e) => e.stopPropagation()}
@@ -131,7 +131,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
           <div className="flex justify-center -mt-1 mb-3 pt-1">
             <div
               className={`w-12 h-1.5 rounded-full transition-colors ${
-                isDark ? 'bg-zinc-700' : 'bg-zinc-300'
+                isDark ? 'bg-stone-700' : 'bg-stone-300'
               }`}
             />
           </div>
@@ -139,7 +139,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
           {/* Flat Uppercase Eyebrow */}
           <div
             className={`flex items-center justify-between pb-3 mb-2 border-b transition-colors ${
-              isDark ? 'border-[#27272A]' : 'border-[#E2E8F0]'
+              isDark ? 'border-stone-800' : 'border-stone-200'
             }`}
           >
             <span
@@ -157,7 +157,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
           {assignments.length === 0 ? (
             <div
               className={`py-10 text-center text-sm font-sans ${
-                isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
               No active assignments
@@ -165,7 +165,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
           ) : (
             <div
               className={`flex flex-col divide-y ${
-                isDark ? 'divide-[#27272A]' : 'divide-[#E2E8F0]'
+                isDark ? 'divide-stone-800' : 'divide-stone-200'
               }`}
             >
               {assignments.map((item) => {
@@ -185,7 +185,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
                   <div key={item.id} className="py-3.5 first:pt-2 last:pb-2">
                     <h3
                       className={`text-sm sm:text-base font-bold tracking-tight leading-snug ${
-                        isDark ? 'text-[#F4F4F5]' : 'text-[#0F172A]'
+                        isDark ? 'text-stone-100' : 'text-stone-900'
                       }`}
                     >
                       {item.subject}
@@ -194,7 +194,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
                     {syllabusLines.length > 0 && (
                       <div
                         className={`mt-1.5 text-sm font-normal leading-relaxed space-y-1 ${
-                          isDark ? 'text-[#D4D4D8]' : 'text-slate-700'
+                          isDark ? 'text-stone-300' : 'text-stone-700'
                         }`}
                       >
                         {syllabusLines.map((line, i) => (
@@ -206,12 +206,12 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
                     {metaParts.length > 0 && (
                       <div
                         className={`mt-2 text-xs font-sans tabular-nums flex items-center gap-1.5 flex-wrap ${
-                          isDark ? 'text-[#A1A1AA]' : 'text-slate-500'
+                          isDark ? 'text-stone-400' : 'text-stone-500'
                         }`}
                       >
                         {metaParts.map((part, idx) => (
                           <React.Fragment key={`${item.id}-meta-${idx}`}>
-                            {idx > 0 && <span className="text-slate-400">·</span>}
+                            {idx > 0 && <span className="text-stone-400">·</span>}
                             <span>{part}</span>
                           </React.Fragment>
                         ))}
@@ -234,8 +234,8 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
             }}
             className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 shadow-sm border ${
               isDark
-                ? 'bg-[#F4F4F5] text-[#18181B] hover:bg-white border-[#F4F4F5]'
-                : 'bg-[#0F172A] text-white hover:bg-slate-800 border-[#0F172A]'
+                ? 'bg-stone-100 text-stone-900 hover:bg-stone-200 border-stone-100'
+                : 'bg-stone-900 text-stone-50 hover:bg-stone-800 border-stone-900'
             }`}
           >
             Close
