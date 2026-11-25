@@ -1,0 +1,604 @@
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { RoutineEvent, RoutineAssignment, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
+import { baselineTestData } from './data/baselineData';
+import {
+  DAY_START_MINUTES,
+  DAY_END_MINUTES,
+  TOTAL_DAY_MINUTES,
+  timeToMinutes,
+} from './utils/timeCalculations';
+import { parseAlternatingSchedule } from './utils/alternatingLabEngine';
+import { parseCSV, parseRoutineCSVRows } from './utils/csvParser';
+import { processDifferentialLogs } from './utils/deltaLogEngine';
+import { Header } from './components/Header';
+import { AtAGlanceWidget } from './components/AtAGlanceWidget';
+import { MasterTimelineGrid } from './components/MasterTimelineGrid';
+import { EventModal } from './components/EventModal';
+import { AssignmentsModal } from './components/AssignmentsModal';
+import { AdminConfigModal } from './components/AdminConfigModal';
+import { AdminPinDialog } from './components/AdminPinDialog';
+import { StandaloneHtmlExporter } from './components/StandaloneHtmlExporter';
+import { Clock } from 'lucide-react';
+
+const CACHED_EVENTS_KEY = 'mse24_cached_routine_events';
+const CACHED_ASSIGNMENTS_KEY = 'mse24_cached_routine_assignments';
+const CACHED_SYNC_TIME_KEY = 'mse24_cached_sync_time';
+const ADMIN_CSV_URL_KEY = 'admin_routine_csv_url';
+
+const OPERATIONAL_DAYS: Array<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'> = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+];
+
+export default function App() {
+  // 1. Instant zero-lag cache resolution on mount
+  const [events, setEvents] = useState<RoutineEvent[]>(() => {
+    try {
+      const cached = localStorage.getItem(CACHED_EVENTS_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load cached events:', e);
+    }
+    return baselineTestData;
+  });
+
+  const [assignments, setAssignments] = useState<RoutineAssignment[]>(() => {
+    try {
+      const cached = localStorage.getItem(CACHED_ASSIGNMENTS_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load cached assignments:', e);
+    }
+    return [];
+  });
+
+  const [selectedEvent, setSelectedEvent] = useState<RoutineEvent | null>(null);
+  const [isAssignmentsModalOpen, setIsAssignmentsModalOpen] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(CACHED_SYNC_TIME_KEY) || null;
+    } catch {
+      return null;
+    }
+  });
+
+  // UTILITY THEME STATE ENGINE WITH SEAMLESS LOCALSTORAGE PERSISTENCE
+  const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+    try {
+      const stored = localStorage.getItem('aviation_theme');
+      if (stored === 'dark' || stored === 'light') return stored;
+    } catch (e) {
+      console.warn('localStorage read error:', e);
+    }
+    return 'light';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('aviation_theme', theme);
+    } catch (e) {
+      console.warn('localStorage write error:', e);
+    }
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const isDark = theme === 'dark';
+
+  // Section / Group filter state with localStorage persistence
+  const [selectedGroup, setSelectedGroup] = useState<'All' | 'Group A' | 'Group B'>(() => {
+    try {
+      const stored = localStorage.getItem('mse_routine_selected_group');
+      if (stored === 'Group A' || stored === 'Group B' || stored === 'All') return stored;
+    } catch (e) {
+      console.warn('localStorage read error:', e);
+    }
+    return 'All';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('mse_routine_selected_group', selectedGroup);
+    } catch (e) {
+      console.warn('localStorage write error:', e);
+    }
+  }, [selectedGroup]);
+
+  // Sync state tracking
+  const [syncStatus, setSyncStatus] = useState<{
+    status: 'idle' | 'syncing' | 'success' | 'error';
+    message: string;
+  }>({
+    status: 'idle',
+    message: 'STANDBY // READY',
+  });
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [currentMinuteOffset, setCurrentMinuteOffset] = useState<number | null>(null);
+  const [todayName, setTodayName] = useState<string>('');
+  const [highlightedEventKey, setHighlightedEventKey] = useState<string | null>(null);
+  const highlightTimerRef = useRef<number | null>(null);
+
+  // Sliding pill measurement for Group Toggle
+  const groupTabRefs = useRef<Record<'All' | 'Group A' | 'Group B', HTMLButtonElement | null>>({
+    All: null,
+    'Group A': null,
+    'Group B': null,
+  });
+  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; ready: boolean }>({
+    left: 0,
+    width: 0,
+    ready: false,
+  });
+
+  useLayoutEffect(() => {
+    const updatePill = () => {
+      const activeEl = groupTabRefs.current[selectedGroup];
+      if (!activeEl) return;
+      setPillStyle({
+        left: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+        ready: true,
+      });
+    };
+
+    updatePill();
+    window.addEventListener('resize', updatePill);
+    return () => window.removeEventListener('resize', updatePill);
+  }, [selectedGroup]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimerRef.current !== null) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, []);
+
+  /**
+   * Resolve active CSV URL from localStorage with hardcoded official fallback
+   */
+  const getActiveCsvUrl = (): string => {
+    try {
+      const custom = localStorage.getItem(ADMIN_CSV_URL_KEY);
+      if (custom && custom.trim().length > 0) {
+        return custom.trim();
+      }
+    } catch (e) {
+      console.warn('Failed to read admin CSV url from localStorage:', e);
+    }
+    return DEFAULT_ROUTINE_CSV_URL;
+  };
+
+  /**
+   * Clean Single-Table Sync & Differential Engine
+   */
+  const fetchAndSync = async (targetUrl?: string, isSilent = false) => {
+    const url = (targetUrl !== undefined ? targetUrl : getActiveCsvUrl()).trim();
+    if (!url) {
+      if (!isSilent) setSyncStatus({ status: 'error', message: 'ERROR: EMPTY_ENDPOINT_URL' });
+      return;
+    }
+
+    setSyncStatus({ status: 'syncing', message: 'FETCHING_STREAM...' });
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP_${res.status}`);
+      const csvText = await res.text();
+      const rawRows = parseCSV(csvText);
+      const { events: parsed, assignments: parsedAssignments } = parseRoutineCSVRows(rawRows);
+      if (parsed.length === 0 && parsedAssignments.length === 0) {
+        throw new Error('NO_VALID_DATA_ROWS');
+      }
+
+      if (parsed.length > 0) {
+        setEvents(parsed);
+      }
+      setAssignments(parsedAssignments);
+
+      try {
+        if (parsed.length > 0) {
+          localStorage.setItem(CACHED_EVENTS_KEY, JSON.stringify(parsed));
+        }
+        localStorage.setItem(CACHED_ASSIGNMENTS_KEY, JSON.stringify(parsedAssignments));
+        const nowISO = new Date().toISOString();
+        localStorage.setItem(CACHED_SYNC_TIME_KEY, nowISO);
+        setLastSyncTime(nowISO);
+      } catch (e) {
+        console.warn('Failed to cache events to localStorage:', e);
+      }
+
+      // Run differential changelog engine: diff against snapshot
+      const { newLogsCount } = processDifferentialLogs(parsed);
+
+      setSyncStatus({
+        status: 'success',
+        message: `SYNC_OK: ${parsed.length}_CLASSES · ${newLogsCount}_DIFFS_RECORDED`,
+      });
+    } catch (err: any) {
+      console.warn('[fetchAndSync] Execution failed:', err);
+      setSyncStatus({
+        status: 'error',
+        message: `FAILED: ${err?.message || 'NETWORK_OR_CORS_ERROR'}`,
+      });
+    }
+  };
+
+  // Silent sync in the background on mount
+  useEffect(() => {
+    const activeUrl = getActiveCsvUrl();
+    fetchAndSync(activeUrl, true);
+  }, []);
+
+  const handleSaveAdminUrl = (newUrl: string) => {
+    try {
+      if (!newUrl || newUrl === DEFAULT_ROUTINE_CSV_URL) {
+        localStorage.removeItem(ADMIN_CSV_URL_KEY);
+      } else {
+        localStorage.setItem(ADMIN_CSV_URL_KEY, newUrl);
+      }
+    } catch (e) {
+      console.warn('Failed to save admin CSV URL:', e);
+    }
+    fetchAndSync(newUrl || DEFAULT_ROUTINE_CSV_URL);
+  };
+
+  const handleResetToOfficialDefault = () => {
+    try {
+      localStorage.removeItem(ADMIN_CSV_URL_KEY);
+    } catch (e) {
+      console.warn('Failed to remove custom admin CSV URL:', e);
+    }
+    fetchAndSync(DEFAULT_ROUTINE_CSV_URL);
+  };
+
+  const handleResetBaseline = () => {
+    try {
+      localStorage.removeItem(CACHED_EVENTS_KEY);
+      localStorage.removeItem(CACHED_ASSIGNMENTS_KEY);
+    } catch (e) {
+      console.warn('Failed to clear cached events:', e);
+    }
+    setEvents(baselineTestData);
+    setAssignments([]);
+    processDifferentialLogs(baselineTestData);
+    setSyncStatus({ status: 'idle', message: 'BASELINE_DEFAULT_RESTORED' });
+  };
+
+  // Realtime digital clock update
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const day = now.toLocaleDateString('en-US', { weekday: 'long' });
+      setTodayName(day);
+
+      const totalMinutes = now.getHours() * 60 + now.getMinutes();
+      if (totalMinutes >= DAY_START_MINUTES && totalMinutes <= DAY_END_MINUTES) {
+        setCurrentMinuteOffset(totalMinutes - DAY_START_MINUTES);
+      } else {
+        setCurrentMinuteOffset(null);
+      }
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleScrollToNow = () => {
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const matchesSelectedGroup = (evt: RoutineEvent) => {
+      const meta = parseAlternatingSchedule(evt.type, evt.subject, evt.syllabus);
+      if (selectedGroup === 'Group A' && meta.groupVariant === 'B') return false;
+      if (selectedGroup === 'Group B' && meta.groupVariant === 'A') return false;
+      return true;
+    };
+
+    const isCancelledEvent = (evt: RoutineEvent) => {
+      const normalized = (evt.status || '').trim().toLowerCase();
+      return normalized === 'cancelled' || normalized === 'canceled';
+    };
+
+    // Locate the active or next upcoming matching slot for brief arrival pulse
+    let targetSlot: { evt: RoutineEvent; key: string } | null = null;
+    const todayOperational = OPERATIONAL_DAYS.find(
+      (d) => d.toLowerCase() === todayName.toLowerCase()
+    );
+
+    if (todayOperational) {
+      const dayEvents = events.filter(
+        (e) => e.day.toLowerCase() === todayOperational.toLowerCase()
+      );
+      const candidates = dayEvents
+        .map((evt, idx) => ({
+          evt,
+          key: evt.id || `${todayOperational}-${evt.startTime}-${idx}`,
+          start: timeToMinutes(evt.startTime),
+          end: timeToMinutes(evt.endTime),
+        }))
+        .filter((item) => !isCancelledEvent(item.evt) && matchesSelectedGroup(item.evt))
+        .sort((a, b) => a.start - b.start);
+
+      const inProgress = candidates.find((c) => nowMinutes >= c.start && nowMinutes <= c.end);
+      const nextToday = candidates.find((c) => c.start > nowMinutes);
+      const chosen = inProgress || nextToday || null;
+      if (chosen) {
+        targetSlot = { evt: chosen.evt, key: chosen.key };
+      }
+    }
+
+    if (!targetSlot) {
+      const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const currentDayIdx = now.getDay();
+      for (let offset = 1; offset <= 7; offset++) {
+        const checkDay = weekDays[(currentDayIdx + offset) % 7];
+        const opDay = OPERATIONAL_DAYS.find((d) => d.toLowerCase() === checkDay.toLowerCase());
+        if (!opDay) continue;
+
+        const dayEvents = events.filter((e) => e.day.toLowerCase() === opDay.toLowerCase());
+        const candidates = dayEvents
+          .map((evt, idx) => ({
+            evt,
+            key: evt.id || `${opDay}-${evt.startTime}-${idx}`,
+            start: timeToMinutes(evt.startTime),
+          }))
+          .filter((item) => !isCancelledEvent(item.evt) && matchesSelectedGroup(item.evt))
+          .sort((a, b) => a.start - b.start);
+
+        if (candidates.length > 0) {
+          targetSlot = { evt: candidates[0].evt, key: candidates[0].key };
+          break;
+        }
+      }
+    }
+
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+      if (currentMinuteOffset !== null) {
+        const focusX = (currentMinuteOffset / TOTAL_DAY_MINUTES) * container.scrollWidth;
+        const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 2));
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      } else if (targetSlot) {
+        const slotStartOffset = Math.max(
+          0,
+          Math.min(TOTAL_DAY_MINUTES, timeToMinutes(targetSlot.evt.startTime) - DAY_START_MINUTES)
+        );
+        const focusX = (slotStartOffset / TOTAL_DAY_MINUTES) * container.scrollWidth;
+        const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 3));
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      } else {
+        container.scrollTo({ left: Math.min(240, maxScroll), behavior: 'smooth' });
+      }
+    }
+
+    if (targetSlot) {
+      if (highlightTimerRef.current !== null) {
+        window.clearTimeout(highlightTimerRef.current);
+      }
+      const nextKey = targetSlot.key;
+      setHighlightedEventKey(null);
+      window.requestAnimationFrame(() => {
+        setHighlightedEventKey(nextKey);
+      });
+      highlightTimerRef.current = window.setTimeout(() => {
+        setHighlightedEventKey(null);
+        highlightTimerRef.current = null;
+      }, 950);
+    }
+  };
+
+  return (
+    <div
+      className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
+        isDark
+          ? 'bg-[#0F172A] text-white selection:bg-slate-700 selection:text-white'
+          : 'bg-white text-[#0F172A] selection:bg-slate-200 selection:text-slate-900'
+      }`}
+    >
+      {/* Aviation Operations Header with B24 Hidden Admin Door and Discreet Refresh */}
+      <Header
+        onManualSync={() => fetchAndSync()}
+        syncStatus={syncStatus}
+        theme={theme}
+        onToggleTheme={handleToggleTheme}
+        onTriggerAdminVerification={() => setIsPinDialogOpen(true)}
+      />
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-5 flex flex-col overflow-x-hidden">
+        {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
+        <AtAGlanceWidget
+          events={events}
+          onSelectEvent={(evt) => setSelectedEvent(evt)}
+          theme={theme}
+          selectedGroup={selectedGroup}
+          assignmentsCount={assignments.length}
+          onOpenAssignments={() => setIsAssignmentsModalOpen(true)}
+        />
+
+        {/* UNIFIED SCHEDULE MATRIX */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 px-1">
+            <div className="flex items-center gap-2">
+              <h2
+                className={`font-bold text-sm tracking-tight ${
+                  isDark ? 'text-white' : 'text-[#0F172A]'
+                }`}
+              >
+                Weekly Routine
+              </h2>
+            </div>
+
+            {/* Group Selector & Jump to Now Controls (Harmonized h-9 row) */}
+            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
+              <div
+                className={`relative h-9 inline-flex items-center p-1 rounded-full border transition-colors box-border ${
+                  isDark ? 'bg-[#18181B] border-[#27272A]' : 'bg-slate-100 border-slate-200'
+                }`}
+                role="tablist"
+                aria-label="Filter schedule by Section or Lab Group"
+              >
+                {/* Sliding Active Indicator Pill */}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    transform: `translateX(${pillStyle.left}px)`,
+                    width: `${pillStyle.width}px`,
+                    opacity: pillStyle.ready ? 1 : 0,
+                  }}
+                  className={`absolute top-1 bottom-1 left-0 rounded-full pointer-events-none ${
+                    pillStyle.ready ? 'transition-[transform,width] duration-200 ease-out' : ''
+                  } ${
+                    isDark ? 'bg-white shadow-xs' : 'bg-[#0F172A] shadow-xs'
+                  }`}
+                />
+                {(['All', 'Group A', 'Group B'] as const).map((groupOption) => {
+                  const isSelected = selectedGroup === groupOption;
+                  return (
+                    <button
+                      key={groupOption}
+                      ref={(el) => {
+                        groupTabRefs.current[groupOption] = el;
+                      }}
+                      type="button"
+                      role="tab"
+                      aria-selected={isSelected}
+                      onClick={() => setSelectedGroup(groupOption)}
+                      className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center ${
+                        isSelected
+                          ? isDark
+                            ? 'text-[#0F172A]'
+                            : 'text-white'
+                          : isDark
+                          ? 'text-zinc-400 hover:text-white'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      {groupOption}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Compact Tactile Micro-Pill "Jump to Now" Button (Harmonized h-9) */}
+              <button
+                type="button"
+                onClick={handleScrollToNow}
+                title="Jump view to current operating hour"
+                className={`h-9 px-3.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+                  isDark
+                    ? 'bg-[#18181B] hover:bg-[#27272A] text-[#FAFAFA] border-[#27272A] shadow-2xs'
+                    : 'bg-white hover:bg-slate-50 text-[#09090B] border-slate-200 shadow-2xs'
+                }`}
+              >
+                <Clock className={`w-3.5 h-3.5 ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                <span>Now</span>
+              </button>
+            </div>
+          </div>
+
+          <MasterTimelineGrid
+            days={OPERATIONAL_DAYS}
+            events={events}
+            todayName={todayName}
+            currentMinuteOffset={currentMinuteOffset}
+            onSelectEvent={(evt) => setSelectedEvent(evt)}
+            scrollRef={scrollContainerRef}
+            theme={theme}
+            selectedGroup={selectedGroup}
+            highlightedEventKey={highlightedEventKey}
+          />
+        </div>
+
+        {/* Clean Production Footer */}
+        <footer
+          className={`mt-8 pt-4 pb-6 border-t flex items-center justify-center text-xs font-sans transition-colors ${
+            isDark
+              ? 'border-[#334155] text-slate-400'
+              : 'border-[#E2E8F0] text-slate-500'
+          }`}
+        >
+          <span className="font-medium text-center">
+            MSE 2K24 / Batch Routine
+          </span>
+        </footer>
+      </main>
+
+      {/* Flight Manifest Modal Inspector */}
+      {selectedEvent && (
+        <EventModal
+          event={selectedEvent}
+          onClose={() => setSelectedEvent(null)}
+          theme={theme}
+        />
+      )}
+
+      {/* Active Assignments Bottom Sheet Modal */}
+      {isAssignmentsModalOpen && (
+        <AssignmentsModal
+          assignments={assignments}
+          onClose={() => setIsAssignmentsModalOpen(false)}
+          theme={theme}
+        />
+      )}
+
+      {/* Admin PIN Verification Dialog (PIN: 2024 via Triple-Tap) */}
+      <AdminPinDialog
+        isOpen={isPinDialogOpen}
+        onClose={() => setIsPinDialogOpen(false)}
+        onSuccess={() => setIsAdminModalOpen(true)}
+        theme={theme}
+      />
+
+      {/* Hidden Admin Configuration Door Modal */}
+      {isAdminModalOpen && (
+        <AdminConfigModal
+          onClose={() => setIsAdminModalOpen(false)}
+          currentUrl={getActiveCsvUrl()}
+          onSaveUrl={handleSaveAdminUrl}
+          onResetToOfficialDefault={handleResetToOfficialDefault}
+          onForceRefresh={() => fetchAndSync()}
+          onResetBaseline={handleResetBaseline}
+          onOpenExport={() => setIsExportModalOpen(true)}
+          syncStatus={syncStatus}
+          totalEventsCount={events.length}
+          lastSyncTime={lastSyncTime}
+          theme={theme}
+        />
+      )}
+
+      {/* Standalone HTML Exporter (accessible via Admin Config) */}
+      <StandaloneHtmlExporter
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        theme={theme}
+      />
+    </div>
+  );
+}

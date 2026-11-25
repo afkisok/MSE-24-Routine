@@ -1,0 +1,8 @@
+{
+  "name": "Remix Batch Routine — Responsive University Schedule - material",
+  "description": "Mobile-first horizontal timetable and routine engine with dynamic slot offsets, cancellation overlays, exam syllabus inspector, and Google Sheets CSV integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
