@@ -1,7 +1,5 @@
-const CACHE_NAME = 'mse24-routine-v2';
-const APP_SHELL_URLS = [
-  '/',
-  '/index.html',
+const CACHE_NAME = 'mse24-routine-v3';
+const STATIC_PRECACHE_URLS = [
   '/manifest.json',
   '/icon.svg',
   '/icon-192.png',
@@ -13,7 +11,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL_URLS))
+      .then((cache) => cache.addAll(STATIC_PRECACHE_URLS))
       .catch(() => {})
       .then(() => self.skipWaiting())
   );
@@ -36,7 +34,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Always prefer network for live Google Sheets CSV requests
+  // Network-first for cross-origin data (e.g. live Google Sheets CSV)
   if (url.origin !== self.location.origin) {
     event.respondWith(
       fetch(request).catch(() => caches.match(request))
@@ -44,24 +42,18 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for HTML navigations with cached fallback for offline resilience
-  if (request.mode === 'navigate') {
+  // Network-first for HTML navigations and dynamic data/manifest files so updates deploy immediately
+  const isNetworkFirst =
+    request.mode === 'navigate' ||
+    url.pathname === '/' ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.json') ||
+    url.pathname.endsWith('.csv') ||
+    url.pathname.startsWith('/api/');
+
+  if (isNetworkFirst) {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
-          return response;
-        })
-        .catch(() => caches.match('/index.html'))
-    );
-    return;
-  }
-
-  // Stale-while-revalidate for same-origin static assets
-  event.respondWith(
-    caches.match(request).then((cached) => {
-      const networkFetch = fetch(request)
         .then((response) => {
           if (response && response.ok) {
             const clone = response.clone();
@@ -69,9 +61,22 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => cached);
+        .catch(() => caches.match(request).then((cached) => cached || caches.match('/')))
+    );
+    return;
+  }
 
-      return cached || networkFetch;
+  // Cache-first for static assets (JS, CSS, PNG/SVG icons, fonts)
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response && response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone)).catch(() => {});
+        }
+        return response;
+      });
     })
   );
 });

@@ -1,19 +1,25 @@
 {
   "id": "/",
   "name": "MSE 2K24 Routine",
-  "short_name": "MSE '24",
+  "short_name": "MSE 2K24",
   "description": "MSE 2K24 Batch Routine — Dept. of Materials Science and Engineering, KUET.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#141312",
-  "theme_color": "#141312",
+  "background_color": "#FAF9F6",
+  "theme_color": "#FAF9F6",
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/icon-512.png",
