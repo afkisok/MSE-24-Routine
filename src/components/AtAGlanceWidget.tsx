@@ -142,7 +142,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   <div className="flex justify-between items-start gap-4">
                     <div className="min-w-0">
                       <div
-                        className={`text-xl font-bold tracking-tight leading-tight ${
+                        className={`text-xl font-bold tracking-tight leading-none ${
                           isDark ? 'text-stone-100' : 'text-stone-900'
                         }`}
                       >
@@ -157,7 +157,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       </div>
                       {heroExam.courseTitle && (
                         <div
-                          className={`mt-1 text-sm font-normal leading-snug ${
+                          className={`mt-1.5 text-sm font-normal leading-snug ${
                             isDark ? 'text-neutral-400' : 'text-neutral-500'
                           }`}
                         >
@@ -166,7 +166,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       )}
                     </div>
 
-                    <div className="shrink-0 text-right">
+                    <div className="shrink-0 text-right mt-[2px]">
                       <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
                         ROOM
                       </div>
@@ -403,7 +403,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 <div className="flex justify-between items-start gap-4">
                   <div className="min-w-0">
                     <div
-                      className={`text-xl font-bold tracking-tight leading-tight ${
+                      className={`text-xl font-bold tracking-tight leading-none ${
                         isDark ? 'text-stone-100' : 'text-stone-900'
                       }`}
                     >
@@ -420,7 +420,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     </div>
                     {title && (
                       <div
-                        className={`mt-1 text-sm font-normal leading-snug ${
+                        className={`mt-1.5 text-sm font-normal leading-snug ${
                           isDark ? 'text-neutral-400' : 'text-neutral-500'
                         }`}
                       >
@@ -429,7 +429,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     )}
                   </div>
 
-                  <div className="shrink-0 text-right">
+                  <div className="shrink-0 text-right mt-[2px]">
                     <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
                       ROOM
                     </div>
