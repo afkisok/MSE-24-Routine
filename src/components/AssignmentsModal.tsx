@@ -144,7 +144,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
           >
             <span
               className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-purple-400' : 'text-purple-600'
+                isDark ? 'text-[#FAF9F6]' : 'text-[#141312]'
               }`}
             >
               Assignments

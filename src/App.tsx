@@ -537,7 +537,7 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setShowWeeklyOverride(true)}
-                  className={`sm:hidden h-8 px-3 text-xs font-medium rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+                  className={`sm:hidden h-9 px-3.5 text-xs font-medium rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                     isDark
                       ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-300 hover:text-stone-100 border-stone-800'
                       : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-900 border-stone-300'

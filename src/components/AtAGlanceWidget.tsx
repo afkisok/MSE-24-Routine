@@ -52,7 +52,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const renderHeader = (title: string) => (
     <div className="flex items-center justify-between gap-2 mb-3 px-1">
       <h2
-        className={`text-xs font-semibold tracking-normal uppercase font-sans ${
+        className={`font-bold text-sm tracking-tight ${
           isDark ? 'text-stone-100' : 'text-stone-900'
         }`}
       >
@@ -63,7 +63,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         <button
           type="button"
           onClick={onOpenAssignments}
-          className={`relative px-3 py-1 rounded-full text-xs font-medium inline-flex items-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
+          className={`relative h-9 px-3.5 rounded-full text-xs font-medium inline-flex items-center justify-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
             isDark
               ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:bg-[#24211E] hover:border-stone-700'
               : 'bg-white border-stone-300 text-stone-900 hover:bg-stone-50 hover:border-stone-400'
@@ -71,8 +71,10 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         >
           {assignmentsCount > 0 && (
             <span
-              className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-purple-500 ring-2 pointer-events-none ${
-                isDark ? 'ring-[#141312]' : 'ring-[#FAF9F6]'
+              className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none ${
+                isDark
+                  ? 'bg-[#FAF9F6] ring-[#141312]'
+                  : 'bg-[#141312] ring-[#FAF9F6]'
               }`}
               aria-hidden="true"
             />
@@ -109,7 +111,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
               const relativeLabel = getTermFinalRelativeLabel(heroExam, effectiveNowMs);
               const datePrefix =
                 relativeLabel === 'Active Now'
-                  ? `Active Now · ${heroExam.displayDate}`
+                  ? heroExam.displayDate
                   : relativeLabel
                   ? `${relativeLabel}, ${heroExam.displayDate}`
                   : `${heroExam.weekdayShort}, ${heroExam.displayDate}`;
@@ -142,8 +144,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       className={`text-sm sm:text-base font-semibold font-sans tabular-nums ${
                         relativeLabel === 'Active Now'
                           ? isDark
-                            ? 'text-emerald-400'
-                            : 'text-emerald-700'
+                            ? 'text-stone-100'
+                            : 'text-stone-900'
                           : isDark
                           ? 'text-stone-300'
                           : 'text-stone-600'
@@ -201,7 +203,10 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
               >
                 {remainingExams.map((exam) => {
                   const relativeLabel = getTermFinalRelativeLabel(exam, effectiveNowMs);
-                  const dateTimeCompact = `${relativeLabel || exam.displayDate}, ${formatTo12Hour(exam.startTime)}`;
+                  const dateTimeCompact =
+                    relativeLabel === 'Active Now'
+                      ? `${exam.displayDate}, ${formatTo12Hour(exam.startTime)}`
+                      : `${relativeLabel || exam.displayDate}, ${formatTo12Hour(exam.startTime)}`;
 
                   return (
                     <div
@@ -331,8 +336,11 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   };
 
   const formatInlineDayTime = (event: RoutineEvent, relativeLabel: string, includeEnd = false) => {
-    const dayPrefix = relativeLabel || event.day;
     const start = formatTo12Hour(event.startTime);
+    if (relativeLabel === 'Active Now') {
+      return includeEnd ? `${start} – ${formatTo12Hour(event.endTime)}` : start;
+    }
+    const dayPrefix = relativeLabel || event.day;
     if (includeEnd) {
       return `${dayPrefix}, ${start} – ${formatTo12Hour(event.endTime)}`;
     }
@@ -390,8 +398,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     className={`text-sm sm:text-base font-semibold font-sans tabular-nums ${
                       relativeLabel === 'Active Now'
                         ? isDark
-                          ? 'text-emerald-400'
-                          : 'text-emerald-700'
+                          ? 'text-stone-100'
+                          : 'text-stone-900'
                         : isExam
                         ? isDark
                           ? 'text-amber-300'

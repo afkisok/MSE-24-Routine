@@ -24,12 +24,30 @@ function extractCourseCode(subject: string): string {
 }
 
 /**
- * Extracts 4-digit course number from course code (e.g. "MSE 2101" -> "2101"), falling back to "CT"
+ * Splits a course code into two balanced stacked lines for narrow CT blocks
+ * (e.g. "Math 2127" -> { line1: "Math", line2: "2127" }, "MSE 2101" -> { line1: "MSE", line2: "2101" })
  */
-function extractCourseNumber(courseCode: string): string {
-  if (!courseCode) return 'CT';
-  const match = courseCode.match(/\b(\d{4})\b/) || courseCode.match(/(\d{4})/);
-  return match ? match[1] : 'CT';
+function splitCourseCodeLines(courseCode: string): { line1: string; line2: string } {
+  const trimmed = (courseCode || '').trim();
+  if (!trimmed) return { line1: 'CT', line2: '' };
+
+  const codeMatch = trimmed.match(/^([A-Za-z]+(?:\s+[A-Za-z]+)*)\s*(\d{3,4}[A-Za-z]?)(?:\s+.*)?$/);
+  if (codeMatch) {
+    return {
+      line1: codeMatch[1].trim(),
+      line2: codeMatch[2].trim(),
+    };
+  }
+
+  const firstSpace = trimmed.indexOf(' ');
+  if (firstSpace !== -1) {
+    return {
+      line1: trimmed.slice(0, firstSpace).trim(),
+      line2: trimmed.slice(firstSpace + 1).trim(),
+    };
+  }
+
+  return { line1: trimmed, line2: '' };
 }
 
 /**
@@ -74,11 +92,11 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   const isCancelled = event.status === 'Cancelled';
   const isExam = meta.category === 'EXAM';
   const isLab = meta.category === 'LAB';
-  const isNarrowExam = isExam && durationMinutes < 45 && !isCancelled;
+  const isNarrowExam = isExam && durationMinutes <= 55 && !isCancelled;
   const isDark = theme === 'dark';
 
   const courseCode = extractCourseCode(event.subject);
-  const courseNumber = extractCourseNumber(courseCode);
+  const stackedCourseCode = splitCourseCodeLines(courseCode);
   const facultyInitials = extractFacultyInitials(event.teacher);
   const formattedStartTime = formatTo12Hour(event.startTime);
   const compactStartTime = formatCompactStartTime(event.startTime);
@@ -152,7 +170,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
     );
   }
 
-  // 1. NARROW CT / EXAM BLOCK (< 45 mins): Three compact centered lines on inverted stone card
+  // 1. NARROW CT / EXAM BLOCK (<= 55 mins): Compact centered layout with two-row stacked course code
   if (isNarrowExam) {
     return (
       <div
@@ -175,7 +193,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`CT / Exam: ${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1.5 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-900' : 'focus-visible:ring-stone-50'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
           isHighlighted ? 'ring-2 ring-emerald-500 animate-slot-pulse z-20' : ''
@@ -186,14 +204,17 @@ export const SlotCard: React.FC<SlotCardProps> = ({
             isDark ? 'text-stone-600' : 'text-stone-300'
           }`}
         >
-          CT
+          {wideExamPillLabel}
         </div>
         <div
-          className={`font-sans font-bold text-xs sm:text-sm tracking-tight tabular-nums leading-none whitespace-nowrap ${
+          className={`flex flex-col items-center justify-center font-sans font-bold text-[11px] sm:text-xs tracking-tight leading-[1.08] ${
             isDark ? 'text-stone-900' : 'text-stone-50'
           }`}
         >
-          {courseNumber}
+          <span className="whitespace-nowrap">{stackedCourseCode.line1}</span>
+          {stackedCourseCode.line2 && (
+            <span className="tabular-nums whitespace-nowrap">{stackedCourseCode.line2}</span>
+          )}
         </div>
         <div
           className={`text-[9px] font-sans font-medium tabular-nums whitespace-nowrap shrink-0 leading-none ${

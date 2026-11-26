@@ -163,7 +163,7 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'Refresh routine schedule'
               }
               aria-label="Refresh routine schedule"
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border select-none disabled:opacity-60 ${
+              className={`w-[38px] h-[38px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border select-none disabled:opacity-60 ${
                 isDark
                   ? 'bg-[#1C1A18] border-stone-800 text-stone-300 hover:text-stone-100 hover:bg-[#24211E]'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
@@ -182,7 +182,7 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className={`w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+              className={`w-[38px] h-[38px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                 isDark
                   ? 'bg-[#1C1A18] border-stone-800 text-amber-300 hover:bg-[#24211E] hover:text-amber-200'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
@@ -199,11 +199,11 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Standalone Bold Heading directly below MSE '24 */}
         <h1
-          className={`mt-3 text-xl font-bold tracking-tight leading-tight ${
+          className={`mt-3 text-[32px] font-bold tracking-tight leading-tight ${
             isDark ? 'text-stone-100' : 'text-stone-900'
           }`}
         >
-          MSE 2K24
+          2-2 Routine
         </h1>
       </div>
     </header>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mse24-routine-v3';
+const CACHE_NAME = 'mse24-routine-v4';
 const STATIC_PRECACHE_URLS = [
   '/manifest.json',
   '/icon.svg',
@@ -39,6 +39,18 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request).catch(() => caches.match(request))
     );
+    return;
+  }
+
+  // Never intercept or cache Vite dev server internal/module requests
+  if (
+    url.pathname.startsWith('/@vite') ||
+    url.pathname.startsWith('/@react-refresh') ||
+    url.pathname.startsWith('/@fs/') ||
+    url.pathname.startsWith('/@id/') ||
+    url.pathname.startsWith('/src/') ||
+    url.pathname.startsWith('/node_modules/')
+  ) {
     return;
   }
 
