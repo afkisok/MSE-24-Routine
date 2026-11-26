@@ -1,7 +1,13 @@
 import React from 'react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
-import { getAcademicPeriodMarkers, PeriodMarker, formatTo12Hour } from '../utils/timeCalculations';
+import {
+  DAY_START_MINUTES,
+  getAcademicPeriodMarkers,
+  PeriodMarker,
+  formatTo12Hour,
+  formatMinutesTo12Hour,
+} from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
 
 interface MasterTimelineGridProps {
@@ -48,9 +54,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           isDark ? 'bg-[#141414]' : 'bg-[#F4F3EF]'
         }`}
       >
-        {/* Static Header Axis Box (h-10) */}
+        {/* Static Header Axis Box (h-11) */}
         <div
-          className={`h-10 pl-2 -mr-2 pr-2 flex items-center justify-center text-center text-xs font-bold tracking-tight border-b transition-colors ${
+          className={`h-11 pl-2 -mr-2 pr-2 flex items-center justify-center text-center text-xs font-bold tracking-tight leading-none border-b transition-colors ${
             isDark
               ? 'border-white/[0.05] bg-[#141414] text-stone-100'
               : 'border-black/[0.05] bg-[#F4F3EF] text-stone-900'
@@ -116,7 +122,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           <div className="relative min-w-[1008px] flex flex-col">
           {/* Floating vertical time-column guides behind class rows (below header & inset from bottom) */}
           <div
-            className="absolute top-11 bottom-3 left-6 right-6 pointer-events-none z-0"
+            className="absolute top-12 bottom-3 left-6 right-6 pointer-events-none z-0"
             aria-hidden="true"
           >
             {periodMarkers.map((marker) => (
@@ -130,9 +136,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             ))}
           </div>
 
-          {/* Top Academic Period Start-Time Axis Track (h-10) with symmetric px-6 buffer */}
+          {/* Top Academic Period Start-Time Axis Track (h-11) with symmetric px-6 buffer */}
           <div
-            className={`relative z-10 h-10 px-6 flex items-center select-none border-b transition-colors ${
+            className={`relative z-10 h-11 px-6 flex items-center select-none border-b transition-colors ${
               isDark
                 ? 'border-white/[0.05] bg-[#141414]'
                 : 'border-black/[0.05] bg-[#F4F3EF]'
@@ -144,7 +150,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                   <div
                     key={marker.timeStr}
                     style={{ left: `${marker.leftPercent}%` }}
-                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center text-[10px] font-sans font-medium whitespace-nowrap tabular-nums leading-none pointer-events-none ${
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 flex items-center text-[10px] font-sans font-medium whitespace-nowrap tabular-nums leading-none pointer-events-none ${
                       isDark ? 'text-stone-400' : 'text-stone-500'
                     }`}
                   >
@@ -153,29 +159,29 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 );
               })}
 
-              {/* Live Operational Time Marker */}
+              {/* Inline Live Current-Time Crimson Pill centered vertically over timestamps */}
               {currentMinuteOffset !== null &&
                 currentMinuteOffset >= 0 &&
                 currentMinuteOffset <= 540 && (
-                  <div
-                    style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
-                    className="absolute top-0 bottom-0 -translate-x-1/2 flex flex-col items-center pointer-events-none z-30"
-                  >
+                  <>
+                    {/* 1.5px vertical stem extending downward from bottom center of pill */}
                     <div
-                      className={`px-1.5 py-0.5 rounded-2xs text-[9px] font-sans font-semibold tracking-normal shadow-xs uppercase border ${
-                        isDark
-                          ? 'bg-[#C84B4D] text-stone-50 border-[#C84B4D]'
-                          : 'bg-[#9E2A2B] text-stone-50 border-[#9E2A2B]'
-                      }`}
-                    >
-                      Now
-                    </div>
-                    <div
-                      className={`w-0.5 h-full ${
+                      style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
+                      className={`absolute top-1/2 bottom-0 -translate-x-1/2 w-[1.5px] z-10 pointer-events-none ${
                         isDark ? 'bg-[#C84B4D]' : 'bg-[#9E2A2B]'
                       }`}
                     />
-                  </div>
+                    <div
+                      style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
+                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 rounded-full px-2.5 py-0.5 text-[11px] font-sans font-semibold tabular-nums whitespace-nowrap leading-none shadow-sm ring-2 pointer-events-none ${
+                        isDark
+                          ? 'bg-[#C84B4D] text-white ring-[#141414]'
+                          : 'bg-[#9E2A2B] text-white ring-[#F4F3EF]'
+                      }`}
+                    >
+                      {formatMinutesTo12Hour(DAY_START_MINUTES + currentMinuteOffset)}
+                    </div>
+                  </>
                 )}
             </div>
           </div>
@@ -200,7 +206,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     currentMinuteOffset <= 540 && (
                       <div
                         style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
-                        className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-0.5 z-30 pointer-events-none ${
+                        className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none ${
                           isDark ? 'bg-[#C84B4D] opacity-90' : 'bg-[#9E2A2B] opacity-85'
                         }`}
                       />

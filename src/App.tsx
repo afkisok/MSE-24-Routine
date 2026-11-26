@@ -527,23 +527,32 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
+      className={`relative min-h-screen flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
         isDark
           ? 'bg-[#141312] text-stone-100 selection:bg-stone-800 selection:text-stone-100'
           : 'bg-[#FAF9F6] text-stone-900 selection:bg-stone-200 selection:text-stone-900'
       }`}
     >
-      {/* Aviation Operations Header with MSE '24 Hidden Admin Door and Discreet Refresh */}
-      <Header
-        onManualSync={() => fetchAndSync()}
-        syncStatus={syncStatus}
-        theme={theme}
-        onToggleTheme={handleToggleTheme}
-        onTriggerAdminVerification={() => setIsPinDialogOpen(true)}
-        isMounted={isMounted}
-      />
+      {/* Subtle tactile paper grain overlay on light-mode canvas */}
+      {!isDark && (
+        <div
+          aria-hidden="true"
+          className="paper-grain-overlay fixed inset-0 pointer-events-none z-0 opacity-[0.025]"
+        />
+      )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-4 sm:pt-5 pb-7 flex flex-col overflow-x-hidden">
+      <div className="relative z-10 flex-1 flex flex-col">
+        {/* Aviation Operations Header with MSE '24 Hidden Admin Door and Discreet Refresh */}
+        <Header
+          onManualSync={() => fetchAndSync()}
+          syncStatus={syncStatus}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          onTriggerAdminVerification={() => setIsPinDialogOpen(true)}
+          isMounted={isMounted}
+        />
+
+        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-3 pb-7 flex flex-col overflow-x-hidden">
         {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
         <div
           className={`transition-[opacity,transform] duration-300 ease-out delay-[50ms] ${
@@ -711,6 +720,7 @@ export default function App() {
           </div>
         </div>
       </main>
+      </div>
 
       {/* Flight Manifest Modal Inspector */}
       {selectedEvent && (

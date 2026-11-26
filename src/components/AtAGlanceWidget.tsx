@@ -132,10 +132,10 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       onSelectTermFinal?.(heroExam);
                     }
                   }}
-                  className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] shadow-sm ${
+                  className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] ${
                     isDark
-                      ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700'
-                      : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400'
+                      ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.2)]'
+                      : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
                   }`}
                 >
                   {/* Date & Start–End Time Window */}
@@ -153,13 +153,6 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     >
                       {datePrefix} · {timeRange}
                     </span>
-                    <span
-                      className={`text-[11px] font-semibold uppercase tracking-wide ${
-                        isDark ? 'text-stone-400' : 'text-stone-500'
-                      }`}
-                    >
-                      Term Final
-                    </span>
                   </div>
 
                   {/* Course Code & Title */}
@@ -169,6 +162,13 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     }`}
                   >
                     {heroExam.courseCode}
+                    <span
+                      className={`font-semibold ${
+                        isDark ? 'text-stone-400' : 'text-stone-500'
+                      }`}
+                    >
+                      {' · Term Final'}
+                    </span>
                   </div>
                   {heroExam.courseTitle && (
                     <div
@@ -389,10 +389,10 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     onSelectEvent(event);
                   }
                 }}
-                className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] shadow-sm ${
+                className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] ${
                   isDark
-                    ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700'
-                    : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400'
+                    ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.2)]'
+                    : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
                 }`}
               >
                 {/* Flat inline day & time row */}
@@ -434,7 +434,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         isDark ? 'text-stone-400' : 'text-stone-500'
                       }`}
                     >
-                      {' • Exam'}
+                      {' · Exam'}
                     </span>
                   )}
                 </div>

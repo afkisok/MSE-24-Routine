@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
         isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}
     >
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-2 flex flex-col">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-0 flex flex-col">
         {/* Top Row: Three Equal-Sized Circles (MSE '24 left, Refresh + Theme right) */}
         <div className="flex items-center justify-between gap-3">
           {/* MSE '24 Brand Mark Badge (Strict Triple-Tap Protected) */}
