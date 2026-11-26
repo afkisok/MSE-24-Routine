@@ -54,7 +54,10 @@ function buildParsedDate(year: number, monthIndex: number, day: number): ParsedE
 }
 
 /**
- * Infers the closest calendar year (within ±6 months) when a sheet omits the year (e.g. "Dec 12" or "Jan 5").
+ * Infers the calendar year when a sheet omits the year (e.g. "Dec 12" or "Jan 5").
+ * Prefers the earliest occurrence that is either upcoming or within the past 45 days
+ * (so recently finished exams in the current term stay completed while future exams
+ * several months away never resolve to the previous year).
  */
 function inferYear(monthIndex: number, day: number, referenceDate: Date): number {
   const baseYear = referenceDate.getFullYear();
@@ -68,38 +71,46 @@ function inferYear(monthIndex: number, day: number, referenceDate: Date): number
   ).getTime();
 
   const candidates = [baseYear - 1, baseYear, baseYear + 1];
-  let bestYear = baseYear;
-  let bestDiff = Infinity;
-
   for (const yr of candidates) {
     const dt = new Date(yr, monthIndex, day, 12, 0, 0);
     if (dt.getMonth() !== monthIndex || dt.getDate() !== day) continue;
-    const diff = Math.abs(dt.getTime() - refMidday);
-    if (diff < bestDiff) {
-      bestDiff = diff;
-      bestYear = yr;
+    const diffDays = Math.round((dt.getTime() - refMidday) / 86400000);
+    if (diffDays >= -45) {
+      return yr;
     }
   }
 
-  return bestYear;
+  return baseYear + 1;
 }
 
 /**
  * Parses flexible exam date strings from the Day column:
- * - "2026-12-12" / "2026/12/12"
- * - "Dec 12" / "December 12" / "Dec 12, 2026"
- * - "12 Dec" / "12 Dec 2026" / "12-Dec" / "12-Dec-26"
- * - "12/12/2026" / "12-12-2026"
+ * - Strips leading weekday prefixes (e.g. "Sun, ", "Sunday, ", "Thu ")
+ * - ISO: "2026-12-12" / "2026/12/12" / "2026-12-12T..."
+ * - Month-name: "Dec 12" / "December 12" / "Dec 12, 2026" / "12 Dec" / "12-Dec-2026"
+ * - Explicit DD/MM/YYYY (always treating slash- or hyphen-separated numeric dates as DD/MM/YYYY)
+ * - Standard JS Date strings (e.g. "Sun Nov 29 2026 00:00:00 GMT+0600")
  */
 export function parseExamDate(
   rawDate: string,
   referenceDate: Date = new Date()
 ): ParsedExamDate | null {
-  const cleaned = (rawDate || '').trim().replace(/,/g, ' ').replace(/\s+/g, ' ');
+  const original = (rawDate || '').trim();
+  if (!original) return null;
+
+  // Strip leading weekday prefixes such as "Sun, ", "Sunday, ", "Thu - "
+  const withoutWeekday = original
+    .replace(
+      /^(?:sun(?:day)?|mon(?:day)?|tue(?:s(?:day)?)?|wed(?:nesday)?|thu(?:r(?:s(?:day)?)?)?|fri(?:day)?|sat(?:urday)?)\.?\s*[,:-]?\s+/i,
+      ''
+    )
+    .trim();
+
+  const cleaned = withoutWeekday.replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
   if (!cleaned) return null;
 
-  // 1. ISO YYYY-MM-DD or YYYY/MM/DD
-  const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  // 1. ISO YYYY-MM-DD, YYYY/MM/DD, or ISO timestamp prefix YYYY-MM-DDT...
+  const isoMatch = cleaned.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[T\s].*)?$/);
   if (isoMatch) {
     const year = parseInt(isoMatch[1], 10);
     const month = parseInt(isoMatch[2], 10) - 1;
@@ -107,44 +118,70 @@ export function parseExamDate(
     return buildParsedDate(year, month, day);
   }
 
-  // 2. Named month first: "Dec 12", "December 12 2026", "Dec-12-2026"
-  const monthFirstMatch = cleaned.match(/^([a-zA-Z]+)[\s\-/]+(\d{1,2})(?:st|nd|rd|th)?(?:[\s\-/]+(\d{2,4}))?$/);
+  // 2. Named month first: "Dec 12", "Dec. 12, 2026", "December 12 2026", "Dec-12-2026",
+  //    or JS Date string head like "Dec 12 2026 00:00:00 GMT+0600"
+  const monthFirstMatch = cleaned.match(
+    /^([a-zA-Z]+)\.?(?:[\s\-/]+)(\d{1,2})(?:st|nd|rd|th)?(?:(?:[\s\-/]+)(\d{2,4})(?:\s+\d{1,2}:\d{2}.*)?)?$/
+  );
   if (monthFirstMatch) {
     const monthIdx = MONTH_MAP[monthFirstMatch[1].toLowerCase()];
     if (monthIdx !== undefined) {
       const day = parseInt(monthFirstMatch[2], 10);
-      let year = monthFirstMatch[3] ? parseInt(monthFirstMatch[3], 10) : inferYear(monthIdx, day, referenceDate);
+      let year = monthFirstMatch[3]
+        ? parseInt(monthFirstMatch[3], 10)
+        : inferYear(monthIdx, day, referenceDate);
       if (year < 100) year += 2000;
       return buildParsedDate(year, monthIdx, day);
     }
   }
 
   // 3. Day first with named month: "12 Dec", "12-Dec-2026", "12 December 2026"
-  const dayFirstMatch = cleaned.match(/^(\d{1,2})(?:st|nd|rd|th)?[\s\-/]+([a-zA-Z]+)(?:[\s\-/]+(\d{2,4}))?$/);
+  const dayFirstMatch = cleaned.match(
+    /^(\d{1,2})(?:st|nd|rd|th)?(?:[\s\-/]+)([a-zA-Z]+)\.?(?:(?:[\s\-/]+)(\d{2,4})(?:\s+\d{1,2}:\d{2}.*)?)?$/
+  );
   if (dayFirstMatch) {
     const monthIdx = MONTH_MAP[dayFirstMatch[2].toLowerCase()];
     if (monthIdx !== undefined) {
       const day = parseInt(dayFirstMatch[1], 10);
-      let year = dayFirstMatch[3] ? parseInt(dayFirstMatch[3], 10) : inferYear(monthIdx, day, referenceDate);
+      let year = dayFirstMatch[3]
+        ? parseInt(dayFirstMatch[3], 10)
+        : inferYear(monthIdx, day, referenceDate);
       if (year < 100) year += 2000;
       return buildParsedDate(year, monthIdx, day);
     }
   }
 
-  // 4. Numeric DD/MM/YYYY or MM/DD/YYYY (preferring DD/MM when first > 12, else DD/MM for KUET BD convention if <= 12? Actually handle unambiguously: if first > 12 => DD/MM, if second > 12 => MM/DD, else DD/MM)
+  // 4. Explicit numeric DD/MM/YYYY, DD/MM/YY, DD/MM, or DD-MM-YYYY (always DD/MM)
   const numericMatch = cleaned.match(/^(\d{1,2})[-/](\d{1,2})(?:[-/](\d{2,4}))?$/);
   if (numericMatch) {
-    const first = parseInt(numericMatch[1], 10);
-    const second = parseInt(numericMatch[2], 10);
-    let day = first;
-    let monthIdx = second - 1;
-    if (second > 12 && first <= 12) {
-      monthIdx = first - 1;
-      day = second;
-    }
-    let year = numericMatch[3] ? parseInt(numericMatch[3], 10) : inferYear(monthIdx, day, referenceDate);
+    const day = parseInt(numericMatch[1], 10);
+    const monthIdx = parseInt(numericMatch[2], 10) - 1;
+    let year = numericMatch[3]
+      ? parseInt(numericMatch[3], 10)
+      : inferYear(monthIdx, day, referenceDate);
     if (year < 100) year += 2000;
     return buildParsedDate(year, monthIdx, day);
+  }
+
+  // 5. Fallback for any other standard JS Date strings
+  // Avoid passing pure slash-separated numeric strings here so US MM/DD parsing never overrides DD/MM.
+  if (!/^\d{1,2}[/-]\d{1,2}/.test(cleaned)) {
+    const parsedFromOriginal = new Date(original);
+    if (!Number.isNaN(parsedFromOriginal.getTime())) {
+      return buildParsedDate(
+        parsedFromOriginal.getFullYear(),
+        parsedFromOriginal.getMonth(),
+        parsedFromOriginal.getDate()
+      );
+    }
+    const parsedFromCleaned = new Date(cleaned);
+    if (!Number.isNaN(parsedFromCleaned.getTime())) {
+      return buildParsedDate(
+        parsedFromCleaned.getFullYear(),
+        parsedFromCleaned.getMonth(),
+        parsedFromCleaned.getDate()
+      );
+    }
   }
 
   return null;
@@ -206,23 +243,33 @@ export function isTermFinalUpcoming(exam: TermFinalExam, nowMs: number = Date.no
 }
 
 /**
- * Returns true when active (non-cancelled) TF exams exist AND `nowMs` falls within
- * 7 calendar days before the earliest TF exam date through the latest TF exam's end time.
+ * Returns true when at least one upcoming (non-cancelled, non-completed) Term Final exam exists.
+ */
+export function hasUpcomingTermFinals(
+  exams: TermFinalExam[],
+  nowMs: number = Date.now()
+): boolean {
+  return exams.some((exam) => isTermFinalUpcoming(exam, nowMs));
+}
+
+/**
+ * Returns true when upcoming (non-cancelled) TF exams exist AND `nowMs` falls within
+ * 7 calendar days before the earliest upcoming TF exam date through the latest TF exam's end time.
  */
 export function isWithinTermFinalWindow(
   exams: TermFinalExam[],
   nowMs: number = Date.now()
 ): boolean {
-  const activeExams = exams.filter((exam) => exam.status !== 'Cancelled');
-  if (activeExams.length === 0) return false;
+  const upcomingExams = exams.filter((exam) => isTermFinalUpcoming(exam, nowMs));
+  if (upcomingExams.length === 0) return false;
 
-  const sorted = sortTermFinalsChronologically(activeExams);
+  const sorted = sortTermFinalsChronologically(upcomingExams);
   const earliest = sorted[0];
   const [y, m, d] = earliest.dateISO.split('-').map((n) => parseInt(n, 10));
   const windowStartMs = new Date(y, (m || 1) - 1, (d || 1) - 7, 0, 0, 0, 0).getTime();
 
   let latestEndMs = 0;
-  for (const exam of activeExams) {
+  for (const exam of upcomingExams) {
     const { endMs } = getTermFinalTimestamps(exam);
     if (endMs > latestEndMs) latestEndMs = endMs;
   }

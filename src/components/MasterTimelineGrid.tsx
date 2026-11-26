@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
 import { getAcademicPeriodMarkers, PeriodMarker, formatTo12Hour } from '../utils/timeCalculations';
@@ -16,6 +16,9 @@ interface MasterTimelineGridProps {
   highlightedEventKey?: string | null;
 }
 
+const TIMELINE_EDGE_FADE_MASK =
+  'linear-gradient(to right, transparent 0px, rgba(0,0,0,0.12) 4px, rgba(0,0,0,0.45) 9px, rgba(0,0,0,0.82) 14px, black 18px, black calc(100% - 28px), rgba(0,0,0,0.9) calc(100% - 24px), rgba(0,0,0,0.62) calc(100% - 18px), rgba(0,0,0,0.28) calc(100% - 11px), rgba(0,0,0,0.08) calc(100% - 5px), transparent 100%)';
+
 export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   days,
   events,
@@ -29,40 +32,6 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 }) => {
   const periodMarkers: PeriodMarker[] = getAcademicPeriodMarkers();
   const isDark = theme === 'dark';
-
-  // Dynamic left & right edge gradient opacity tracking
-  const [edgeFade, setEdgeFade] = useState<{ left: number; right: number }>({
-    left: 0,
-    right: 1,
-  });
-
-  useEffect(() => {
-    const container = scrollRef?.current;
-    if (!container) return;
-
-    const updateScrollMetrics = () => {
-      const maxScroll = container.scrollWidth - container.clientWidth;
-      if (maxScroll <= 4) {
-        setEdgeFade({ left: 0, right: 0 });
-        return;
-      }
-      const leftScroll = Math.max(0, container.scrollLeft);
-      const remainingRight = Math.max(0, maxScroll - leftScroll);
-      const fadeThreshold = 28;
-      const left = leftScroll <= 2 ? 0 : Math.min(1, leftScroll / fadeThreshold);
-      const right = remainingRight <= 2 ? 0 : Math.min(1, remainingRight / fadeThreshold);
-      setEdgeFade({ left, right });
-    };
-
-    updateScrollMetrics();
-    container.addEventListener('scroll', updateScrollMetrics, { passive: true });
-    window.addEventListener('resize', updateScrollMetrics);
-
-    return () => {
-      container.removeEventListener('scroll', updateScrollMetrics);
-      window.removeEventListener('resize', updateScrollMetrics);
-    };
-  }, [scrollRef]);
 
   return (
     <div className="flex flex-col">
@@ -146,6 +115,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           style={{
             touchAction: 'pan-x pan-y',
             WebkitOverflowScrolling: 'touch',
+            maskImage: TIMELINE_EDGE_FADE_MASK,
+            WebkitMaskImage: TIMELINE_EDGE_FADE_MASK,
           }}
         >
           <div className="min-w-[1008px] flex flex-col">
@@ -289,46 +260,6 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           })}
         </div>
       </div>
-
-      {/* Dynamic Left-Edge Fade Overlays (immediately right of sticky Day column) */}
-      <div
-        className={`absolute top-0 h-10 left-0 w-12 sm:w-14 pointer-events-none transition-opacity duration-150 z-30 ${
-          isDark
-            ? 'bg-gradient-to-r from-[#1C1A18] from-0% via-[#1C1A18]/85 via-35% to-transparent'
-            : 'bg-gradient-to-r from-stone-100 from-0% via-stone-100/85 via-35% to-transparent'
-        }`}
-        style={{ opacity: edgeFade.left }}
-        aria-hidden="true"
-      />
-      <div
-        className={`absolute top-10 bottom-0 left-0 w-12 sm:w-14 pointer-events-none transition-opacity duration-150 z-30 ${
-          isDark
-            ? 'bg-gradient-to-r from-[#11100F] from-0% via-[#11100F]/85 via-35% to-transparent'
-            : 'bg-gradient-to-r from-stone-100 from-0% via-stone-100/85 via-35% to-transparent'
-        }`}
-        style={{ opacity: edgeFade.left }}
-        aria-hidden="true"
-      />
-
-      {/* Dynamic Right-Edge Fade Overlays */}
-      <div
-        className={`absolute top-0 h-10 right-0 w-12 sm:w-14 pointer-events-none transition-opacity duration-150 z-30 ${
-          isDark
-            ? 'bg-gradient-to-l from-[#1C1A18] from-0% via-[#1C1A18]/85 via-35% to-transparent'
-            : 'bg-gradient-to-l from-stone-100 from-0% via-stone-100/85 via-35% to-transparent'
-        }`}
-        style={{ opacity: edgeFade.right }}
-        aria-hidden="true"
-      />
-      <div
-        className={`absolute top-10 bottom-0 right-0 w-12 sm:w-14 pointer-events-none transition-opacity duration-150 z-30 ${
-          isDark
-            ? 'bg-gradient-to-l from-[#11100F] from-0% via-[#11100F]/85 via-35% to-transparent'
-            : 'bg-gradient-to-l from-stone-100 from-0% via-stone-100/85 via-35% to-transparent'
-        }`}
-        style={{ opacity: edgeFade.right }}
-        aria-hidden="true"
-      />
     </div>
   </div>
 </div>

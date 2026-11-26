@@ -166,9 +166,16 @@ export function parseRoutineCSVRows(rows: string[][]): {
       continue;
     }
 
-    // 2. Route Term Final (Type = TF) rows into dedicated chronological exam list
+    // 2. Route Term Final rows into dedicated chronological exam list
+    const normalizedType = lowerType.replace(/\s+/g, ' ');
     const isTermFinalRow =
-      lowerType === 'tf' || lowerType === 'term final' || lowerType === 'termfinal';
+      normalizedType === 'tf' ||
+      normalizedType === 'term final' ||
+      normalizedType === 'term finals' ||
+      normalizedType === 'termfinal' ||
+      normalizedType === 'termfinals' ||
+      normalizedType === 'final' ||
+      normalizedType === 'finals';
 
     if (isTermFinalRow) {
       const parsedDate = parseExamDate(rawDay);

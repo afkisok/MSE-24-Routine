@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mse24-routine-v4';
+const CACHE_NAME = 'mse24-routine-v5';
 const STATIC_PRECACHE_URLS = [
   '/manifest.json',
   '/icon.svg',
@@ -8,12 +8,12 @@ const STATIC_PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches
       .open(CACHE_NAME)
       .then((cache) => cache.addAll(STATIC_PRECACHE_URLS))
       .catch(() => {})
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -28,13 +28,30 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
 
-  // Network-first for cross-origin data (e.g. live Google Sheets CSV)
+  // Strict NetworkOnly for Google Sheets & CSV endpoints (localStorage handles offline fallback)
+  const isSpreadsheetOrCsv =
+    url.hostname.endsWith('docs.google.com') ||
+    url.hostname.endsWith('googleusercontent.com') ||
+    url.pathname.endsWith('.csv') ||
+    url.searchParams.get('output') === 'csv';
+
+  if (isSpreadsheetOrCsv) {
+    return;
+  }
+
+  // Network-first for other cross-origin requests (e.g. Google Fonts)
   if (url.origin !== self.location.origin) {
     event.respondWith(
       fetch(request).catch(() => caches.match(request))
@@ -60,7 +77,6 @@ self.addEventListener('fetch', (event) => {
     url.pathname === '/' ||
     url.pathname.endsWith('.html') ||
     url.pathname.endsWith('.json') ||
-    url.pathname.endsWith('.csv') ||
     url.pathname.startsWith('/api/');
 
   if (isNetworkFirst) {
@@ -78,7 +94,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Cache-first for static assets (JS, CSS, PNG/SVG icons, fonts)
+  // Cache-first for static assets (hashed JS/CSS bundles, PNG/SVG icons, fonts)
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;

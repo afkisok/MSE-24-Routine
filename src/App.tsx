@@ -10,7 +10,11 @@ import {
 import { parseAlternatingSchedule } from './utils/alternatingLabEngine';
 import { parseCSV, parseRoutineCSVRows } from './utils/csvParser';
 import { processDifferentialLogs } from './utils/deltaLogEngine';
-import { isWithinTermFinalWindow, termFinalToRoutineEvent } from './utils/termFinalUtils';
+import {
+  hasUpcomingTermFinals,
+  isWithinTermFinalWindow,
+  termFinalToRoutineEvent,
+} from './utils/termFinalUtils';
 import { Header } from './components/Header';
 import { AtAGlanceWidget } from './components/AtAGlanceWidget';
 import { MasterTimelineGrid } from './components/MasterTimelineGrid';
@@ -83,7 +87,7 @@ export default function App() {
     return [];
   });
 
-  const [showWeeklyOverride, setShowWeeklyOverride] = useState(false);
+  const [viewOverride, setViewOverride] = useState<'weekly' | 'termFinals' | null>(null);
 
   const [selectedEvent, setSelectedEvent] = useState<RoutineEvent | null>(null);
   const [isAssignmentsModalOpen, setIsAssignmentsModalOpen] = useState(false);
@@ -171,15 +175,22 @@ export default function App() {
   const [highlightedEventKey, setHighlightedEventKey] = useState<string | null>(null);
   const highlightTimerRef = useRef<number | null>(null);
 
-  const hasActiveTermFinals = isWithinTermFinalWindow(termFinals, nowMs);
-  const isTermFinalView = hasActiveTermFinals && !showWeeklyOverride;
+  const hasUpcomingFinals = hasUpcomingTermFinals(termFinals, nowMs);
+  const isAutoTermFinalWindow = isWithinTermFinalWindow(termFinals, nowMs);
+  const isTermFinalView = hasUpcomingFinals
+    ? viewOverride === 'termFinals'
+      ? true
+      : viewOverride === 'weekly'
+      ? false
+      : isAutoTermFinalWindow
+    : false;
 
-  // Automatically reset manual weekly override once all TF exams expire or disappear
+  // Automatically reset manual view override once all TF exams expire or disappear
   useEffect(() => {
-    if (!hasActiveTermFinals && showWeeklyOverride) {
-      setShowWeeklyOverride(false);
+    if (!hasUpcomingFinals && viewOverride !== null) {
+      setViewOverride(null);
     }
-  }, [hasActiveTermFinals, showWeeklyOverride]);
+  }, [hasUpcomingFinals, viewOverride]);
 
   // Sliding pill measurement for Group Toggle
   const groupTabRefs = useRef<Record<'All' | 'Group A' | 'Group B', HTMLButtonElement | null>>({
@@ -260,7 +271,16 @@ export default function App() {
 
     setSyncStatus({ status: 'syncing', message: 'FETCHING_STREAM...' });
     try {
-      const res = await fetch(url);
+      let fetchUrl = url;
+      try {
+        const parsedUrl = new URL(url);
+        parsedUrl.searchParams.set('_cb', String(Date.now()));
+        fetchUrl = parsedUrl.toString();
+      } catch {
+        const separator = url.includes('?') ? '&' : '?';
+        fetchUrl = `${url}${separator}_cb=${Date.now()}`;
+      }
+      const res = await fetch(fetchUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP_${res.status}`);
       const csvText = await res.text();
       const rawRows = parseCSV(csvText);
@@ -347,7 +367,7 @@ export default function App() {
     setEvents(baselineTestData);
     setAssignments([]);
     setTermFinals([]);
-    setShowWeeklyOverride(false);
+    setViewOverride(null);
     processDifferentialLogs(baselineTestData);
     setSyncStatus({ status: 'idle', message: 'BASELINE_DEFAULT_RESTORED' });
   };
@@ -536,7 +556,7 @@ export default function App() {
               {isTermFinalView && (
                 <button
                   type="button"
-                  onClick={() => setShowWeeklyOverride(true)}
+                  onClick={() => setViewOverride('weekly')}
                   className={`sm:hidden h-9 px-3.5 text-xs font-medium rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                     isDark
                       ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-300 hover:text-stone-100 border-stone-800'
@@ -551,7 +571,7 @@ export default function App() {
             {isTermFinalView ? (
               <button
                 type="button"
-                onClick={() => setShowWeeklyOverride(true)}
+                onClick={() => setViewOverride('weekly')}
                 className={`hidden sm:inline-flex h-9 px-3.5 text-xs font-medium rounded-full items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                   isDark
                     ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-300 hover:text-stone-100 border-stone-800'
@@ -628,10 +648,10 @@ export default function App() {
                   <span>Now</span>
                 </button>
 
-                {hasActiveTermFinals && (
+                {hasUpcomingFinals && (
                   <button
                     type="button"
-                    onClick={() => setShowWeeklyOverride(false)}
+                    onClick={() => setViewOverride('termFinals')}
                     className={`h-9 px-3.5 text-xs font-semibold rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                       isDark
                         ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'

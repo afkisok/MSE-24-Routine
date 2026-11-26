@@ -26,10 +26,27 @@
     <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
+        var hadController = Boolean(navigator.serviceWorker.controller);
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (!hadController || refreshing) return;
+          refreshing = true;
+          window.location.reload();
+        });
         window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function (err) {
-            console.warn('Service worker registration failed:', err);
-          });
+          navigator.serviceWorker
+            .register('/sw.js', { updateViaCache: 'none' })
+            .then(function (registration) {
+              registration.update().catch(function () {});
+              document.addEventListener('visibilitychange', function () {
+                if (document.visibilityState === 'visible') {
+                  registration.update().catch(function () {});
+                }
+              });
+            })
+            .catch(function (err) {
+              console.warn('Service worker registration failed:', err);
+            });
         });
       }
     </script>
