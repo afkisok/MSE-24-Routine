@@ -79,10 +79,10 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                   isNextDate
                     ? isDark
                       ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
-                      : 'bg-stone-900 border-stone-900 text-stone-50 shadow-xs'
+                      : 'bg-stone-900 border-stone-900 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_0_rgba(0,0,0,0.12)]'
                     : isDark
                     ? 'bg-[#1C1A18] border-stone-800 text-stone-100'
-                    : 'bg-white border-stone-200 text-stone-900'
+                    : 'bg-white border-stone-200 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.03)]'
                 } ${isEntireDatePast ? 'opacity-45' : ''}`}
               >
                 <span className="text-sm font-bold tracking-tight leading-none whitespace-nowrap">
@@ -121,7 +121,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                             : 'bg-transparent border-dashed border-stone-300 text-stone-400'
                           : isDark
                           ? 'bg-[#23201D] border-stone-800 text-stone-100 shadow-xs hover:border-stone-700 hover:bg-[#2A2623]'
-                          : 'bg-white border-stone-300 text-stone-900 shadow-xs hover:border-stone-400'
+                          : 'bg-white border-stone-300 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.04)] hover:border-stone-400'
                       } ${isPast ? 'opacity-45' : ''}`}
                     >
                       {/* 1. Top Metadata Line: Time Window */}

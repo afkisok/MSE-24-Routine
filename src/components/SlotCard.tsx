@@ -1,6 +1,10 @@
 import React from 'react';
 import { RoutineEvent } from '../types/routine';
-import { calculateSlotGeometry, formatTo12Hour } from '../utils/timeCalculations';
+import {
+  calculateSlotGeometry,
+  formatTo12Hour,
+  TOTAL_DAY_MINUTES,
+} from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
 
 interface SlotCardProps {
@@ -9,6 +13,7 @@ interface SlotCardProps {
   theme?: 'light' | 'dark';
   isDimmed?: boolean;
   isHighlighted?: boolean;
+  totalDayMinutes?: number;
 }
 
 /**
@@ -82,10 +87,12 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   theme = 'light',
   isDimmed = false,
   isHighlighted = false,
+  totalDayMinutes = TOTAL_DAY_MINUTES,
 }) => {
   const { leftPercent, widthPercent, durationMinutes } = calculateSlotGeometry(
     event.startTime,
-    event.endTime
+    event.endTime,
+    totalDayMinutes
   );
 
   const meta = parseAlternatingSchedule(event.type, event.subject, event.syllabus);
@@ -122,7 +129,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
     // Active Classes (Theory & Lab unified crisp stone surface)
     return isDark
       ? 'bg-[#23201D] border-stone-800 text-stone-100 shadow-xs hover:border-stone-700 hover:bg-[#2A2623]'
-      : 'bg-white border-stone-300 text-stone-900 shadow-xs hover:border-stone-400';
+      : 'bg-white border-stone-300 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.04)] hover:border-stone-400';
   };
 
   // 0. CANCELED SLOT CARD: Completely greyed out, showing only struck-through course code + CANCELED

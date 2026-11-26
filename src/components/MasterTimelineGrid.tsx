@@ -3,6 +3,7 @@ import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
 import {
   DAY_START_MINUTES,
+  TOTAL_DAY_MINUTES,
   getAcademicPeriodMarkers,
   PeriodMarker,
   formatTo12Hour,
@@ -11,7 +12,7 @@ import {
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
 
 interface MasterTimelineGridProps {
-  days: Array<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'>;
+  days: Array<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Saturday'>;
   events: RoutineEvent[];
   todayName: string;
   currentMinuteOffset: number | null;
@@ -20,10 +21,8 @@ interface MasterTimelineGridProps {
   theme?: 'light' | 'dark';
   selectedGroup?: 'All' | 'Group A' | 'Group B';
   highlightedEventKey?: string | null;
+  totalDayMinutes?: number;
 }
-
-const TIMELINE_EDGE_FADE_MASK =
-  'linear-gradient(to right, transparent 0px, rgba(0,0,0,0.12) 4px, rgba(0,0,0,0.45) 9px, rgba(0,0,0,0.82) 14px, black 18px, black calc(100% - 28px), rgba(0,0,0,0.9) calc(100% - 24px), rgba(0,0,0,0.62) calc(100% - 18px), rgba(0,0,0,0.28) calc(100% - 11px), rgba(0,0,0,0.08) calc(100% - 5px), transparent 100%)';
 
 export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   days,
@@ -35,12 +34,15 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   theme = 'light',
   selectedGroup = 'All',
   highlightedEventKey = null,
+  totalDayMinutes = TOTAL_DAY_MINUTES,
 }) => {
-  const periodMarkers: PeriodMarker[] = getAcademicPeriodMarkers();
+  const safeTotalMinutes = Math.max(TOTAL_DAY_MINUTES, totalDayMinutes);
+  const periodMarkers: PeriodMarker[] = getAcademicPeriodMarkers(safeTotalMinutes);
   const isDark = theme === 'dark';
 
+  const minTrackWidthPx = Math.round((safeTotalMinutes / TOTAL_DAY_MINUTES) * 960) + 48;
   const headerAxisRef = useRef<HTMLDivElement | null>(null);
-  const [axisWidthPx, setAxisWidthPx] = useState<number>(960);
+  const [axisWidthPx, setAxisWidthPx] = useState<number>(minTrackWidthPx - 48);
 
   useEffect(() => {
     const el = headerAxisRef.current;
@@ -61,13 +63,13 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
-  }, []);
+  }, [minTrackWidthPx]);
 
   const isNowVisible =
     currentMinuteOffset !== null &&
     currentMinuteOffset >= 0 &&
-    currentMinuteOffset <= 540;
-  const nowLeftPercent = isNowVisible ? (currentMinuteOffset / 540) * 100 : null;
+    currentMinuteOffset <= safeTotalMinutes;
+  const nowLeftPercent = isNowVisible ? (currentMinuteOffset / safeTotalMinutes) * 100 : null;
   const nowCenterX = nowLeftPercent !== null ? (nowLeftPercent / 100) * axisWidthPx : null;
 
   return (
@@ -116,10 +118,10 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                   isToday
                     ? isDark
                       ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
-                      : 'bg-stone-900 border-stone-900 text-stone-50 shadow-xs'
+                      : 'bg-stone-900 border-stone-900 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_0_rgba(0,0,0,0.12)]'
                     : isDark
                     ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700'
-                    : 'bg-white border-stone-200 text-stone-900 hover:border-stone-300'
+                    : 'bg-white border-stone-200 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.03)] hover:border-stone-300'
                 }`}
               >
                 <div className="flex items-center justify-center leading-none">
@@ -138,19 +140,26 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 
       {/* 2. TIMELINE TRACK CONTAINER (SCROLLS HORIZONTALLY, WITH FLOATING VERTICAL TIME GUIDES) */}
       <div className="relative flex-1 min-w-0 overflow-hidden flex flex-col">
+        {/* Scrim-eased left & right scroll-fade overlays positioned strictly below the h-11 header strip */}
+        <div
+          aria-hidden="true"
+          className="timeline-fade-left pointer-events-none absolute top-11 bottom-0 left-0 w-[18px] z-[35]"
+        />
+        <div
+          aria-hidden="true"
+          className="timeline-fade-right pointer-events-none absolute top-11 bottom-0 right-0 w-[28px] z-[35]"
+        />
+
         <div
           ref={scrollRef}
-          className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors ${
+          className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
             isDark ? 'bg-[#141414]' : 'bg-[#F4F3EF]'
           }`}
-          style={{
-            touchAction: 'pan-x pan-y',
-            WebkitOverflowScrolling: 'touch',
-            maskImage: TIMELINE_EDGE_FADE_MASK,
-            WebkitMaskImage: TIMELINE_EDGE_FADE_MASK,
-          }}
         >
-          <div className="relative min-w-[1008px] flex flex-col">
+          <div
+            className="relative flex flex-col"
+            style={{ minWidth: `${minTrackWidthPx}px` }}
+          >
           {/* Floating vertical time-column guides behind class rows (below header & inset from bottom) */}
           <div
             className="absolute top-12 bottom-3 left-6 right-6 pointer-events-none z-0"
@@ -230,21 +239,19 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             return (
               <div
                 key={`track-${day}`}
+                data-day={day.toLowerCase()}
                 className="relative z-10 h-24 px-6 py-1 bg-transparent transition-colors"
               >
                 <div className="relative w-full h-full">
                   {/* Live Current Time Vertical Line for Today (always pinned above cards) */}
-                  {isToday &&
-                    currentMinuteOffset !== null &&
-                    currentMinuteOffset >= 0 &&
-                    currentMinuteOffset <= 540 && (
-                      <div
-                        style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
-                        className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none ${
-                          isDark ? 'bg-[#C84B4D] opacity-90' : 'bg-[#9E2A2B] opacity-85'
-                        }`}
-                      />
-                    )}
+                  {isToday && isNowVisible && nowLeftPercent !== null && (
+                    <div
+                      style={{ left: `${nowLeftPercent}%` }}
+                      className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none ${
+                        isDark ? 'bg-[#C84B4D] opacity-90' : 'bg-[#9E2A2B] opacity-85'
+                      }`}
+                    />
+                  )}
 
                   {/* Scheduled Flight / Class Slots */}
                   <div className="relative w-full h-full">
@@ -273,6 +280,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                             theme={theme}
                             isDimmed={isDimmed}
                             isHighlighted={isHighlighted}
+                            totalDayMinutes={safeTotalMinutes}
                           />
                         );
                       })

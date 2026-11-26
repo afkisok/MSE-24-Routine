@@ -242,7 +242,12 @@ export function parseRoutineCSVRows(rows: string[][]): {
 
     if (row.length < 3) continue;
 
-    const dayMatch = validDays.find((d) => d.toLowerCase() === lowerDay) || 'Sunday';
+    const dayMatch =
+      validDays.find(
+        (d) =>
+          d.toLowerCase() === lowerDay ||
+          (lowerDay.length >= 3 && d.toLowerCase().startsWith(lowerDay.slice(0, 3)))
+      ) || 'Sunday';
 
     const startTime = (startIdx >= 0 ? row[startIdx] : '')?.trim() || '08:00';
     const endTime = (endIdx >= 0 ? row[endIdx] : '')?.trim() || '08:50';
@@ -286,6 +291,10 @@ export function parseRoutineCSVRows(rows: string[][]): {
     const syllabus = (syllabusIdx >= 0 ? row[syllabusIdx] : '')?.trim() || '';
     const marks = (marksIdx >= 0 ? row[marksIdx] : '')?.trim() || '';
 
+    const isExplicitOffRoutine = /\b(extra|make[\s-]?up|off[\s-]?routine)\b/i.test(
+      `${rawType} ${rawStatus} ${subject}`
+    );
+
     events.push({
       id: `csv-${r}`,
       day: dayMatch,
@@ -298,6 +307,7 @@ export function parseRoutineCSVRows(rows: string[][]): {
       status,
       syllabus,
       marks,
+      ...(isExplicitOffRoutine ? { isOffRoutine: true } : {}),
     });
   }
 

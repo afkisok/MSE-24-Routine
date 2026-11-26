@@ -100,17 +100,43 @@ export function formatTimeTo12Hour(timeStr: string): string {
   return formatTo12Hour(timeStr);
 }
 
-export function calculateSlotGeometry(startTime: string, endTime: string): {
+export function computeDynamicDayEndMinutes(
+  events: Array<{ startTime: string; endTime: string; status?: string }>
+): number {
+  let latestEnd = DAY_END_MINUTES; // 17:00 (1020)
+
+  for (const evt of events) {
+    const status = (evt.status || '').trim().toLowerCase();
+    if (status === 'cancelled' || status === 'canceled') continue;
+
+    const start = timeToMinutes(evt.startTime);
+    const end = timeToMinutes(evt.endTime);
+    const effectiveEnd = end > start ? end : start + 50;
+
+    if (start >= DAY_END_MINUTES || effectiveEnd > DAY_END_MINUTES) {
+      latestEnd = Math.max(latestEnd, effectiveEnd + 30);
+    }
+  }
+
+  return Math.min(23 * 60 + 50, latestEnd);
+}
+
+export function calculateSlotGeometry(
+  startTime: string,
+  endTime: string,
+  totalDayMinutes: number = TOTAL_DAY_MINUTES
+): {
   leftPercent: number;
   widthPercent: number;
   durationMinutes: number;
 } {
+  const safeTotal = Math.max(TOTAL_DAY_MINUTES, totalDayMinutes);
   const startMins = timeToMinutes(startTime);
   const endMins = timeToMinutes(endTime);
   const duration = Math.max(0, endMins - startMins);
 
-  const leftPercent = ((startMins - DAY_START_MINUTES) / TOTAL_DAY_MINUTES) * 100;
-  const widthPercent = (duration / TOTAL_DAY_MINUTES) * 100;
+  const leftPercent = ((startMins - DAY_START_MINUTES) / safeTotal) * 100;
+  const widthPercent = (duration / safeTotal) * 100;
 
   return {
     leftPercent: Math.max(0, Math.min(100, leftPercent)),
@@ -119,11 +145,24 @@ export function calculateSlotGeometry(startTime: string, endTime: string): {
   };
 }
 
-export function getAcademicPeriodMarkers(): PeriodMarker[] {
-  return ACADEMIC_PERIOD_TIMES.map((timeStr, idx) => {
+export function getAcademicPeriodMarkers(
+  totalDayMinutes: number = TOTAL_DAY_MINUTES
+): PeriodMarker[] {
+  const safeTotal = Math.max(TOTAL_DAY_MINUTES, totalDayMinutes);
+  const endMinutes = DAY_START_MINUTES + safeTotal;
+  const markerTimes: string[] = [...ACADEMIC_PERIOD_TIMES];
+
+  // Append hourly markers past 17:00 (e.g., 18:00, 19:00) if the timeline extends past 5:00 PM
+  for (let mins = 18 * 60; mins <= endMinutes; mins += 60) {
+    const hh = String(Math.floor(mins / 60)).padStart(2, '0');
+    const mm = String(mins % 60).padStart(2, '0');
+    markerTimes.push(`${hh}:${mm}`);
+  }
+
+  return markerTimes.map((timeStr, idx) => {
     const mins = timeToMinutes(timeStr);
     const minutesFromStart = mins - DAY_START_MINUTES;
-    const leftPercent = (minutesFromStart / TOTAL_DAY_MINUTES) * 100;
+    const leftPercent = (minutesFromStart / safeTotal) * 100;
 
     return {
       timeStr,
@@ -131,13 +170,13 @@ export function getAcademicPeriodMarkers(): PeriodMarker[] {
       minutesFromStart,
       leftPercent,
       isFirst: idx === 0,
-      isLast: idx === ACADEMIC_PERIOD_TIMES.length - 1,
+      isLast: idx === markerTimes.length - 1,
     };
   });
 }
 
-export function getHourMarkers(): PeriodMarker[] {
-  return getAcademicPeriodMarkers();
+export function getHourMarkers(totalDayMinutes: number = TOTAL_DAY_MINUTES): PeriodMarker[] {
+  return getAcademicPeriodMarkers(totalDayMinutes);
 }
 
 export function formatDuration(durationMinutes: number): string {

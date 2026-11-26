@@ -163,17 +163,19 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'Refresh routine schedule'
               }
               aria-label="Refresh routine schedule"
-              className={`w-[38px] h-[38px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border select-none disabled:opacity-60 ${
+              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none disabled:opacity-60 ${
                 isDark
                   ? 'bg-[#1C1A18] border-stone-800 text-stone-300 hover:text-stone-100 hover:bg-[#24211E]'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
               }`}
             >
-              <RefreshCw
-                className={`w-4 h-4 transition-transform duration-200 ${
+              <span
+                className={`inline-flex items-center justify-center leading-none transition-transform duration-200 ${
                   syncStatus.status === 'syncing' ? 'animate-spin' : ''
                 }`}
-              />
+              >
+                <RefreshCw className="w-4 h-4 block" />
+              </span>
             </button>
 
             {/* Clean Circular Theme Toggle Button */}
@@ -182,16 +184,16 @@ export const Header: React.FC<HeaderProps> = ({
               type="button"
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className={`w-[38px] h-[38px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                 isDark
                   ? 'bg-[#1C1A18] border-stone-800 text-stone-300 hover:bg-[#24211E] hover:text-stone-100'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
               }`}
             >
               {isDark ? (
-                <Sun className="w-4 h-4" />
+                <Sun className="w-4 h-4 block" />
               ) : (
-                <Moon className="w-4 h-4" />
+                <Moon className="w-4 h-4 block" />
               )}
             </button>
           </div>

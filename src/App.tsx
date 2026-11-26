@@ -3,8 +3,9 @@ import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL
 import { baselineTestData } from './data/baselineData';
 import {
   DAY_START_MINUTES,
-  DAY_END_MINUTES,
   TOTAL_DAY_MINUTES,
+  computeDynamicDayEndMinutes,
+  formatTo12Hour,
   timeToMinutes,
 } from './utils/timeCalculations';
 import { parseAlternatingSchedule } from './utils/alternatingLabEngine';
@@ -24,7 +25,7 @@ import { AssignmentsModal } from './components/AssignmentsModal';
 import { AdminConfigModal } from './components/AdminConfigModal';
 import { AdminPinDialog } from './components/AdminPinDialog';
 import { StandaloneHtmlExporter } from './components/StandaloneHtmlExporter';
-import { Clock } from 'lucide-react';
+import { Clock, ArrowRight } from 'lucide-react';
 
 const CACHED_EVENTS_KEY = 'mse24_cached_routine_events';
 const CACHED_ASSIGNMENTS_KEY = 'mse24_cached_routine_assignments';
@@ -32,13 +33,49 @@ const CACHED_TERM_FINALS_KEY = 'mse24_cached_routine_term_finals';
 const CACHED_SYNC_TIME_KEY = 'mse24_cached_sync_time';
 const ADMIN_CSV_URL_KEY = 'admin_routine_csv_url';
 
-const OPERATIONAL_DAYS: Array<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'> = [
+const BASE_OPERATIONAL_DAYS: Array<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'> = [
   'Sunday',
   'Monday',
   'Tuesday',
   'Wednesday',
   'Thursday',
 ];
+
+const DAY_TO_WEEKDAY_NUM: Record<string, number> = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+};
+
+function extractShortCourseCode(subject: string): string {
+  if (!subject) return '';
+  const colonIdx = subject.indexOf(':');
+  return (colonIdx !== -1 ? subject.slice(0, colonIdx) : subject).trim();
+}
+
+function formatOffRoutineRowLabel(evt: RoutineEvent): string {
+  const courseCode = extractShortCourseCode(evt.subject);
+  const meta = parseAlternatingSchedule(evt.type, evt.subject, evt.syllabus);
+  const typeStatus = `${evt.type || ''} ${evt.status || ''}`.toLowerCase();
+  const isExam = meta.category === 'EXAM' || /\b(exam|ct|quiz)\b/.test(typeStatus);
+  const isLab = meta.category === 'LAB';
+  const isSaturday = evt.day.toLowerCase() === 'saturday';
+
+  const eventKind = isExam ? 'exam' : isLab ? 'lab' : 'class';
+
+  if (isSaturday) {
+    return `${courseCode} ${eventKind} on Saturday`;
+  }
+
+  const compactStartTime = formatTo12Hour(evt.startTime)
+    .replace(/\s*(am|pm)$/i, '')
+    .trim();
+  return `${courseCode} ${eventKind} at ${compactStartTime}`;
+}
 
 export default function App() {
   // 1. Instant zero-lag cache resolution on mount
@@ -399,6 +436,25 @@ export default function App() {
     setSyncStatus({ status: 'idle', message: 'BASELINE_DEFAULT_RESTORED' });
   };
 
+  // Dynamic Saturday row & dynamic right-edge end time (extends past 5:00 PM when needed)
+  const hasActiveSaturdayEvents = events.some((evt) => {
+    if (evt.day.toLowerCase() !== 'saturday') return false;
+    const status = (evt.status || '').trim().toLowerCase();
+    return status !== 'cancelled' && status !== 'canceled' && Boolean((evt.subject || '').trim());
+  });
+
+  const operationalDays: Array<
+    'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Saturday'
+  > = hasActiveSaturdayEvents
+    ? [...BASE_OPERATIONAL_DAYS, 'Saturday']
+    : BASE_OPERATIONAL_DAYS;
+
+  const dynamicDayEndMinutes = computeDynamicDayEndMinutes(events);
+  const dynamicTotalDayMinutes = Math.max(
+    TOTAL_DAY_MINUTES,
+    dynamicDayEndMinutes - DAY_START_MINUTES
+  );
+
   // Realtime digital clock update
   useEffect(() => {
     const updateTime = () => {
@@ -408,7 +464,7 @@ export default function App() {
       setTodayName(day);
 
       const totalMinutes = now.getHours() * 60 + now.getMinutes();
-      if (totalMinutes >= DAY_START_MINUTES && totalMinutes <= DAY_END_MINUTES) {
+      if (totalMinutes >= DAY_START_MINUTES && totalMinutes <= dynamicDayEndMinutes) {
         setCurrentMinuteOffset(totalMinutes - DAY_START_MINUTES);
       } else {
         setCurrentMinuteOffset(null);
@@ -418,7 +474,121 @@ export default function App() {
     updateTime();
     const interval = setInterval(updateTime, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [dynamicDayEndMinutes]);
+
+  // Determine whether any slot is currently in progress OR still remaining later today
+  const hasActiveOrRemainingSlotToday = (() => {
+    if (!todayName) return false;
+    const nowDate = new Date(nowMs);
+    const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+
+    return events.some((evt) => {
+      if (evt.day.toLowerCase() !== todayName.toLowerCase()) return false;
+      const status = (evt.status || '').trim().toLowerCase();
+      if (status === 'cancelled' || status === 'canceled') return false;
+      const meta = parseAlternatingSchedule(evt.type, evt.subject, evt.syllabus);
+      if (selectedGroup === 'Group A' && meta.groupVariant === 'B') return false;
+      if (selectedGroup === 'Group B' && meta.groupVariant === 'A') return false;
+      const start = timeToMinutes(evt.startTime);
+      const end = timeToMinutes(evt.endTime);
+      const effectiveEnd = end > start ? end : start + 50;
+      return nowMins <= effectiveEnd;
+    });
+  })();
+
+  // Time-gated off-routine slots:
+  // - Saturday events: visible only on Thu (4), Fri (5), or Sat (6) until start time passes
+  // - 5:00 PM+ weekday events: visible only on the same day until start time passes
+  const visibleOffRoutineSlots = (() => {
+    const nowDate = new Date(nowMs);
+    const todayDayNum = nowDate.getDay();
+    const currentMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+
+    const items: Array<{ evt: RoutineEvent; key: string; label: string; sortScore: number }> = [];
+
+    operationalDays.forEach((day) => {
+      const dayEvents = events.filter((e) => e.day.toLowerCase() === day.toLowerCase());
+      dayEvents.forEach((evt, idx) => {
+        const status = (evt.status || '').trim().toLowerCase();
+        if (status === 'cancelled' || status === 'canceled') return;
+        if (!(evt.subject || '').trim()) return;
+
+        const meta = parseAlternatingSchedule(evt.type, evt.subject, evt.syllabus);
+        if (selectedGroup === 'Group A' && meta.groupVariant === 'B') return;
+        if (selectedGroup === 'Group B' && meta.groupVariant === 'A') return;
+
+        const startMins = timeToMinutes(evt.startTime);
+        const isSaturday = evt.day.toLowerCase() === 'saturday';
+        const isLateWeekday = !isSaturday && startMins >= 17 * 60;
+        if (!isSaturday && !isLateWeekday) return;
+
+        const targetDayNum = DAY_TO_WEEKDAY_NUM[evt.day];
+        if (targetDayNum === undefined) return;
+
+        if (isSaturday) {
+          const isThuFriSat = todayDayNum === 4 || todayDayNum === 5 || todayDayNum === 6;
+          if (!isThuFriSat) return;
+          if (todayDayNum === 6 && currentMins >= startMins) return;
+        } else {
+          // 5:00 PM+ weekday event: same day only, hide once start time has passed
+          if (todayDayNum !== targetDayNum) return;
+          if (currentMins >= startMins) return;
+        }
+
+        const dayDiff = (targetDayNum - todayDayNum + 7) % 7;
+
+        items.push({
+          evt,
+          key: evt.id || `${day}-${evt.startTime}-${idx}`,
+          label: formatOffRoutineRowLabel(evt),
+          sortScore: dayDiff * 1440 + startMins,
+        });
+      });
+    });
+
+    items.sort((a, b) => a.sortScore - b.sortScore);
+    return items;
+  })();
+
+  const handleScrollToOffRoutineSlot = (target: { evt: RoutineEvent; key: string }) => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+      const startMins = timeToMinutes(target.evt.startTime);
+      const endMins = timeToMinutes(target.evt.endTime);
+      const effectiveEnd = endMins > startMins ? endMins : startMins + 50;
+      const centerOffset = Math.max(
+        0,
+        Math.min(dynamicTotalDayMinutes, (startMins + effectiveEnd) / 2 - DAY_START_MINUTES)
+      );
+      const focusX = (centerOffset / dynamicTotalDayMinutes) * container.scrollWidth;
+      const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 2));
+      container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+
+      const rowEl = container.querySelector<HTMLElement>(
+        `[data-day="${target.evt.day.toLowerCase()}"]`
+      );
+      if (rowEl) {
+        const rect = rowEl.getBoundingClientRect();
+        if (rect.top < 0 || rect.bottom > window.innerHeight) {
+          rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }
+    }
+
+    if (highlightTimerRef.current !== null) {
+      window.clearTimeout(highlightTimerRef.current);
+    }
+    const nextKey = target.key;
+    setHighlightedEventKey(null);
+    window.requestAnimationFrame(() => {
+      setHighlightedEventKey(nextKey);
+    });
+    highlightTimerRef.current = window.setTimeout(() => {
+      setHighlightedEventKey(null);
+      highlightTimerRef.current = null;
+    }, 1400);
+  };
 
   const handleScrollToNow = () => {
     const now = new Date();
@@ -438,7 +608,7 @@ export default function App() {
 
     // Locate the active or next upcoming matching slot for brief arrival pulse
     let targetSlot: { evt: RoutineEvent; key: string } | null = null;
-    const todayOperational = OPERATIONAL_DAYS.find(
+    const todayOperational = operationalDays.find(
       (d) => d.toLowerCase() === todayName.toLowerCase()
     );
 
@@ -469,7 +639,7 @@ export default function App() {
       const currentDayIdx = now.getDay();
       for (let offset = 1; offset <= 7; offset++) {
         const checkDay = weekDays[(currentDayIdx + offset) % 7];
-        const opDay = OPERATIONAL_DAYS.find((d) => d.toLowerCase() === checkDay.toLowerCase());
+        const opDay = operationalDays.find((d) => d.toLowerCase() === checkDay.toLowerCase());
         if (!opDay) continue;
 
         const dayEvents = events.filter((e) => e.day.toLowerCase() === opDay.toLowerCase());
@@ -492,16 +662,19 @@ export default function App() {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
-      if (currentMinuteOffset !== null) {
-        const focusX = (currentMinuteOffset / TOTAL_DAY_MINUTES) * container.scrollWidth;
+      if (hasActiveOrRemainingSlotToday && currentMinuteOffset !== null) {
+        const focusX = (currentMinuteOffset / dynamicTotalDayMinutes) * container.scrollWidth;
         const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 2));
         container.scrollTo({ left: targetScroll, behavior: 'smooth' });
       } else if (targetSlot) {
         const slotStartOffset = Math.max(
           0,
-          Math.min(TOTAL_DAY_MINUTES, timeToMinutes(targetSlot.evt.startTime) - DAY_START_MINUTES)
+          Math.min(
+            dynamicTotalDayMinutes,
+            timeToMinutes(targetSlot.evt.startTime) - DAY_START_MINUTES
+          )
         );
-        const focusX = (slotStartOffset / TOTAL_DAY_MINUTES) * container.scrollWidth;
+        const focusX = (slotStartOffset / dynamicTotalDayMinutes) * container.scrollWidth;
         const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 3));
         container.scrollTo({ left: targetScroll, behavior: 'smooth' });
       } else {
@@ -533,13 +706,13 @@ export default function App() {
           : 'bg-[#FAF9F6] text-stone-900 selection:bg-stone-200 selection:text-stone-900'
       }`}
     >
-      {/* Subtle tactile paper grain overlay on light-mode canvas */}
-      {!isDark && (
-        <div
-          aria-hidden="true"
-          className="paper-grain-overlay fixed inset-0 pointer-events-none z-0 opacity-[0.025]"
-        />
-      )}
+      {/* Tactile warm paper grain overlay across full viewport (light & dark) */}
+      <div
+        aria-hidden="true"
+        className={`paper-grain-overlay fixed inset-0 pointer-events-none z-50 ${
+          isDark ? 'opacity-[0.03]' : 'opacity-[0.025]'
+        }`}
+      />
 
       <div className="relative z-10 flex-1 flex flex-col">
         {/* Aviation Operations Header with MSE '24 Hidden Admin Door and Discreet Refresh */}
@@ -576,11 +749,11 @@ export default function App() {
         {/* UNIFIED SCHEDULE MATRIX / TERM FINALS FULL-WIDTH VIEW */}
         <div>
           <div
-            className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 mb-3 px-1 transition-[opacity,transform] duration-300 ease-out delay-[100ms] ${
+            className={`flex flex-col mb-3 px-1 transition-[opacity,transform] duration-300 ease-out delay-[100ms] ${
               isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
-            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
+            <div className="flex items-center justify-between sm:justify-start w-full">
               {hasUpcomingFinals ? (
                 <div
                   className="flex items-center gap-[14px]"
@@ -622,8 +795,38 @@ export default function App() {
             </div>
 
             {!isTermFinalView && (
-              /* Group Selector & Jump to Now Controls (Harmonized h-9 row) */
-              <div className="flex items-center gap-2 flex-nowrap self-start sm:self-auto">
+              <>
+                {/* Plain borderless muted-gray status line directly above the filter pill bar */}
+                <div className="mt-1 mb-2.5 flex flex-col gap-0.5 min-w-0">
+                  {visibleOffRoutineSlots.length === 0 ? (
+                    <p
+                      className={`text-sm leading-5 font-sans font-normal truncate select-none ${
+                        isDark ? 'text-neutral-400' : 'text-neutral-500'
+                      }`}
+                    >
+                      Nothing out of the ordinary
+                    </p>
+                  ) : (
+                    visibleOffRoutineSlots.map((item) => (
+                      <button
+                        key={item.key}
+                        type="button"
+                        onClick={() => handleScrollToOffRoutineSlot(item)}
+                        title={`Jump to ${item.label}`}
+                        className={`p-0 m-0 border-0 bg-transparent text-left text-sm leading-5 font-sans font-normal tabular-nums truncate cursor-pointer select-none transition-colors duration-150 self-start max-w-full ${
+                          isDark
+                            ? 'text-neutral-400 hover:text-neutral-200'
+                            : 'text-neutral-500 hover:text-neutral-800'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {/* Group Selector & Jump to Now Controls (Harmonized h-9 row) */}
+                <div className="flex items-center gap-2 flex-nowrap self-start">
                 {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
                 <div
                   className={`relative h-9 inline-flex items-center p-1 rounded-full border transition-colors box-border shrink-0 ${
@@ -674,21 +877,35 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Compact Tactile Micro-Pill "Jump to Now" Button (Harmonized h-9) */}
+                {/* Compact Tactile Micro-Pill "Now" / "Next" Jump Button (Harmonized h-9) */}
                 <button
                   type="button"
                   onClick={handleScrollToNow}
-                  title="Jump view to current operating hour"
+                  title={
+                    hasActiveOrRemainingSlotToday
+                      ? 'Jump view to current operating hour'
+                      : 'Jump view to next scheduled class'
+                  }
                   className={`h-9 px-3.5 py-0 text-xs font-semibold leading-none rounded-full inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none shrink-0 whitespace-nowrap ${
                     isDark
                       ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-100 border-stone-800 shadow-2xs'
                       : 'bg-white hover:bg-stone-50 text-stone-900 border-stone-300 shadow-2xs'
                   }`}
                 >
-                  <Clock className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
-                  <span className="leading-none">Now</span>
+                  {hasActiveOrRemainingSlotToday ? (
+                    <>
+                      <Clock className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
+                      <span className="leading-none">Now</span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
+                      <span className="leading-none">Next</span>
+                    </>
+                  )}
                 </button>
               </div>
+              </>
             )}
           </div>
 
@@ -706,7 +923,7 @@ export default function App() {
               />
             ) : (
               <MasterTimelineGrid
-                days={OPERATIONAL_DAYS}
+                days={operationalDays}
                 events={events}
                 todayName={todayName}
                 currentMinuteOffset={currentMinuteOffset}
@@ -715,6 +932,7 @@ export default function App() {
                 theme={theme}
                 selectedGroup={selectedGroup}
                 highlightedEventKey={highlightedEventKey}
+                totalDayMinutes={dynamicTotalDayMinutes}
               />
             )}
           </div>

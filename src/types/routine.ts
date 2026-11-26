@@ -17,6 +17,7 @@ export interface RoutineEvent {
   syllabus?: string;
   marks?: string;
   dateLabel?: string; // Optional formatted exam date e.g. "Sat, Dec 12" for Term Finals
+  isOffRoutine?: boolean; // True for Saturday, 5:00 PM+, or extra/makeup/off-routine sessions
 }
 
 export interface TermFinalExam {

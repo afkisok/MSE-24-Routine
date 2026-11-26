@@ -137,6 +137,50 @@ html.dark .aviation-btn-secondary:hover {
   -webkit-overflow-scrolling: touch;
 }
 
+/* Scrim-eased horizontal scroll edge fades (positioned below the h-11 header strip) */
+.timeline-fade-left {
+  background: linear-gradient(
+    to right,
+    rgba(244, 243, 239, 1) 0%,
+    rgba(244, 243, 239, 0.88) 22%,
+    rgba(244, 243, 239, 0.55) 50%,
+    rgba(244, 243, 239, 0.18) 78%,
+    rgba(244, 243, 239, 0) 100%
+  );
+}
+html.dark .timeline-fade-left {
+  background: linear-gradient(
+    to right,
+    rgba(20, 20, 20, 1) 0%,
+    rgba(20, 20, 20, 0.88) 22%,
+    rgba(20, 20, 20, 0.55) 50%,
+    rgba(20, 20, 20, 0.18) 78%,
+    rgba(20, 20, 20, 0) 100%
+  );
+}
+.timeline-fade-right {
+  background: linear-gradient(
+    to left,
+    rgba(244, 243, 239, 1) 0%,
+    rgba(244, 243, 239, 0.92) 18%,
+    rgba(244, 243, 239, 0.72) 39%,
+    rgba(244, 243, 239, 0.38) 64%,
+    rgba(244, 243, 239, 0.1) 86%,
+    rgba(244, 243, 239, 0) 100%
+  );
+}
+html.dark .timeline-fade-right {
+  background: linear-gradient(
+    to left,
+    rgba(20, 20, 20, 1) 0%,
+    rgba(20, 20, 20, 0.92) 18%,
+    rgba(20, 20, 20, 0.72) 39%,
+    rgba(20, 20, 20, 0.38) 64%,
+    rgba(20, 20, 20, 0.1) 86%,
+    rgba(20, 20, 20, 0) 100%
+  );
+}
+
 /* High-contrast utilitarian group micro-chip */
 .badge-group {
   display: inline-flex;

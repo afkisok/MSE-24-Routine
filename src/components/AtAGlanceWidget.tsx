@@ -132,63 +132,67 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       onSelectTermFinal?.(heroExam);
                     }
                   }}
-                  className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] ${
+                  className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                     isDark
-                      ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.2)]'
-                      : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
+                      ? 'bg-[#1E1D1B] border-white/15 text-stone-100 hover:border-white/25 shadow-sm'
+                      : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
                   }`}
                 >
-                  {/* Date & Start–End Time Window */}
-                  <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                  {/* Top Row: Course Code + Title (left) & Co-Star ROOM Readout (right) */}
+                  <div className="flex justify-between items-start gap-4">
+                    <div className="min-w-0">
+                      <div
+                        className={`text-xl font-bold tracking-tight leading-tight ${
+                          isDark ? 'text-stone-100' : 'text-stone-900'
+                        }`}
+                      >
+                        {heroExam.courseCode}
+                        <span
+                          className={`font-semibold ${
+                            isDark ? 'text-neutral-400' : 'text-neutral-500'
+                          }`}
+                        >
+                          {' · Term Final'}
+                        </span>
+                      </div>
+                      {heroExam.courseTitle && (
+                        <div
+                          className={`mt-1 text-sm font-normal leading-snug ${
+                            isDark ? 'text-neutral-400' : 'text-neutral-500'
+                          }`}
+                        >
+                          {heroExam.courseTitle}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
+                        ROOM
+                      </div>
+                      <div
+                        className={`mt-1 text-xl font-bold tracking-tight leading-tight tabular-nums whitespace-nowrap ${
+                          isDark ? 'text-stone-100' : 'text-stone-900'
+                        }`}
+                      >
+                        {heroExam.room || 'TBA'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: High-Contrast Day & Time Range */}
+                  <div
+                    className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
+                      isDark ? 'border-white/5' : 'border-black/5'
+                    }`}
+                  >
                     <span
-                      className={`text-sm sm:text-base font-semibold font-sans tabular-nums ${
-                        relativeLabel === 'Active Now'
-                          ? isDark
-                            ? 'text-stone-100'
-                            : 'text-stone-900'
-                          : isDark
-                          ? 'text-stone-300'
-                          : 'text-stone-600'
+                      className={`text-[15px] font-semibold font-sans tabular-nums leading-snug ${
+                        isDark ? 'text-stone-100' : 'text-stone-900'
                       }`}
                     >
                       {datePrefix} · {timeRange}
                     </span>
-                  </div>
-
-                  {/* Course Code & Title */}
-                  <div
-                    className={`text-xl sm:text-2xl font-bold tracking-tight leading-tight ${
-                      isDark ? 'text-stone-100' : 'text-stone-900'
-                    }`}
-                  >
-                    {heroExam.courseCode}
-                    <span
-                      className={`font-semibold ${
-                        isDark ? 'text-stone-400' : 'text-stone-500'
-                      }`}
-                    >
-                      {' · Term Final'}
-                    </span>
-                  </div>
-                  {heroExam.courseTitle && (
-                    <div
-                      className={`mt-1 text-sm sm:text-base font-medium leading-snug ${
-                        isDark ? 'text-stone-300' : 'text-stone-600'
-                      }`}
-                    >
-                      {heroExam.courseTitle}
-                    </div>
-                  )}
-
-                  {/* Room */}
-                  <div
-                    className={`mt-3 pt-2.5 border-t flex items-center justify-between text-sm font-semibold tabular-nums ${
-                      isDark
-                        ? 'border-stone-800 text-stone-200'
-                        : 'border-stone-200 text-stone-700'
-                    }`}
-                  >
-                    <span>Room {heroExam.room || 'TBA'}</span>
                   </div>
                 </div>
               );
@@ -389,74 +393,74 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     onSelectEvent(event);
                   }
                 }}
-                className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border-[1.5px] ${
+                className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                   isDark
-                    ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_1px_2px_0_rgba(0,0,0,0.2)]'
-                    : 'bg-white border-stone-300 text-stone-900 hover:border-stone-400 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
+                    ? 'bg-[#1E1D1B] border-white/15 text-stone-100 hover:border-white/25 shadow-sm'
+                    : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
                 }`}
               >
-                {/* Flat inline day & time row */}
-                <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
-                  <span
-                    className={`text-sm sm:text-base font-semibold font-sans tabular-nums ${
-                      relativeLabel === 'Active Now'
-                        ? isDark
-                          ? 'text-stone-100'
-                          : 'text-stone-900'
-                        : isDark
-                        ? 'text-stone-300'
-                        : 'text-stone-600'
-                    }`}
-                  >
-                    {formatInlineDayTime(event, relativeLabel, true)}
-                  </span>
-                  {!isExam && alternating.groupVariant && (
-                    <span
-                      className={`text-[11px] font-semibold uppercase tracking-wide ${
-                        isDark ? 'text-stone-400' : 'text-stone-500'
+                {/* Top Row: Course Code + Name (left) & Co-Star ROOM Readout (right) */}
+                <div className="flex justify-between items-start gap-4">
+                  <div className="min-w-0">
+                    <div
+                      className={`text-xl font-bold tracking-tight leading-tight ${
+                        isDark ? 'text-stone-100' : 'text-stone-900'
                       }`}
                     >
+                      {code}
+                      {isExam && (
+                        <span
+                          className={`font-semibold ${
+                            isDark ? 'text-neutral-400' : 'text-neutral-500'
+                          }`}
+                        >
+                          {' · Exam'}
+                        </span>
+                      )}
+                    </div>
+                    {title && (
+                      <div
+                        className={`mt-1 text-sm font-normal leading-snug ${
+                          isDark ? 'text-neutral-400' : 'text-neutral-500'
+                        }`}
+                      >
+                        {title}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="shrink-0 text-right">
+                    <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
+                      ROOM
+                    </div>
+                    <div
+                      className={`mt-1 text-xl font-bold tracking-tight leading-tight tabular-nums whitespace-nowrap ${
+                        isDark ? 'text-stone-100' : 'text-stone-900'
+                      }`}
+                    >
+                      {event.room || 'TBA'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Row: High-Contrast Day & Time Range */}
+                <div
+                  className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
+                    isDark ? 'border-white/5' : 'border-black/5'
+                  }`}
+                >
+                  <span
+                    className={`text-[15px] font-semibold font-sans tabular-nums leading-snug ${
+                      isDark ? 'text-stone-100' : 'text-stone-900'
+                    }`}
+                  >
+                    {`${relativeLabel || event.day} · ${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}`}
+                  </span>
+                  {!isExam && alternating.groupVariant && (
+                    <span className="text-[11px] font-semibold uppercase tracking-wide shrink-0 text-neutral-400">
                       {alternating.groupVariant}
                     </span>
                   )}
-                </div>
-
-                {/* Large Course Code & Title */}
-                <div
-                  className={`text-xl sm:text-2xl font-bold tracking-tight leading-tight ${
-                    isDark ? 'text-stone-100' : 'text-stone-900'
-                  }`}
-                >
-                  {code}
-                  {isExam && (
-                    <span
-                      className={`font-semibold ${
-                        isDark ? 'text-stone-400' : 'text-stone-500'
-                      }`}
-                    >
-                      {' · Exam'}
-                    </span>
-                  )}
-                </div>
-                {title && (
-                  <div
-                    className={`mt-1 text-sm sm:text-base font-medium leading-snug ${
-                      isDark ? 'text-stone-300' : 'text-stone-600'
-                    }`}
-                  >
-                    {title}
-                  </div>
-                )}
-
-                {/* Prominent Room */}
-                <div
-                  className={`mt-3 pt-2.5 border-t flex items-center justify-between text-sm font-semibold tabular-nums ${
-                    isDark
-                      ? 'border-stone-800 text-stone-200'
-                      : 'border-stone-200 text-stone-700'
-                  }`}
-                >
-                  <span>Room {event.room || 'TBA'}</span>
                 </div>
               </div>
             );

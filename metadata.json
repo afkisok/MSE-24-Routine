@@ -1,5 +1,5 @@
 {
-  "name": "Remix Batch Routine — Responsive University Schedule - material",
+  "name": "Remix Batch Routine — Responsive University Schedule - flightui",
   "description": "Mobile-first horizontal timetable and routine engine with dynamic slot offsets, cancellation overlays, exam syllabus inspector, and Google Sheets CSV integration.",
   "requestFramePermissions": [],
   "majorCapabilities": [
