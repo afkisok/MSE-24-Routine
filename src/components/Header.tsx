@@ -171,7 +171,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <RefreshCw
                 className={`w-4 h-4 transition-transform duration-200 ${
-                  syncStatus.status === 'syncing' ? 'animate-spin text-amber-500' : ''
+                  syncStatus.status === 'syncing' ? 'animate-spin' : ''
                 }`}
               />
             </button>
@@ -184,7 +184,7 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               className={`w-[38px] h-[38px] rounded-full flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                 isDark
-                  ? 'bg-[#1C1A18] border-stone-800 text-amber-300 hover:bg-[#24211E] hover:text-amber-200'
+                  ? 'bg-[#1C1A18] border-stone-800 text-stone-300 hover:bg-[#24211E] hover:text-stone-100'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
               }`}
             >

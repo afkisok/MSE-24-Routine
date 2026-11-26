@@ -207,11 +207,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               >
                 <span
                   className={`font-medium ${
-                    syncStatus.status === 'error'
-                      ? 'text-rose-500'
-                      : isDark
-                      ? 'text-stone-200'
-                      : 'text-stone-700'
+                    isDark ? 'text-stone-200' : 'text-stone-700'
                   }`}
                 >
                   {statusText}
@@ -284,7 +280,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               >
                 {savedSuccess ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    <Check className="w-3.5 h-3.5" />
                     <span>Saved</span>
                   </>
                 ) : (
@@ -341,8 +337,8 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 onClick={onResetBaseline}
                 className={`py-1.5 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border ${
                   isDark
-                    ? 'bg-transparent border-rose-500/30 text-rose-300 hover:bg-rose-500/10'
-                    : 'bg-white border-rose-200 text-rose-700 hover:bg-rose-50'
+                    ? 'bg-transparent border-stone-700 text-stone-300 hover:bg-[#24211E]'
+                    : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
                 }`}
               >
                 <RotateCcw className="w-3.5 h-3.5" />

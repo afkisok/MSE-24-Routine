@@ -196,7 +196,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-900' : 'focus-visible:ring-stone-50'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
-          isHighlighted ? 'ring-2 ring-emerald-500 animate-slot-pulse z-20' : ''
+          isHighlighted ? 'animate-slot-pulse z-20' : ''
         }`}
       >
         <div
@@ -272,11 +272,11 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           ? 'focus-visible:ring-stone-100'
           : 'focus-visible:ring-stone-900'
       } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
-        isHighlighted ? 'ring-2 ring-emerald-500 animate-slot-pulse z-20' : ''
+        isHighlighted ? 'animate-slot-pulse z-20' : ''
       }`}
     >
       {/* TOP ROW: Inline uppercase EXAM/CT label or Lab group label on left, Start Time on right */}
-      <div className="flex items-center justify-between gap-1.5 leading-none shrink-0 min-h-[14px] overflow-visible">
+      <div className="flex items-center justify-between gap-1.5 shrink-0 min-h-[14px] overflow-visible">
         {isExam ? (
           <span
             className={`text-[10px] font-sans font-semibold uppercase tracking-wider leading-none shrink-0 ${
@@ -286,20 +286,18 @@ export const SlotCard: React.FC<SlotCardProps> = ({
             {wideExamPillLabel}
           </span>
         ) : isLab ? (
-          <div className="min-w-0 truncate">
-            <span
-              className={`text-[10px] font-medium tracking-tight truncate font-sans ${
-                isDark ? 'text-stone-400' : 'text-stone-500'
-              }`}
-            >
-              {labSubline}
-            </span>
-          </div>
+          <span
+            className={`truncate min-w-0 block text-[10px] font-medium tracking-tight leading-none font-sans ${
+              isDark ? 'text-stone-400' : 'text-stone-500'
+            }`}
+          >
+            {labSubline}
+          </span>
         ) : null}
 
         {/* Right: Start Time (e.g. "8:50 AM", "2:30 PM") */}
         <span
-          className={`text-[11px] font-sans font-medium whitespace-nowrap shrink-0 tabular-nums ml-auto overflow-visible ${
+          className={`text-[11px] font-sans font-medium whitespace-nowrap shrink-0 leading-none tabular-nums ml-auto overflow-visible ${
             isExam
               ? isDark
                 ? 'text-stone-600'

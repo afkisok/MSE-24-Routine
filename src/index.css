@@ -150,15 +150,15 @@ html.dark .aviation-btn-secondary:hover {
   line-height: 1;
   white-space: nowrap;
   flex-shrink: 0;
-  border: 1px solid #34D399;
-  background-color: #ECFDF5;
-  color: #064E3B;
+  border: 1px solid #D6D3D1;
+  background-color: #F5F5F4;
+  color: #44403C;
 }
 
 html.dark .badge-group {
   background-color: #1C1A18;
-  color: #6EE7B7;
-  border-color: rgba(5, 150, 105, 0.7);
+  color: #D6D3D1;
+  border-color: #44403C;
 }
 
 /* Shake animation for PIN error */
@@ -171,20 +171,40 @@ html.dark .badge-group {
   animation: shake 0.4s ease-in-out;
 }
 
-/* Brief pulse highlight for active slot arrival on "Now" jump */
-@keyframes slotPulse {
+/* Temporary crimson flash outline & glow on "Now" tap (fades cleanly back to monochrome) */
+@keyframes slotPulseLight {
   0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55);
+    box-shadow: 0 0 0 2px rgba(158, 42, 43, 0.95), 0 0 0 2px rgba(158, 42, 43, 0.45);
   }
-  50% {
-    box-shadow: 0 0 0 5px rgba(16, 185, 129, 0.25);
+  35% {
+    box-shadow: 0 0 0 2px rgba(158, 42, 43, 0.9), 0 0 0 7px rgba(158, 42, 43, 0.22);
+  }
+  75% {
+    box-shadow: 0 0 0 2px rgba(158, 42, 43, 0.45), 0 0 0 9px rgba(158, 42, 43, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 rgba(158, 42, 43, 0), 0 0 0 0 rgba(158, 42, 43, 0);
+  }
+}
+@keyframes slotPulseDark {
+  0% {
+    box-shadow: 0 0 0 2px rgba(200, 75, 77, 0.95), 0 0 0 2px rgba(200, 75, 77, 0.5);
+  }
+  35% {
+    box-shadow: 0 0 0 2px rgba(200, 75, 77, 0.9), 0 0 0 7px rgba(200, 75, 77, 0.26);
+  }
+  75% {
+    box-shadow: 0 0 0 2px rgba(200, 75, 77, 0.45), 0 0 0 9px rgba(200, 75, 77, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(200, 75, 77, 0), 0 0 0 0 rgba(200, 75, 77, 0);
   }
 }
 .animate-slot-pulse {
-  animation: slotPulse 0.9s ease-out;
+  animation: slotPulseLight 1.35s ease-out forwards;
+}
+html.dark .animate-slot-pulse {
+  animation: slotPulseDark 1.35s ease-out forwards;
 }
 
 /* Accessibility: Disable translations & transitions for prefers-reduced-motion */

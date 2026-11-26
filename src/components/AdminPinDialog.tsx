@@ -114,7 +114,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
           <div className="flex items-center gap-2.5">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                isDark ? 'bg-amber-400/10 text-amber-300' : 'bg-amber-50 text-amber-700'
+                isDark ? 'bg-[#24211E] text-stone-200' : 'bg-stone-100 text-stone-800'
               }`}
             >
               <KeyRound className="w-4 h-4" />
@@ -155,12 +155,18 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
                   className={`w-11 h-12 rounded-xl flex items-center justify-center text-lg font-semibold tabular-nums border transition-all ${
                     isFilled
                       ? isDark
-                        ? 'border-amber-400 bg-amber-400/10 text-stone-100'
+                        ? 'border-stone-100 bg-[#24211E] text-stone-100'
                         : 'border-stone-900 bg-stone-100 text-stone-900'
                       : isDark
                       ? 'border-stone-800 bg-[#141312]'
                       : 'border-stone-200 bg-white'
-                  } ${error ? 'border-rose-500 text-rose-500' : ''}`}
+                  } ${
+                    error
+                      ? isDark
+                        ? 'border-stone-300 text-stone-100'
+                        : 'border-stone-900 text-stone-900'
+                      : ''
+                  }`}
                 >
                   {isFilled ? '•' : ''}
                 </div>
@@ -182,7 +188,11 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
           />
 
           {error && (
-            <div className="flex items-center gap-1.5 text-xs text-rose-500 font-medium animate-fadeIn">
+            <div
+              className={`flex items-center gap-1.5 text-xs font-medium animate-fadeIn ${
+                isDark ? 'text-stone-300' : 'text-stone-700'
+              }`}
+            >
               <AlertCircle className="w-3.5 h-3.5" />
               <span>Incorrect PIN. Please try again.</span>
             </div>

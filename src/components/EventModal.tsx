@@ -163,13 +163,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           >
             <span
               className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isLab
-                  ? isDark
-                    ? 'text-emerald-300'
-                    : 'text-[#064E3B]'
-                  : isDark
-                  ? 'text-stone-300'
-                  : 'text-stone-900'
+                isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
               {isTermFinal ? 'Term Final' : isLab ? 'Lab' : isExam ? 'Exam' : 'Lecture'}
@@ -180,7 +174,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
                 <span className="text-stone-400">·</span>
                 <span
                   className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isDark ? 'text-emerald-300' : 'text-[#064E3B]'
+                    isDark ? 'text-stone-400' : 'text-stone-500'
                   }`}
                 >
                   {alternating.groupTag}
@@ -193,7 +187,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
                 <span className="text-stone-400">·</span>
                 <span
                   className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isDark ? 'text-emerald-300' : 'text-[#064E3B]'
+                    isDark ? 'text-stone-400' : 'text-stone-500'
                   }`}
                 >
                   Report Due
@@ -228,7 +222,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
                 <span className="text-stone-400">·</span>
                 <span
                   className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isDark ? 'text-rose-300' : 'text-rose-700'
+                    isDark ? 'text-stone-400' : 'text-stone-500'
                   }`}
                 >
                   Canceled

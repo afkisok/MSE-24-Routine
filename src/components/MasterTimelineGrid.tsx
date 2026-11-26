@@ -163,15 +163,15 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     <div
                       className={`px-1.5 py-0.5 rounded-2xs text-[9px] font-sans font-semibold tracking-normal shadow-xs uppercase border ${
                         isDark
-                          ? 'bg-emerald-500 text-white border-emerald-400'
-                          : 'bg-stone-900 text-stone-50 border-stone-800'
+                          ? 'bg-[#C84B4D] text-stone-50 border-[#C84B4D]'
+                          : 'bg-[#9E2A2B] text-stone-50 border-[#9E2A2B]'
                       }`}
                     >
                       Now
                     </div>
                     <div
                       className={`w-0.5 h-full ${
-                        isDark ? 'bg-emerald-500' : 'bg-stone-900'
+                        isDark ? 'bg-[#C84B4D]' : 'bg-[#9E2A2B]'
                       }`}
                     />
                   </div>
@@ -209,15 +209,15 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     ))}
                   </div>
 
-                  {/* Live Current Time Vertical Line for Today */}
+                  {/* Live Current Time Vertical Line for Today (always pinned above cards) */}
                   {isToday &&
                     currentMinuteOffset !== null &&
                     currentMinuteOffset >= 0 &&
                     currentMinuteOffset <= 540 && (
                       <div
                         style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
-                        className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-0.5 z-20 pointer-events-none ${
-                          isDark ? 'bg-emerald-500 opacity-90' : 'bg-stone-900 opacity-85'
+                        className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-0.5 z-30 pointer-events-none ${
+                          isDark ? 'bg-[#C84B4D] opacity-90' : 'bg-[#9E2A2B] opacity-85'
                         }`}
                       />
                     )}

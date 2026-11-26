@@ -52,7 +52,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const renderHeader = (title: string) => (
     <div className="flex items-center justify-between gap-2 mb-3 px-1">
       <h2
-        className={`font-bold text-sm tracking-tight ${
+        className={`text-[17px] font-bold tracking-tight leading-snug ${
           isDark ? 'text-stone-100' : 'text-stone-900'
         }`}
       >
@@ -73,8 +73,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             <span
               className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none ${
                 isDark
-                  ? 'bg-[#FAF9F6] ring-[#141312]'
-                  : 'bg-[#141312] ring-[#FAF9F6]'
+                  ? 'bg-[#C84B4D] ring-[#141312]'
+                  : 'bg-[#9E2A2B] ring-[#FAF9F6]'
               }`}
               aria-hidden="true"
             />
@@ -369,7 +369,10 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             const { event, relativeLabel } = heroItem;
             const { code, title } = splitSubject(event.subject);
             const alternating = parseAlternatingSchedule(event.type, event.subject, event.syllabus);
-            const isExam = alternating.category === 'EXAM';
+            const heroTypeStatus = `${event.type || ''} ${event.status || ''}`.toLowerCase();
+            const isExam =
+              alternating.category === 'EXAM' ||
+              /\b(exam|ct|quiz|term\s*finals?|tf)\b/.test(heroTypeStatus);
 
             return (
               <div
@@ -400,10 +403,6 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         ? isDark
                           ? 'text-stone-100'
                           : 'text-stone-900'
-                        : isExam
-                        ? isDark
-                          ? 'text-amber-300'
-                          : 'text-amber-700'
                         : isDark
                         ? 'text-stone-300'
                         : 'text-stone-600'
@@ -411,19 +410,13 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   >
                     {formatInlineDayTime(event, relativeLabel, true)}
                   </span>
-                  {(isExam || alternating.groupTag) && (
+                  {!isExam && alternating.groupTag && (
                     <span
                       className={`text-[11px] font-semibold uppercase tracking-wide ${
-                        isExam
-                          ? isDark
-                            ? 'text-amber-300'
-                            : 'text-amber-700'
-                          : isDark
-                          ? 'text-emerald-400'
-                          : 'text-[#064E3B]'
+                        isDark ? 'text-stone-400' : 'text-stone-500'
                       }`}
                     >
-                      {isExam ? 'Exam / CT' : alternating.groupTag}
+                      {alternating.groupTag}
                     </span>
                   )}
                 </div>
@@ -435,6 +428,15 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   }`}
                 >
                   {code}
+                  {isExam && (
+                    <span
+                      className={`font-semibold ${
+                        isDark ? 'text-stone-400' : 'text-stone-500'
+                      }`}
+                    >
+                      {' • Exam'}
+                    </span>
+                  )}
                 </div>
                 {title && (
                   <div
@@ -469,6 +471,15 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             >
               {secondaryItems.map(({ event, relativeLabel }, index) => {
                 const { code } = splitSubject(event.subject);
+                const alternating = parseAlternatingSchedule(
+                  event.type,
+                  event.subject,
+                  event.syllabus
+                );
+                const typeStatusCombined = `${event.type || ''} ${event.status || ''}`.toLowerCase();
+                const isExamRow =
+                  alternating.category === 'EXAM' ||
+                  /\b(exam|ct|quiz|term\s*finals?|tf)\b/.test(typeStatusCombined);
 
                 return (
                   <div
@@ -504,6 +515,15 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         }`}
                       >
                         {code}
+                        {isExamRow && (
+                          <span
+                            className={`font-semibold ${
+                              isDark ? 'text-stone-300' : 'text-stone-600'
+                            }`}
+                          >
+                            {' • Exam'}
+                          </span>
+                        )}
                       </span>
                     </div>
 

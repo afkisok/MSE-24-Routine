@@ -494,7 +494,7 @@ export default function App() {
       highlightTimerRef.current = window.setTimeout(() => {
         setHighlightedEventKey(null);
         highlightTimerRef.current = null;
-      }, 950);
+      }, 1400);
     }
   };
 
@@ -544,48 +544,53 @@ export default function App() {
               isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
-            <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
-              <h2
-                className={`font-bold text-sm tracking-tight ${
-                  isDark ? 'text-stone-100' : 'text-stone-900'
-                }`}
-              >
-                {isTermFinalView ? 'Term Finals' : 'Weekly Routine'}
-              </h2>
-
-              {isTermFinalView && (
-                <button
-                  type="button"
-                  onClick={() => setViewOverride('weekly')}
-                  className={`sm:hidden h-9 px-3.5 text-xs font-medium rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
-                    isDark
-                      ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-300 hover:text-stone-100 border-stone-800'
-                      : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-900 border-stone-300'
+            <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto">
+              {hasUpcomingFinals ? (
+                <div
+                  className="flex items-center gap-[14px]"
+                  role="tablist"
+                  aria-label="Schedule view switcher"
+                >
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={!isTermFinalView}
+                    onClick={() => setViewOverride('weekly')}
+                    className={`text-[17px] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
+                      isDark ? 'text-stone-100' : 'text-stone-900'
+                    } ${!isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                  >
+                    Weekly Routine
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={isTermFinalView}
+                    onClick={() => setViewOverride('termFinals')}
+                    className={`text-[17px] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
+                      isDark ? 'text-stone-100' : 'text-stone-900'
+                    } ${isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                  >
+                    Term Finals
+                  </button>
+                </div>
+              ) : (
+                <h2
+                  className={`text-[17px] font-bold tracking-tight leading-snug ${
+                    isDark ? 'text-stone-100' : 'text-stone-900'
                   }`}
                 >
-                  Weekly Grid
-                </button>
+                  Weekly Routine
+                </h2>
               )}
             </div>
 
-            {isTermFinalView ? (
-              <button
-                type="button"
-                onClick={() => setViewOverride('weekly')}
-                className={`hidden sm:inline-flex h-9 px-3.5 text-xs font-medium rounded-full items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
-                  isDark
-                    ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-300 hover:text-stone-100 border-stone-800'
-                    : 'bg-white hover:bg-stone-50 text-stone-700 hover:text-stone-900 border-stone-300'
-                }`}
-              >
-                Weekly Grid
-              </button>
-            ) : (
+            {!isTermFinalView && (
               /* Group Selector & Jump to Now Controls (Harmonized h-9 row) */
-              <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              <div className="flex items-center gap-2 flex-nowrap self-start sm:self-auto">
                 {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
                 <div
-                  className={`relative h-9 inline-flex items-center p-1 rounded-full border transition-colors box-border ${
+                  className={`relative h-9 inline-flex items-center p-1 rounded-full border transition-colors box-border shrink-0 ${
                     isDark ? 'bg-[#24211E] border-stone-800' : 'bg-stone-100 border-stone-200'
                   }`}
                   role="tablist"
@@ -617,7 +622,7 @@ export default function App() {
                         role="tab"
                         aria-selected={isSelected}
                         onClick={() => setSelectedGroup(groupOption)}
-                        className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center ${
+                        className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center whitespace-nowrap ${
                           isSelected
                             ? isDark
                               ? 'text-stone-900'
@@ -638,29 +643,15 @@ export default function App() {
                   type="button"
                   onClick={handleScrollToNow}
                   title="Jump view to current operating hour"
-                  className={`h-9 px-3.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+                  className={`h-9 px-3.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none shrink-0 whitespace-nowrap ${
                     isDark
                       ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-100 border-stone-800 shadow-2xs'
                       : 'bg-white hover:bg-stone-50 text-stone-900 border-stone-300 shadow-2xs'
                   }`}
                 >
-                  <Clock className={`w-3.5 h-3.5 ${isDark ? 'text-stone-300' : 'text-stone-600'}`} />
+                  <Clock className={`w-3.5 h-3.5 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
                   <span>Now</span>
                 </button>
-
-                {hasUpcomingFinals && (
-                  <button
-                    type="button"
-                    onClick={() => setViewOverride('termFinals')}
-                    className={`h-9 px-3.5 text-xs font-semibold rounded-full inline-flex items-center cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
-                      isDark
-                        ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
-                        : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
-                    }`}
-                  >
-                    Term Finals
-                  </button>
-                )}
               </div>
             )}
           </div>
