@@ -113,6 +113,14 @@ export default function App() {
     return 'light';
   });
 
+  const isAnyModalOpen = Boolean(
+    selectedEvent ||
+      isAssignmentsModalOpen ||
+      isPinDialogOpen ||
+      isAdminModalOpen ||
+      isExportModalOpen
+  );
+
   useEffect(() => {
     try {
       localStorage.setItem('aviation_theme', theme);
@@ -124,15 +132,34 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
-
-    let themeColorMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-    if (!themeColorMeta) {
-      themeColorMeta = document.createElement('meta');
-      themeColorMeta.name = 'theme-color';
-      document.head.appendChild(themeColorMeta);
-    }
-    themeColorMeta.content = theme === 'dark' ? '#141312' : '#FAF9F6';
   }, [theme]);
+
+  useEffect(() => {
+    const targetColor =
+      theme === 'dark' ? '#0D0D0D' : isAnyModalOpen ? '#969593' : '#FAF9F6';
+
+    const existingMetas = Array.from(
+      document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
+    );
+    const dynamicMeta = existingMetas.find((el) => !el.hasAttribute('media'));
+
+    existingMetas.forEach((el) => {
+      if (el !== dynamicMeta) {
+        el.remove();
+      }
+    });
+
+    if (dynamicMeta) {
+      if (dynamicMeta.content !== targetColor) {
+        dynamicMeta.content = targetColor;
+      }
+    } else {
+      const freshMeta = document.createElement('meta');
+      freshMeta.name = 'theme-color';
+      freshMeta.content = targetColor;
+      document.head.appendChild(freshMeta);
+    }
+  }, [theme, isAnyModalOpen]);
 
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));

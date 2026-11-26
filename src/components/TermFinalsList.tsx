@@ -55,10 +55,10 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
 
   return (
     <div
-      className={`rounded-[20px] p-2 shadow-2xs border select-none transition-colors ${
+      className={`rounded-2xl p-2 shadow-2xs border select-none transition-colors ${
         isDark
-          ? 'bg-[#11100F] border-stone-800'
-          : 'bg-stone-100 border-stone-200'
+          ? 'bg-[#141414] border-stone-800'
+          : 'bg-[#F4F3EF] border-stone-200'
       }`}
     >
       <div className="flex flex-col gap-2">

@@ -71,9 +71,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         >
           {assignmentsCount > 0 && (
             <span
-              className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none ${
+              className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none ${
                 isDark
-                  ? 'bg-[#C84B4D] ring-[#141312]'
+                  ? 'bg-[#C84B4D] ring-[#0D0D0D]'
                   : 'bg-[#9E2A2B] ring-[#FAF9F6]'
               }`}
               aria-hidden="true"
@@ -410,13 +410,13 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   >
                     {formatInlineDayTime(event, relativeLabel, true)}
                   </span>
-                  {!isExam && alternating.groupTag && (
+                  {!isExam && alternating.groupVariant && (
                     <span
                       className={`text-[11px] font-semibold uppercase tracking-wide ${
                         isDark ? 'text-stone-400' : 'text-stone-500'
                       }`}
                     >
-                      {alternating.groupTag}
+                      {alternating.groupVariant}
                     </span>
                   )}
                 </div>

@@ -148,7 +148,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`Canceled: ${event.subject}`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] flex flex-col justify-center h-[calc(100%-8px)] px-2.5 py-2 focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] flex flex-col justify-center h-[calc(100%-8px)] p-2.5 focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-100' : 'focus-visible:ring-stone-900'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'}`}
       >
@@ -193,7 +193,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`CT / Exam: ${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-900' : 'focus-visible:ring-stone-50'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
           isHighlighted ? 'animate-slot-pulse z-20' : ''
@@ -230,10 +230,10 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   // Subline label for laboratory without rounded pill capsule
   let labSubline = '';
   if (isLab) {
-    if (meta.groupTag && meta.hasReportDue) {
-      labSubline = `Lab (${meta.groupTag}) · Report Due`;
-    } else if (meta.groupTag) {
-      labSubline = `Lab (${meta.groupTag})`;
+    if (meta.groupVariant && meta.hasReportDue) {
+      labSubline = `Lab (${meta.groupVariant}) · Report Due`;
+    } else if (meta.groupVariant) {
+      labSubline = `Lab (${meta.groupVariant})`;
     } else if (meta.hasReportDue) {
       labSubline = 'Lab · Report Due';
     } else {
@@ -263,7 +263,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         }
       }}
       title={`${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-xs border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] group flex flex-col justify-between h-[calc(100%-8px)] px-2.5 py-2 focus-visible:outline-none focus-visible:ring-1 ${
+      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] group flex flex-col justify-between h-[calc(100%-8px)] p-2.5 focus-visible:outline-none focus-visible:ring-1 ${
         isExam
           ? isDark
             ? 'focus-visible:ring-stone-900'
@@ -275,46 +275,52 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         isHighlighted ? 'animate-slot-pulse z-20' : ''
       }`}
     >
-      {/* TOP ROW: Inline uppercase EXAM/CT label or Lab group label on left, Start Time on right */}
-      <div className="flex items-center justify-between gap-1.5 shrink-0 min-h-[14px] overflow-visible">
+      {/* TOP ROW: Left-aligned muted metadata line (e.g. "9:40 AM", "10:40 AM · Lab (A)", "9:40 AM · Exam") */}
+      <div
+        className={`flex items-center gap-1 min-w-0 shrink-0 text-[11px] font-sans font-medium leading-none tabular-nums ${
+          isExam
+            ? isDark
+              ? 'text-stone-600'
+              : 'text-stone-300'
+            : isDark
+            ? 'text-stone-400'
+            : 'text-stone-500'
+        }`}
+      >
+        <span className="whitespace-nowrap shrink-0 leading-none">{formattedStartTime}</span>
         {isExam ? (
-          <span
-            className={`text-[10px] font-sans font-semibold uppercase tracking-wider leading-none shrink-0 ${
-              isDark ? 'text-stone-600' : 'text-stone-300'
-            }`}
-          >
-            {wideExamPillLabel}
-          </span>
+          <>
+            <span
+              className={`shrink-0 leading-none ${
+                isDark ? 'text-stone-400' : 'text-stone-500'
+              }`}
+            >
+              ·
+            </span>
+            <span className="truncate min-w-0 leading-none font-semibold">
+              {wideExamPillLabel}
+            </span>
+          </>
         ) : isLab ? (
-          <span
-            className={`truncate min-w-0 block text-[10px] font-medium tracking-tight leading-none font-sans ${
-              isDark ? 'text-stone-400' : 'text-stone-500'
-            }`}
-          >
-            {labSubline}
-          </span>
+          <>
+            <span
+              className={`shrink-0 leading-none ${
+                isDark ? 'text-stone-600' : 'text-stone-400'
+              }`}
+            >
+              ·
+            </span>
+            <span className="truncate min-w-0 leading-none tracking-tight">
+              {labSubline}
+            </span>
+          </>
         ) : null}
-
-        {/* Right: Start Time (e.g. "8:50 AM", "2:30 PM") */}
-        <span
-          className={`text-[11px] font-sans font-medium whitespace-nowrap shrink-0 leading-none tabular-nums ml-auto overflow-visible ${
-            isExam
-              ? isDark
-                ? 'text-stone-600'
-                : 'text-stone-300'
-              : isDark
-              ? 'text-stone-400'
-              : 'text-stone-500'
-          }`}
-        >
-          {formattedStartTime}
-        </span>
       </div>
 
-      {/* MIDDLE AREA: Full Width Spacious Course Code */}
-      <div className="my-auto py-1 w-full overflow-visible">
+      {/* MIDDLE AREA: Left-aligned bold Course Code */}
+      <div className="my-auto w-full overflow-visible">
         <div
-          className={`font-semibold text-sm font-sans tracking-normal whitespace-nowrap overflow-visible ${
+          className={`font-bold text-sm font-sans tracking-tight leading-tight whitespace-nowrap overflow-visible ${
             isExam
               ? isDark
                 ? 'text-stone-900'

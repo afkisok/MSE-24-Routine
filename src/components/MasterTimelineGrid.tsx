@@ -36,26 +36,24 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   return (
     <div className="flex flex-col">
       <div
-        className={`rounded-[20px] overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
+        className={`rounded-2xl overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
           isDark
-            ? 'bg-[#11100F] border-stone-800'
-            : 'bg-stone-100 border-stone-200'
+            ? 'bg-[#141414] border-stone-800'
+            : 'bg-[#F4F3EF] border-stone-200'
         }`}
       >
-      {/* 1. RIGID STATIC LEFT CONTAINER: Precision Day Track Column */}
+      {/* 1. RIGID STATIC LEFT CONTAINER: Precision Day Track Column (borderless, tucked via pr-2) */}
       <div
-        className={`w-24 sm:w-32 shrink-0 flex flex-col z-20 border-r transition-colors ${
-          isDark
-            ? 'border-stone-800 bg-[#141312]'
-            : 'border-stone-200 bg-[#FAF9F6]'
+        className={`w-24 sm:w-32 shrink-0 flex flex-col z-20 pr-2 transition-colors ${
+          isDark ? 'bg-[#141414]' : 'bg-[#F4F3EF]'
         }`}
       >
         {/* Static Header Axis Box (h-10) */}
         <div
-          className={`h-10 px-3 flex items-center justify-center text-center text-xs font-bold tracking-tight border-b transition-colors ${
+          className={`h-10 pl-2 -mr-2 pr-2 flex items-center justify-center text-center text-xs font-bold tracking-tight border-b transition-colors ${
             isDark
-              ? 'border-stone-800 bg-[#1C1A18] text-stone-100'
-              : 'border-stone-200 bg-stone-100 text-stone-900'
+              ? 'border-white/[0.05] bg-[#141414] text-stone-100'
+              : 'border-black/[0.05] bg-[#F4F3EF] text-stone-900'
           }`}
         >
           <span>Day</span>
@@ -73,11 +71,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           return (
             <div
               key={`static-${day}`}
-              className={`h-24 p-2 flex items-center justify-center transition-colors border-b last:border-b-0 ${
-                isDark
-                  ? `border-stone-800 ${isToday ? 'bg-[#1C1A18]' : 'bg-[#141312]'}`
-                  : `border-stone-200 ${isToday ? 'bg-stone-100' : 'bg-[#FAF9F6]'}`
-              }`}
+              className="h-24 py-2 pl-2 flex items-center justify-center bg-transparent transition-colors"
             >
               {/* Centered Day Identifier Card */}
               <div
@@ -105,12 +99,12 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
         })}
       </div>
 
-      {/* 2. TIMELINE TRACK CONTAINER (SCROLLS HORIZONTALLY, WITH EXACT 1PX HAIRLINE MATRIX) */}
+      {/* 2. TIMELINE TRACK CONTAINER (SCROLLS HORIZONTALLY, WITH FLOATING VERTICAL TIME GUIDES) */}
       <div className="relative flex-1 min-w-0 overflow-hidden flex flex-col">
         <div
           ref={scrollRef}
-          className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors shadow-inner ${
-            isDark ? 'bg-[#11100F]' : 'bg-stone-100'
+          className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors ${
+            isDark ? 'bg-[#141414]' : 'bg-[#F4F3EF]'
           }`}
           style={{
             touchAction: 'pan-x pan-y',
@@ -119,36 +113,43 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             WebkitMaskImage: TIMELINE_EDGE_FADE_MASK,
           }}
         >
-          <div className="min-w-[1008px] flex flex-col">
-          {/* Top Academic Period Start-Time Axis Track (h-10) with symmetric px-6 buffer & exact vertical alignment */}
+          <div className="relative min-w-[1008px] flex flex-col">
+          {/* Floating vertical time-column guides behind class rows (below header & inset from bottom) */}
           <div
-            className={`h-10 px-6 flex items-center select-none border-b transition-colors ${
+            className="absolute top-11 bottom-3 left-6 right-6 pointer-events-none z-0"
+            aria-hidden="true"
+          >
+            {periodMarkers.map((marker) => (
+              <div
+                key={`gridline-${marker.timeStr}`}
+                style={{ left: `${marker.leftPercent}%` }}
+                className={`absolute top-0 bottom-0 w-px border-l ${
+                  isDark ? 'border-white/[0.05]' : 'border-black/[0.05]'
+                }`}
+              />
+            ))}
+          </div>
+
+          {/* Top Academic Period Start-Time Axis Track (h-10) with symmetric px-6 buffer */}
+          <div
+            className={`relative z-10 h-10 px-6 flex items-center select-none border-b transition-colors ${
               isDark
-                ? 'border-stone-800 bg-[#1C1A18]'
-                : 'border-stone-200 bg-stone-100'
+                ? 'border-white/[0.05] bg-[#141414]'
+                : 'border-black/[0.05] bg-[#F4F3EF]'
             }`}
           >
             <div className="relative w-full h-full flex items-center">
               {periodMarkers.map((marker) => {
                 return (
-                  <React.Fragment key={marker.timeStr}>
-                    {/* Exact hairline tick sitting directly on leftPercent line */}
-                    <div
-                      style={{ left: `${marker.leftPercent}%` }}
-                      className={`absolute bottom-0 h-2 w-px border-l pointer-events-none ${
-                        isDark ? 'border-stone-700' : 'border-stone-300'
-                      }`}
-                    />
-                    {/* Vertically and horizontally centered label directly over marker tick */}
-                    <div
-                      style={{ left: `${marker.leftPercent}%` }}
-                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center text-[10px] font-sans font-medium whitespace-nowrap tabular-nums leading-none pointer-events-none ${
-                        isDark ? 'text-stone-300' : 'text-stone-600'
-                      }`}
-                    >
-                      {formatTo12Hour(marker.timeStr)}
-                    </div>
-                  </React.Fragment>
+                  <div
+                    key={marker.timeStr}
+                    style={{ left: `${marker.leftPercent}%` }}
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex items-center text-[10px] font-sans font-medium whitespace-nowrap tabular-nums leading-none pointer-events-none ${
+                      isDark ? 'text-stone-400' : 'text-stone-500'
+                    }`}
+                  >
+                    {formatTo12Hour(marker.timeStr)}
+                  </div>
                 );
               })}
 
@@ -179,7 +180,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             </div>
           </div>
 
-          {/* Synchronized Day Tracks with symmetric px-6 buffer & Exact 1px Hairlines */}
+          {/* Synchronized Day Tracks with symmetric px-6 buffer */}
           {days.map((day) => {
             const isToday = day.toLowerCase() === todayName.toLowerCase();
             const dayEvents = events.filter(
@@ -189,26 +190,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             return (
               <div
                 key={`track-${day}`}
-                className={`h-24 px-6 py-1 transition-colors border-b last:border-b-0 ${
-                  isDark
-                    ? `border-stone-800/80 ${isToday ? 'bg-stone-100/[0.03]' : 'bg-transparent'}`
-                    : `border-stone-200 ${isToday ? 'bg-stone-200/45' : 'bg-transparent'}`
-                }`}
+                className="relative z-10 h-24 px-6 py-1 bg-transparent transition-colors"
               >
                 <div className="relative w-full h-full">
-                  {/* Subtle vertical column gridlines aligned identically to header markers */}
-                  <div className="absolute -top-1 -bottom-1 left-0 right-0 pointer-events-none" aria-hidden="true">
-                    {periodMarkers.map((marker) => (
-                      <div
-                        key={`gridline-${day}-${marker.timeStr}`}
-                        style={{ left: `${marker.leftPercent}%` }}
-                        className={`absolute top-0 bottom-0 w-px border-l ${
-                          isDark ? 'border-stone-800/70' : 'border-stone-300/45'
-                        }`}
-                      />
-                    ))}
-                  </div>
-
                   {/* Live Current Time Vertical Line for Today (always pinned above cards) */}
                   {isToday &&
                     currentMinuteOffset !== null &&

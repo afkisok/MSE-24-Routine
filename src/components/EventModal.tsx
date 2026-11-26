@@ -273,39 +273,40 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             </div>
           )}
 
-          {/* TIME */}
-          <div className="py-3 first:pt-1">
-            <div
-              className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-stone-400' : 'text-stone-500'
-              }`}
-            >
-              Time
+          {/* TIME & ROOM side-by-side 2-column grid */}
+          <div className="py-3 first:pt-1 grid grid-cols-2 gap-4">
+            <div className="min-w-0">
+              <div
+                className={`text-[11px] font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-stone-400' : 'text-stone-500'
+                }`}
+              >
+                Time
+              </div>
+              <div
+                className={`text-sm font-semibold mt-1 font-sans tabular-nums ${
+                  isDark ? 'text-stone-100' : 'text-stone-900'
+                }`}
+              >
+                {formatTo12Hour(event.startTime)} – {formatTo12Hour(event.endTime)}
+              </div>
             </div>
-            <div
-              className={`text-sm font-semibold mt-1 font-sans tabular-nums ${
-                isDark ? 'text-stone-100' : 'text-stone-900'
-              }`}
-            >
-              {formatTo12Hour(event.startTime)} – {formatTo12Hour(event.endTime)}
-            </div>
-          </div>
 
-          {/* ROOM */}
-          <div className="py-3">
-            <div
-              className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-stone-400' : 'text-stone-500'
-              }`}
-            >
-              Room
-            </div>
-            <div
-              className={`text-sm font-semibold mt-1 font-sans ${
-                isDark ? 'text-stone-100' : 'text-stone-900'
-              }`}
-            >
-              {event.room || 'Room TBA'}
+            <div className="min-w-0">
+              <div
+                className={`text-[11px] font-semibold uppercase tracking-wider ${
+                  isDark ? 'text-stone-400' : 'text-stone-500'
+                }`}
+              >
+                Room
+              </div>
+              <div
+                className={`text-sm font-semibold mt-1 font-sans ${
+                  isDark ? 'text-stone-100' : 'text-stone-900'
+                }`}
+              >
+                {event.room || 'Room TBA'}
+              </div>
             </div>
           </div>
 
@@ -352,17 +353,17 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           )}
         </div>
 
-        {/* Bottom action: Slimmer full-width pill button ("Close") */}
+        {/* Bottom action: Light secondary/ghost pill button ("Close") */}
         <div className="pt-1">
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleRequestClose();
             }}
-            className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 shadow-sm border ${
+            className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 border ${
               isDark
-                ? 'bg-stone-100 text-stone-900 hover:bg-stone-200 border-stone-100'
-                : 'bg-stone-900 text-stone-50 hover:bg-stone-800 border-stone-900'
+                ? 'bg-[#24211E] text-stone-200 hover:bg-stone-800 hover:text-stone-100 border-stone-800'
+                : 'bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-900 border-stone-200'
             }`}
           >
             Close
