@@ -566,7 +566,7 @@ export default function App() {
             selectedGroup={selectedGroup}
             assignmentsCount={assignments.length}
             onOpenAssignments={() => setIsAssignmentsModalOpen(true)}
-            isTermFinalMode={isTermFinalView}
+            isTermFinalMode={isAutoTermFinalWindow || isTermFinalView}
             termFinals={termFinals}
             nowMs={nowMs}
             onSelectTermFinal={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
@@ -592,7 +592,7 @@ export default function App() {
                     role="tab"
                     aria-selected={!isTermFinalView}
                     onClick={() => setViewOverride('weekly')}
-                    className={`text-[17px] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
+                    className={`text-[1.0625rem] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
                       isDark ? 'text-stone-100' : 'text-stone-900'
                     } ${!isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
                   >
@@ -603,7 +603,7 @@ export default function App() {
                     role="tab"
                     aria-selected={isTermFinalView}
                     onClick={() => setViewOverride('termFinals')}
-                    className={`text-[17px] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
+                    className={`text-[1.0625rem] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
                       isDark ? 'text-stone-100' : 'text-stone-900'
                     } ${isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
                   >
@@ -612,7 +612,7 @@ export default function App() {
                 </div>
               ) : (
                 <h2
-                  className={`text-[17px] font-bold tracking-tight leading-snug ${
+                  className={`text-[1.0625rem] font-bold tracking-tight leading-snug ${
                     isDark ? 'text-stone-100' : 'text-stone-900'
                   }`}
                 >
@@ -679,14 +679,14 @@ export default function App() {
                   type="button"
                   onClick={handleScrollToNow}
                   title="Jump view to current operating hour"
-                  className={`h-9 px-3.5 text-xs font-semibold rounded-full flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none shrink-0 whitespace-nowrap ${
+                  className={`h-9 px-3.5 py-0 text-xs font-semibold leading-none rounded-full inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none shrink-0 whitespace-nowrap ${
                     isDark
                       ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-100 border-stone-800 shadow-2xs'
                       : 'bg-white hover:bg-stone-50 text-stone-900 border-stone-300 shadow-2xs'
                   }`}
                 >
-                  <Clock className={`w-3.5 h-3.5 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
-                  <span>Now</span>
+                  <Clock className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
+                  <span className="leading-none">Now</span>
                 </button>
               </div>
             )}

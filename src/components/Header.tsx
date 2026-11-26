@@ -199,7 +199,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Standalone Bold Heading directly below MSE '24 */}
         <h1
-          className={`mt-3 text-[32px] font-bold tracking-tight leading-tight ${
+          className={`mt-3 text-[2rem] font-bold tracking-tight leading-tight ${
             isDark ? 'text-stone-100' : 'text-stone-900'
           }`}
         >

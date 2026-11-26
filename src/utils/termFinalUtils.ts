@@ -253,28 +253,29 @@ export function hasUpcomingTermFinals(
 }
 
 /**
- * Returns true when upcoming (non-cancelled) TF exams exist AND `nowMs` falls within
- * 7 calendar days before the earliest upcoming TF exam date through the latest TF exam's end time.
+ * Returns true when non-cancelled scheduled TF exams exist AND the first scheduled
+ * TF exam is at most 10 calendar days away while at least one TF exam is still upcoming
+ * (lastExamEnd > nowMs).
  */
 export function isWithinTermFinalWindow(
   exams: TermFinalExam[],
   nowMs: number = Date.now()
 ): boolean {
-  const upcomingExams = exams.filter((exam) => isTermFinalUpcoming(exam, nowMs));
-  if (upcomingExams.length === 0) return false;
+  const scheduledExams = exams.filter((exam) => exam.status !== 'Cancelled');
+  if (scheduledExams.length === 0) return false;
 
-  const sorted = sortTermFinalsChronologically(upcomingExams);
-  const earliest = sorted[0];
-  const [y, m, d] = earliest.dateISO.split('-').map((n) => parseInt(n, 10));
-  const windowStartMs = new Date(y, (m || 1) - 1, (d || 1) - 7, 0, 0, 0, 0).getTime();
+  const sorted = sortTermFinalsChronologically(scheduledExams);
+  const firstExam = sorted[0];
+  const [y, m, d] = firstExam.dateISO.split('-').map((n) => parseInt(n, 10));
+  const windowStartMs = new Date(y, (m || 1) - 1, (d || 1) - 10, 0, 0, 0, 0).getTime();
 
   let latestEndMs = 0;
-  for (const exam of upcomingExams) {
+  for (const exam of scheduledExams) {
     const { endMs } = getTermFinalTimestamps(exam);
     if (endMs > latestEndMs) latestEndMs = endMs;
   }
 
-  return nowMs >= windowStartMs && nowMs <= latestEndMs;
+  return nowMs >= windowStartMs && latestEndMs > nowMs;
 }
 
 export function sortTermFinalsChronologically(exams: TermFinalExam[]): TermFinalExam[] {

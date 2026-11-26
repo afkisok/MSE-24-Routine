@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
 import {
@@ -38,6 +38,37 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 }) => {
   const periodMarkers: PeriodMarker[] = getAcademicPeriodMarkers();
   const isDark = theme === 'dark';
+
+  const headerAxisRef = useRef<HTMLDivElement | null>(null);
+  const [axisWidthPx, setAxisWidthPx] = useState<number>(960);
+
+  useEffect(() => {
+    const el = headerAxisRef.current;
+    if (!el) return;
+
+    const updateWidth = () => {
+      if (el.clientWidth > 0) {
+        setAxisWidthPx(el.clientWidth);
+      }
+    };
+
+    updateWidth();
+    if (typeof ResizeObserver !== 'undefined') {
+      const observer = new ResizeObserver(updateWidth);
+      observer.observe(el);
+      return () => observer.disconnect();
+    }
+
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  const isNowVisible =
+    currentMinuteOffset !== null &&
+    currentMinuteOffset >= 0 &&
+    currentMinuteOffset <= 540;
+  const nowLeftPercent = isNowVisible ? (currentMinuteOffset / 540) * 100 : null;
+  const nowCenterX = nowLeftPercent !== null ? (nowLeftPercent / 100) * axisWidthPx : null;
 
   return (
     <div className="flex flex-col">
@@ -144,15 +175,20 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 : 'border-black/[0.05] bg-[#F4F3EF]'
             }`}
           >
-            <div className="relative w-full h-full flex items-center">
+            <div ref={headerAxisRef} className="relative w-full h-full flex items-center">
               {periodMarkers.map((marker) => {
+                const markerCenterX = (marker.leftPercent / 100) * axisWidthPx;
+                const isCollidingWithNow =
+                  nowCenterX !== null && Math.abs(markerCenterX - nowCenterX) <= 48;
+
                 return (
                   <div
                     key={marker.timeStr}
                     style={{ left: `${marker.leftPercent}%` }}
-                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 flex items-center text-[10px] font-sans font-medium whitespace-nowrap tabular-nums leading-none pointer-events-none ${
-                      isDark ? 'text-stone-400' : 'text-stone-500'
-                    }`}
+                    aria-hidden={isCollidingWithNow || undefined}
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-10 flex items-center text-[10px] font-sans font-medium whitespace-nowrap tabular-nums leading-none pointer-events-none transition-opacity duration-150 ${
+                      isCollidingWithNow ? 'opacity-0' : 'opacity-100'
+                    } ${isDark ? 'text-stone-400' : 'text-stone-500'}`}
                   >
                     {formatTo12Hour(marker.timeStr)}
                   </div>
@@ -160,29 +196,27 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               })}
 
               {/* Inline Live Current-Time Crimson Pill centered vertically over timestamps */}
-              {currentMinuteOffset !== null &&
-                currentMinuteOffset >= 0 &&
-                currentMinuteOffset <= 540 && (
-                  <>
-                    {/* 1.5px vertical stem extending downward from bottom center of pill */}
-                    <div
-                      style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
-                      className={`absolute top-1/2 bottom-0 -translate-x-1/2 w-[1.5px] z-10 pointer-events-none ${
-                        isDark ? 'bg-[#C84B4D]' : 'bg-[#9E2A2B]'
-                      }`}
-                    />
-                    <div
-                      style={{ left: `${(currentMinuteOffset / 540) * 100}%` }}
-                      className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 rounded-full px-2.5 py-0.5 text-[11px] font-sans font-semibold tabular-nums whitespace-nowrap leading-none shadow-sm ring-2 pointer-events-none ${
-                        isDark
-                          ? 'bg-[#C84B4D] text-white ring-[#141414]'
-                          : 'bg-[#9E2A2B] text-white ring-[#F4F3EF]'
-                      }`}
-                    >
-                      {formatMinutesTo12Hour(DAY_START_MINUTES + currentMinuteOffset)}
-                    </div>
-                  </>
-                )}
+              {isNowVisible && nowLeftPercent !== null && currentMinuteOffset !== null && (
+                <>
+                  {/* 1.5px vertical stem extending downward from bottom center of pill */}
+                  <div
+                    style={{ left: `${nowLeftPercent}%` }}
+                    className={`absolute top-[calc(50%+11px)] bottom-0 -translate-x-1/2 w-[1.5px] z-10 pointer-events-none ${
+                      isDark ? 'bg-[#C84B4D]' : 'bg-[#9E2A2B]'
+                    }`}
+                  />
+                  <div
+                    style={{ left: `${nowLeftPercent}%` }}
+                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-6 px-2.5 rounded-full text-[11px] font-sans font-semibold leading-none tabular-nums inline-flex items-center justify-center whitespace-nowrap shadow-sm z-20 pointer-events-none ${
+                      isDark
+                        ? 'bg-[#C84B4D] text-white'
+                        : 'bg-[#9E2A2B] text-white'
+                    }`}
+                  >
+                    {formatMinutesTo12Hour(DAY_START_MINUTES + currentMinuteOffset)}
+                  </div>
+                </>
+              )}
             </div>
           </div>
 

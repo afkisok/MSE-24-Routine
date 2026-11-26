@@ -52,7 +52,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const renderHeader = (title: string) => (
     <div className="flex items-center justify-between gap-2 mb-3 px-1">
       <h2
-        className={`text-[17px] font-bold tracking-tight leading-snug ${
+        className={`text-[1.0625rem] font-bold tracking-tight leading-snug ${
           isDark ? 'text-stone-100' : 'text-stone-900'
         }`}
       >
@@ -63,7 +63,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         <button
           type="button"
           onClick={onOpenAssignments}
-          className={`relative h-9 px-3.5 rounded-full text-xs font-medium inline-flex items-center justify-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
+          className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
             isDark
               ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:bg-[#24211E] hover:border-stone-700'
               : 'bg-white border-stone-300 text-stone-900 hover:bg-stone-50 hover:border-stone-400'
@@ -79,7 +79,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
               aria-hidden="true"
             />
           )}
-          <span>Assignments</span>
+          <span className="leading-none">Assignments</span>
         </button>
       )}
     </div>
