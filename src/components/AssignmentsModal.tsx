@@ -115,7 +115,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
       <div
         className={`relative w-full max-w-lg rounded-t-[28px] sm:rounded-[28px] p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-hidden border transform-gpu will-change-transform overscroll-y-contain ${
           isDark
-            ? 'bg-[#1C1A18] border-stone-800 text-stone-100'
+            ? 'bg-[#1E1D1C] border-transparent text-stone-100'
             : 'bg-white border-stone-200 text-stone-900'
         }`}
         style={sheetStyle}
@@ -234,7 +234,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
             }}
             className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 border ${
               isDark
-                ? 'bg-[#262523] text-[#F4F3EF] hover:bg-[#2F2E2B] border-white/[0.06]'
+                ? 'bg-[#262523] text-[#F4F3EF] hover:bg-[#2F2E2B] border-transparent'
                 : 'bg-[#EFEDE8] text-[#1C1B1A] hover:bg-[#E5E2DB] border-black/[0.06]'
             }`}
           >

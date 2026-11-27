@@ -162,7 +162,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
       <div
         className={`w-full max-w-lg rounded-t-[24px] sm:rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[90vh] pb-[env(safe-area-inset-bottom)] sm:pb-0 transform-gpu will-change-transform overscroll-y-contain ${
           isDark
-            ? 'bg-[#1C1A18] border-stone-800 text-stone-100 shadow-black/80'
+            ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-black/80'
             : 'bg-white border-stone-200 text-stone-900 shadow-stone-300/50'
         }`}
         style={sheetStyle}
@@ -232,7 +232,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
             aria-label="Close admin configuration"
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-95 border cursor-pointer shrink-0 ${
               isDark
-                ? 'bg-[#24211E] border-stone-700 text-stone-400 hover:text-stone-100 hover:bg-stone-800'
+                ? 'bg-[#262523] border-transparent text-stone-400 hover:text-stone-100 hover:bg-[#2F2E2B]'
                 : 'bg-stone-100 border-stone-200 text-stone-500 hover:text-stone-900 hover:bg-stone-200'
             }`}
           >
@@ -262,7 +262,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
               className={`w-full px-3 py-2 text-xs font-mono rounded-lg border overflow-x-auto whitespace-nowrap transition-colors focus:outline-none ${
                 isDark
-                  ? 'bg-[#141312] text-stone-100 border-stone-700 placeholder-stone-500 focus:border-stone-200'
+                  ? 'bg-[#262523] text-stone-100 border-transparent placeholder-stone-500 focus:border-stone-500'
                   : 'bg-white text-stone-900 border-stone-300 placeholder-stone-400 focus:border-stone-900'
               }`}
             />
@@ -296,7 +296,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 onClick={handleResetToDefault}
                 className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border ${
                   isDark
-                    ? 'bg-[#24211E] border-stone-700 text-stone-200 hover:text-stone-100 hover:bg-stone-800'
+                    ? 'bg-[#262523] border-transparent text-stone-200 hover:text-stone-100 hover:bg-[#2F2E2B]'
                     : 'bg-stone-100 border-stone-200 text-stone-700 hover:bg-stone-200'
                 }`}
               >
@@ -309,7 +309,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 disabled={syncStatus.status === 'syncing'}
                 className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border disabled:opacity-60 ${
                   isDark
-                    ? 'bg-transparent border-stone-700 text-stone-300 hover:text-stone-100 hover:bg-[#24211E]'
+                    ? 'bg-[#262523] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#2F2E2B]'
                     : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
                 }`}
               >
@@ -337,7 +337,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 onClick={onResetBaseline}
                 className={`py-1.5 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border ${
                   isDark
-                    ? 'bg-transparent border-stone-700 text-stone-300 hover:bg-[#24211E]'
+                    ? 'bg-[#262523] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#2F2E2B]'
                     : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
                 }`}
               >
@@ -354,7 +354,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                   }}
                   className={`py-1.5 px-3 rounded-lg text-xs font-medium flex items-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border ${
                     isDark
-                      ? 'bg-transparent border-stone-700 text-stone-300 hover:bg-[#24211E]'
+                      ? 'bg-[#262523] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#2F2E2B]'
                       : 'bg-white border-stone-200 text-stone-700 hover:bg-stone-50'
                   }`}
                 >

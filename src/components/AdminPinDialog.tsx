@@ -101,7 +101,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
           shake ? 'animate-shake' : ''
         } ${
           isDark
-            ? 'bg-[#1C1A18] border-stone-800 text-stone-100 shadow-black/80'
+            ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-black/80'
             : 'bg-white border-stone-200 text-stone-900 shadow-stone-300/50'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -114,7 +114,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
           <div className="flex items-center gap-2.5">
             <div
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                isDark ? 'bg-[#24211E] text-stone-200' : 'bg-stone-100 text-stone-800'
+                isDark ? 'bg-[#262523] text-stone-200' : 'bg-stone-100 text-stone-800'
               }`}
             >
               <KeyRound className="w-4 h-4" />
@@ -155,10 +155,10 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
                   className={`w-11 h-12 rounded-xl flex items-center justify-center text-lg font-semibold tabular-nums border transition-all ${
                     isFilled
                       ? isDark
-                        ? 'border-stone-100 bg-[#24211E] text-stone-100'
+                        ? 'border-stone-400 bg-[#262523] text-stone-100'
                         : 'border-stone-900 bg-stone-100 text-stone-900'
                       : isDark
-                      ? 'border-stone-800 bg-[#141312]'
+                      ? 'border-transparent bg-[#262523]'
                       : 'border-stone-200 bg-white'
                   } ${
                     error
@@ -204,7 +204,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               onClick={onClose}
               className={`flex-1 py-2 px-3 text-xs font-medium rounded-full cursor-pointer transition-all active:scale-95 border ${
                 isDark
-                  ? 'border-stone-700 text-stone-300 hover:bg-stone-800'
+                  ? 'bg-[#262523] border-transparent text-stone-300 hover:bg-[#2F2E2B] hover:text-stone-100'
                   : 'border-stone-200 text-stone-600 hover:bg-stone-100'
               }`}
             >

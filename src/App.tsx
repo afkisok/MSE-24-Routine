@@ -181,6 +181,22 @@ export default function App() {
   const currentThemeColorRef = useRef<string | null>(null);
   const prevThemeRef = useRef<'light' | 'dark'>(theme);
   const themeColorRafRef = useRef<number | null>(null);
+  const themeSwitchRafRef = useRef<{ outer: number | null; inner: number | null }>({
+    outer: null,
+    inner: null,
+  });
+
+  useEffect(() => {
+    return () => {
+      if (themeSwitchRafRef.current.outer !== null) {
+        cancelAnimationFrame(themeSwitchRafRef.current.outer);
+      }
+      if (themeSwitchRafRef.current.inner !== null) {
+        cancelAnimationFrame(themeSwitchRafRef.current.inner);
+      }
+      document.documentElement.classList.remove('theme-switching');
+    };
+  }, []);
 
   useLayoutEffect(() => {
     try {
@@ -281,7 +297,29 @@ export default function App() {
   }, [theme, isDark, isAnyModalOpen]);
 
   const handleToggleTheme = () => {
-    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    const root = document.documentElement;
+    if (themeSwitchRafRef.current.outer !== null) {
+      cancelAnimationFrame(themeSwitchRafRef.current.outer);
+      themeSwitchRafRef.current.outer = null;
+    }
+    if (themeSwitchRafRef.current.inner !== null) {
+      cancelAnimationFrame(themeSwitchRafRef.current.inner);
+      themeSwitchRafRef.current.inner = null;
+    }
+
+    root.classList.add('theme-switching');
+    const nextTheme: 'light' | 'dark' = theme === 'dark' ? 'light' : 'dark';
+    root.classList.toggle('dark', nextTheme === 'dark');
+    root.style.colorScheme = nextTheme;
+    setTheme(nextTheme);
+
+    themeSwitchRafRef.current.outer = requestAnimationFrame(() => {
+      themeSwitchRafRef.current.outer = null;
+      themeSwitchRafRef.current.inner = requestAnimationFrame(() => {
+        themeSwitchRafRef.current.inner = null;
+        root.classList.remove('theme-switching');
+      });
+    });
   };
 
   // Section / Group filter state with localStorage persistence
@@ -303,6 +341,15 @@ export default function App() {
     }
   }, [selectedGroup]);
 
+  const handleSelectGroup = (group: 'All' | 'Group A' | 'Group B') => {
+    setSelectedGroup(group);
+    try {
+      localStorage.setItem('mse_routine_selected_group', group);
+    } catch (e) {
+      console.warn('localStorage write error:', e);
+    }
+  };
+
   // Sync state tracking
   const [syncStatus, setSyncStatus] = useState<{
     status: 'idle' | 'syncing' | 'success' | 'error';
@@ -313,7 +360,7 @@ export default function App() {
   });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [mastheadSeed] = useState(() => Math.floor(Math.random() * 1000));
+  const [mastheadRoll] = useState(() => Math.floor(Math.random() * 100));
   const [currentMinuteOffset, setCurrentMinuteOffset] = useState<number | null>(null);
   const [todayName, setTodayName] = useState<string>('');
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -657,8 +704,17 @@ export default function App() {
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 30000);
-    return () => clearInterval(interval);
+    const interval = setInterval(updateTime, 15000);
+    const handleVisibilityTick = () => {
+      if (document.visibilityState === 'visible') {
+        updateTime();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityTick);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityTick);
+    };
   }, [dynamicDayEndMinutes]);
 
   // Determine whether any slot is currently in progress OR still remaining later today
@@ -888,7 +944,7 @@ export default function App() {
     termFinals,
     selectedGroup,
     nowMs,
-    seed: mastheadSeed,
+    roll: mastheadRoll,
   });
 
   return (
@@ -1024,7 +1080,7 @@ export default function App() {
                 {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
                 <div
                   className={`h-9 inline-flex items-center p-1 rounded-full border border-transparent transition-colors box-border shrink-0 ${
-                    isDark ? 'bg-[#1E1D1C]' : 'bg-[#EAE8E2]'
+                    isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'
                   }`}
                   role="tablist"
                   aria-label="Filter schedule by Section or Lab Group"
@@ -1055,7 +1111,7 @@ export default function App() {
                           type="button"
                           role="tab"
                           aria-selected={isSelected}
-                          onClick={() => setSelectedGroup(groupOption)}
+                          onClick={() => handleSelectGroup(groupOption)}
                           className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center whitespace-nowrap ${
                             isSelected
                               ? isDark
@@ -1084,7 +1140,7 @@ export default function App() {
                   }
                   className={`h-9 px-3.5 py-0 text-xs font-semibold leading-none rounded-full inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none shrink-0 whitespace-nowrap ${
                     isDark
-                      ? 'bg-[#1C1A18] hover:bg-[#24211E] text-stone-100 border-stone-800 shadow-2xs'
+                      ? 'bg-[#1E1D1C] hover:bg-[#262523] text-stone-100 border-transparent'
                       : 'bg-white hover:bg-stone-50 text-stone-900 border-stone-300 shadow-2xs'
                   }`}
                 >

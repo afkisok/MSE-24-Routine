@@ -4,6 +4,7 @@ import { timeToMinutes, formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
 import {
   getTermFinalRelativeLabel,
+  getTermFinalTimestamps,
   isTermFinalUpcoming,
   sortTermFinalsChronologically,
 } from '../utils/termFinalUtils';
@@ -65,7 +66,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
           onClick={onOpenAssignments}
           className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
             isDark
-              ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:bg-[#24211E] hover:border-stone-700'
+              ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#262523]'
               : 'bg-white border-stone-300 text-stone-900 hover:bg-stone-50 hover:border-stone-400'
           }`}
         >
@@ -91,6 +92,14 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
       .map((part) => part.trim())
       .filter(Boolean);
     return parts.length > 0 ? parts : ['TBA'];
+  };
+
+  const formatRemainingDuration = (remainingMs: number): string => {
+    const remainingMins = Math.max(1, Math.ceil(remainingMs / 60000));
+    if (remainingMins < 60) return `${remainingMins}m left`;
+    const hrs = Math.floor(remainingMins / 60);
+    const mins = remainingMins % 60;
+    return mins === 0 ? `${hrs}h left` : `${hrs}h ${mins}m left`;
   };
 
   const renderHeroRoomBlock = (rawRoom?: string) => {
@@ -141,6 +150,16 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
           <div className="flex flex-col">
             {heroExam && (() => {
               const relativeLabel = getTermFinalRelativeLabel(heroExam, effectiveNowMs);
+              const { startMs, endMs } = getTermFinalTimestamps(heroExam);
+              const isLiveNow = effectiveNowMs >= startMs && effectiveNowMs < endMs;
+              const liveProgressPercent = isLiveNow
+                ? Math.max(
+                    0,
+                    Math.min(100, ((effectiveNowMs - startMs) / Math.max(60000, endMs - startMs)) * 100)
+                  )
+                : 0;
+              const remainingLabel = isLiveNow ? formatRemainingDuration(endMs - effectiveNowMs) : '';
+
               const datePrefix =
                 relativeLabel === 'Active Now'
                   ? heroExam.displayDate
@@ -164,7 +183,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       onSelectTermFinal?.(heroExam);
                     }
                   }}
-                  className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
+                  className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                     isDark
                       ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                       : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
@@ -201,20 +220,71 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     {renderHeroRoomBlock(heroExam.room)}
                   </div>
 
-                  {/* Bottom Row: High-Contrast Day & Time Range */}
+                  {/* Bottom Row: Live Status Tracker or High-Contrast Day & Time Range */}
                   <div
                     className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
                       isDark ? 'border-white/[0.06]' : 'border-black/5'
                     }`}
                   >
-                    <span
-                      className={`text-[15px] font-semibold font-sans tabular-nums leading-snug ${
-                        isDark ? 'text-stone-100' : 'text-stone-900'
+                    {isLiveNow ? (
+                      <>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span
+                            className="w-1.5 h-1.5 rounded-full bg-[#9E2C2C] animate-pulse shrink-0"
+                            aria-hidden="true"
+                          />
+                          <span className="text-[14px] sm:text-[15px] font-semibold leading-snug text-[#9E2C2C] shrink-0">
+                            Happening now
+                          </span>
+                          <span
+                            className={isDark ? 'text-neutral-600' : 'text-neutral-300'}
+                            aria-hidden="true"
+                          >
+                            ·
+                          </span>
+                          <span
+                            className={`text-[14px] sm:text-[15px] font-semibold font-sans tabular-nums leading-snug truncate ${
+                              isDark ? 'text-stone-100' : 'text-stone-900'
+                            }`}
+                          >
+                            {remainingLabel}
+                          </span>
+                        </div>
+                        <span
+                          className={`text-xs font-medium font-sans tabular-nums shrink-0 ${
+                            isDark ? 'text-neutral-400' : 'text-neutral-500'
+                          }`}
+                        >
+                          until {formatTo12Hour(heroExam.endTime)}
+                        </span>
+                      </>
+                    ) : (
+                      <span
+                        className={`text-[15px] font-semibold font-sans tabular-nums leading-snug ${
+                          isDark ? 'text-stone-100' : 'text-stone-900'
+                        }`}
+                      >
+                        {datePrefix} · {timeRange}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Flush 2.5px bottom progress bar when exam is currently in session */}
+                  {isLiveNow && (
+                    <div
+                      aria-hidden="true"
+                      className={`absolute inset-x-0 bottom-0 h-[2.5px] pointer-events-none ${
+                        isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]'
                       }`}
                     >
-                      {datePrefix} · {timeRange}
-                    </span>
-                  </div>
+                      <div
+                        className={`h-full transition-[width] duration-700 ease-out ${
+                          isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
+                        }`}
+                        style={{ width: `${liveProgressPercent}%` }}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -313,12 +383,13 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
       if (targetDayNum === undefined) return;
 
       const evtStartMins = timeToMinutes(evt.startTime);
-      const evtEndMins = timeToMinutes(evt.endTime);
+      const rawEndMins = timeToMinutes(evt.endTime);
+      const evtEndMins = rawEndMins > evtStartMins ? rawEndMins : evtStartMins + 50;
 
       let dayDiff = (targetDayNum - todayDayNum + 7) % 7;
 
-      // If scheduled for today but already finished, push to next week
-      if (dayDiff === 0 && currentMins > evtEndMins) {
+      // Advance immediately the moment the current session ends
+      if (dayDiff === 0 && currentMins >= evtEndMins) {
         dayDiff = 7;
       }
 
@@ -399,6 +470,36 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
               alternating.category === 'EXAM' ||
               /\b(exam|ct|quiz|term\s*finals?|tf)\b/.test(heroTypeStatus);
 
+            const isLiveNow = relativeLabel === 'Active Now';
+            const startMins = timeToMinutes(event.startTime);
+            const rawEndMins = timeToMinutes(event.endTime);
+            const endMins = rawEndMins > startMins ? rawEndMins : startMins + 50;
+            const startMs = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+              Math.floor(startMins / 60),
+              startMins % 60,
+              0,
+              0
+            ).getTime();
+            const endMs = new Date(
+              now.getFullYear(),
+              now.getMonth(),
+              now.getDate(),
+              Math.floor(endMins / 60),
+              endMins % 60,
+              0,
+              0
+            ).getTime();
+            const liveProgressPercent = isLiveNow
+              ? Math.max(
+                  0,
+                  Math.min(100, ((effectiveNowMs - startMs) / Math.max(60000, endMs - startMs)) * 100)
+                )
+              : 0;
+            const remainingLabel = isLiveNow ? formatRemainingDuration(endMs - effectiveNowMs) : '';
+
             return (
               <div
                 onClick={(e) => {
@@ -414,7 +515,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     onSelectEvent(event);
                   }
                 }}
-                className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
+                className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                   isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                     : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
@@ -453,34 +554,91 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   {renderHeroRoomBlock(event.room)}
                 </div>
 
-                {/* Bottom Row: High-Contrast Day & Time Range */}
+                {/* Bottom Row: Live Status Tracker or High-Contrast Day & Time Range */}
                 <div
                   className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
                     isDark ? 'border-white/[0.06]' : 'border-black/5'
                   }`}
                 >
-                  <span
-                    className={`text-[15px] font-semibold font-sans tabular-nums leading-snug ${
-                      isDark ? 'text-stone-100' : 'text-stone-900'
-                    }`}
-                  >
-                    {(() => {
-                      const timeRange = `${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}`;
-                      if (relativeLabel === 'Active Now') {
-                        return `Now · ${timeRange}`;
-                      }
-                      if (relativeLabel.startsWith('in ')) {
-                        return `Today at ${timeRange} (${relativeLabel})`;
-                      }
-                      return `${relativeLabel || event.day} at ${timeRange}`;
-                    })()}
-                  </span>
-                  {!isExam && alternating.groupVariant && (
-                    <span className="text-[11px] font-semibold uppercase tracking-wide shrink-0 text-neutral-400">
-                      {alternating.groupVariant}
-                    </span>
+                  {isLiveNow ? (
+                    <>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span
+                          className="w-1.5 h-1.5 rounded-full bg-[#9E2C2C] animate-pulse shrink-0"
+                          aria-hidden="true"
+                        />
+                        <span className="text-[14px] sm:text-[15px] font-semibold leading-snug text-[#9E2C2C] shrink-0">
+                          Happening now
+                        </span>
+                        <span
+                          className={isDark ? 'text-neutral-600' : 'text-neutral-300'}
+                          aria-hidden="true"
+                        >
+                          ·
+                        </span>
+                        <span
+                          className={`text-[14px] sm:text-[15px] font-semibold font-sans tabular-nums leading-snug truncate ${
+                            isDark ? 'text-stone-100' : 'text-stone-900'
+                          }`}
+                        >
+                          {remainingLabel}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`text-xs font-medium font-sans tabular-nums ${
+                            isDark ? 'text-neutral-400' : 'text-neutral-500'
+                          }`}
+                        >
+                          until {formatTo12Hour(event.endTime)}
+                        </span>
+                        {!isExam && alternating.groupVariant && (
+                          <span className="text-[11px] font-semibold uppercase tracking-wide shrink-0 text-neutral-400">
+                            {alternating.groupVariant}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className={`text-[15px] font-semibold font-sans tabular-nums leading-snug ${
+                          isDark ? 'text-stone-100' : 'text-stone-900'
+                        }`}
+                      >
+                        {(() => {
+                          const timeRange = `${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}`;
+                          if (relativeLabel.startsWith('in ')) {
+                            return `Today at ${timeRange} (${relativeLabel})`;
+                          }
+                          return `${relativeLabel || event.day} at ${timeRange}`;
+                        })()}
+                      </span>
+                      {!isExam && alternating.groupVariant && (
+                        <span className="text-[11px] font-semibold uppercase tracking-wide shrink-0 text-neutral-400">
+                          {alternating.groupVariant}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
+
+                {/* Flush 2.5px bottom progress bar when session is currently active */}
+                {isLiveNow && (
+                  <div
+                    aria-hidden="true"
+                    className={`absolute inset-x-0 bottom-0 h-[2.5px] pointer-events-none ${
+                      isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]'
+                    }`}
+                  >
+                    <div
+                      className={`h-full transition-[width] duration-700 ease-out ${
+                        isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
+                      }`}
+                      style={{ width: `${liveProgressPercent}%` }}
+                    />
+                  </div>
+                )}
               </div>
             );
           })()}

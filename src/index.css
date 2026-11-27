@@ -256,6 +256,14 @@ html.dark .animate-slot-pulse {
   background-size: 200px 200px;
 }
 
+/* Frame-locked instant theme switching (prevents staggered color transitions) */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+}
+
 /* Accessibility: Disable translations & transitions for prefers-reduced-motion */
 @media (prefers-reduced-motion: reduce) {
   *,

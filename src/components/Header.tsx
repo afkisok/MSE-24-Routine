@@ -167,7 +167,7 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label="Refresh routine schedule"
               className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none disabled:opacity-60 ${
                 isDark
-                  ? 'bg-[#1C1A18] border-stone-800 text-stone-300 hover:text-stone-100 hover:bg-[#24211E]'
+                  ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#262523]'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
               }`}
             >
@@ -188,7 +188,7 @@ export const Header: React.FC<HeaderProps> = ({
               aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                 isDark
-                  ? 'bg-[#1C1A18] border-stone-800 text-stone-300 hover:bg-[#24211E] hover:text-stone-100'
+                  ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:bg-[#262523] hover:text-stone-100'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
               }`}
             >
@@ -211,12 +211,12 @@ export const Header: React.FC<HeaderProps> = ({
           <br />
           {(() => {
             const secondLine = mastheadLines[1];
-            const crimsonClass = 'text-[#9E2C2C]';
+            const crimsonTextClass = isDark ? 'text-[#E5484D]' : 'text-[#9E2C2C]';
             if (secondLine.endsWith('.')) {
               return (
                 <>
                   {secondLine.slice(0, -1)}
-                  <span className={crimsonClass}>.</span>
+                  <span className={crimsonTextClass}>.</span>
                 </>
               );
             }
@@ -224,13 +224,15 @@ export const Header: React.FC<HeaderProps> = ({
               return (
                 <>
                   {secondLine.slice(0, -1)}
-                  <span className="relative inline-block">
-                    <span>?</span>
+                  <span className="relative inline-block leading-none">
+                    <span className="inline-block leading-none" style={{ clipPath: 'inset(0 0 38% 0)' }}>
+                      ?
+                    </span>
                     <span
                       aria-hidden="true"
-                      className={`pointer-events-none select-none absolute inset-0 ${crimsonClass} [clip-path:inset(73%_0_0_0)]`}
+                      className={`pointer-events-none select-none absolute left-[43%] -translate-x-1/2 bottom-0 leading-none ${crimsonTextClass}`}
                     >
-                      ?
+                      .
                     </span>
                   </span>
                 </>

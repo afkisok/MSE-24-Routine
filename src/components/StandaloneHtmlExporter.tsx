@@ -47,7 +47,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
       <div
         className={`relative w-full max-w-2xl rounded-xs p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] transition-all border ${
           isDark
-            ? 'bg-[#1C1A18] border-stone-800 text-stone-100'
+            ? 'bg-[#1E1D1C] border-transparent text-stone-100'
             : 'bg-white border-stone-200 text-stone-900'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -83,7 +83,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             onClick={onClose}
             className={`w-7 h-7 rounded-2xs flex items-center justify-center transition-colors cursor-pointer border ${
               isDark
-                ? 'bg-[#24211E] hover:bg-stone-800 text-stone-300 hover:text-stone-100 border-stone-700'
+                ? 'bg-[#262523] hover:bg-[#2F2E2B] text-stone-300 hover:text-stone-100 border-transparent'
                 : 'bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border-stone-200'
             }`}
             aria-label="Close dialog"
@@ -123,7 +123,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             onClick={handleDownload}
             className={`text-xs py-1.5 px-3.5 rounded-xs cursor-pointer font-mono font-semibold transition-colors border ${
               isDark
-                ? 'bg-[#24211E] hover:bg-stone-800 text-stone-100 border-stone-700'
+                ? 'bg-[#262523] hover:bg-[#2F2E2B] text-stone-100 border-transparent'
                 : 'aviation-btn-secondary'
             }`}
           >
@@ -136,7 +136,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
         <div
           className={`flex-1 min-h-[200px] overflow-hidden rounded-2xs p-3 font-mono text-[11px] border transition-colors ${
             isDark
-              ? 'border-stone-800 bg-[#141312] text-stone-300'
+              ? 'border-transparent bg-[#262523] text-stone-300'
               : 'border-stone-200 bg-stone-50 text-stone-700'
           }`}
         >

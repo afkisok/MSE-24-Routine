@@ -140,7 +140,11 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           const dayEventsCount = events.filter((e) => {
             if (e.day.toLowerCase() !== day.toLowerCase()) return false;
             const status = (e.status || '').trim().toLowerCase();
-            return status !== 'cancelled' && status !== 'canceled';
+            if (status === 'cancelled' || status === 'canceled') return false;
+            const meta = parseAlternatingSchedule(e.type, e.subject, e.syllabus);
+            if (selectedGroup === 'Group A' && meta.groupVariant === 'B') return false;
+            if (selectedGroup === 'Group B' && meta.groupVariant === 'A') return false;
+            return true;
           }).length;
 
           return (
@@ -150,7 +154,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             >
               {/* Centered Day Card / Vertical Pill — locked rounded-2xl & GPU-promoted */}
               <div
-                className={`h-full rounded-2xl flex flex-col items-center justify-center text-center border overflow-hidden will-change-transform transform-gpu transition-[width,transform,opacity] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
+                className={`relative h-full rounded-2xl flex flex-col items-center justify-center text-center border overflow-hidden will-change-transform transform-gpu transition-[width,transform,opacity] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
                   isScrolled ? 'w-[36px]' : 'w-[96px]'
                 } ${
                   isToday
@@ -158,22 +162,24 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
                       : 'bg-stone-900 border-stone-900 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_0_rgba(0,0,0,0.12)]'
                     : isDark
-                    ? 'bg-[#1E1D1C] border-stone-800 text-stone-100 hover:border-stone-700'
+                    ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                     : 'bg-white border-stone-200 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.03)] hover:border-stone-300'
                 }`}
               >
                 <div className="flex items-center justify-center leading-none">
                   <span
                     className={`inline-block font-bold text-base tracking-tight will-change-transform transform-gpu transition-transform duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] whitespace-nowrap ${
-                      isScrolled ? '-rotate-90 scale-[0.8]' : 'rotate-0 scale-100'
+                      isScrolled
+                        ? 'translate-y-0 -rotate-90 scale-[0.8]'
+                        : '-translate-y-[7px] rotate-0 scale-100'
                     }`}
                   >
                     {day.slice(0, 3)}
                   </span>
                 </div>
                 <div
-                  className={`flex items-center justify-center text-[10px] tracking-normal leading-none whitespace-nowrap overflow-hidden will-change-transform transform-gpu transition-[max-height,opacity,margin] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
-                    isScrolled ? 'opacity-0 max-h-0 mt-0' : 'opacity-100 max-h-5 mt-1'
+                  className={`pointer-events-none absolute left-1/2 -translate-x-1/2 top-[calc(50%+6px)] flex items-center justify-center text-[10px] tracking-normal leading-none whitespace-nowrap transition-opacity duration-75 ease-out ${
+                    isScrolled ? 'opacity-0' : 'opacity-100'
                   }`}
                   aria-hidden={isScrolled || undefined}
                 >

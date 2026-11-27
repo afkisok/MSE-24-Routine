@@ -128,7 +128,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
 
     // Active Classes (Theory & Lab unified crisp stone surface)
     return isDark
-      ? 'bg-[#1E1D1C] border-stone-800 text-stone-100 shadow-xs hover:border-stone-700 hover:bg-[#262523]'
+      ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
       : 'bg-white border-stone-300 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.04)] hover:border-stone-400';
   };
 
