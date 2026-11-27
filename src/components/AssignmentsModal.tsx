@@ -225,7 +225,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
         </div>
 
         {/* Bottom action: Full-width pill button ("Close") */}
-        <div className="pt-1 shrink-0">
+        <div className="pt-1 shrink-0 pb-[env(safe-area-inset-bottom)] sm:pb-0">
           <button
             type="button"
             onClick={(e) => {

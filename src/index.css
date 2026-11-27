@@ -8,11 +8,12 @@
   html {
     font-size: 17px;
     scrollbar-gutter: stable;
+    background-color: #F4F3EF;
   }
 
   body {
     scrollbar-gutter: stable;
-    background-color: #FAF9F6;
+    background-color: #F4F3EF;
     color: #1C1917;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow-x: hidden;
@@ -21,11 +22,12 @@
 
   html.dark {
     color-scheme: dark;
+    background-color: #161514;
   }
 
-  /* Warm obsidian dark mode canvas (#141312) */
+  /* Warm obsidian dark mode canvas (#161514) */
   html.dark body {
-    background-color: #141312;
+    background-color: #161514;
     color: #F5F5F4;
   }
 
@@ -47,11 +49,11 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #FAF9F6;
+  background: #F4F3EF;
   border-radius: 2px;
 }
 html.dark ::-webkit-scrollbar-track {
-  background: #141312;
+  background: #161514;
 }
 ::-webkit-scrollbar-thumb {
   background: #D6D3D1;
@@ -137,25 +139,25 @@ html.dark .aviation-btn-secondary:hover {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Scrim-eased horizontal scroll edge fades (positioned below the h-11 header strip) */
+/* Scrim-eased horizontal scroll edge fades (full-height beneath z-30 header divider) */
 .timeline-fade-left {
   background: linear-gradient(
     to right,
     rgba(244, 243, 239, 1) 0%,
-    rgba(244, 243, 239, 0.88) 22%,
-    rgba(244, 243, 239, 0.55) 50%,
-    rgba(244, 243, 239, 0.18) 78%,
+    rgba(244, 243, 239, 0.94) 22%,
+    rgba(244, 243, 239, 0.64) 52%,
+    rgba(244, 243, 239, 0.22) 78%,
     rgba(244, 243, 239, 0) 100%
   );
 }
 html.dark .timeline-fade-left {
   background: linear-gradient(
     to right,
-    rgba(20, 20, 20, 1) 0%,
-    rgba(20, 20, 20, 0.88) 22%,
-    rgba(20, 20, 20, 0.55) 50%,
-    rgba(20, 20, 20, 0.18) 78%,
-    rgba(20, 20, 20, 0) 100%
+    rgba(22, 21, 20, 1) 0%,
+    rgba(22, 21, 20, 0.94) 22%,
+    rgba(22, 21, 20, 0.64) 52%,
+    rgba(22, 21, 20, 0.22) 78%,
+    rgba(22, 21, 20, 0) 100%
   );
 }
 .timeline-fade-right {
@@ -172,12 +174,12 @@ html.dark .timeline-fade-left {
 html.dark .timeline-fade-right {
   background: linear-gradient(
     to left,
-    rgba(20, 20, 20, 1) 0%,
-    rgba(20, 20, 20, 0.92) 18%,
-    rgba(20, 20, 20, 0.72) 39%,
-    rgba(20, 20, 20, 0.38) 64%,
-    rgba(20, 20, 20, 0.1) 86%,
-    rgba(20, 20, 20, 0) 100%
+    rgba(22, 21, 20, 1) 0%,
+    rgba(22, 21, 20, 0.92) 18%,
+    rgba(22, 21, 20, 0.72) 39%,
+    rgba(22, 21, 20, 0.38) 64%,
+    rgba(22, 21, 20, 0.1) 86%,
+    rgba(22, 21, 20, 0) 100%
   );
 }
 

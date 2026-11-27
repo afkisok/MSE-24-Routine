@@ -1,9 +1,13 @@
-const CACHE_NAME = 'mse24-routine-v5';
+const CACHE_NAME = 'mse24-routine-v6';
 const STATIC_PRECACHE_URLS = [
   '/manifest.json',
   '/icon.svg',
   '/icon-192.png',
   '/icon-512.png',
+  '/icon-maskable-192.png',
+  '/icon-maskable-512.png',
+  '/icon-monochrome-192.png',
+  '/icon-monochrome-512.png',
   '/apple-touch-icon.png',
 ];
 

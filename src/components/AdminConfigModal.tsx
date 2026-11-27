@@ -160,7 +160,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
       onClick={handleRequestClose}
     >
       <div
-        className={`w-full max-w-lg rounded-t-[24px] sm:rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[90vh] transform-gpu will-change-transform overscroll-y-contain ${
+        className={`w-full max-w-lg rounded-t-[24px] sm:rounded-2xl shadow-2xl border overflow-hidden flex flex-col max-h-[90vh] pb-[env(safe-area-inset-bottom)] sm:pb-0 transform-gpu will-change-transform overscroll-y-contain ${
           isDark
             ? 'bg-[#1C1A18] border-stone-800 text-stone-100 shadow-black/80'
             : 'bg-white border-stone-200 text-stone-900 shadow-stone-300/50'

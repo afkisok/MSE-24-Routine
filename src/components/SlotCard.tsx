@@ -115,8 +115,8 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   const getThemeClasses = () => {
     if (isCancelled) {
       return isDark
-        ? 'bg-transparent border-dashed border-stone-700 text-stone-500 hover:border-stone-600'
-        : 'bg-transparent border-dashed border-stone-300 text-stone-400 hover:border-stone-400';
+        ? 'bg-transparent border-transparent text-stone-100 hover:bg-white/[0.03]'
+        : 'bg-transparent border-transparent text-stone-900 hover:bg-black/[0.025]';
     }
 
     // Inverted High-Contrast Warm-Stone CT / Exam Surface
@@ -132,7 +132,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
       : 'bg-white border-stone-300 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.04)] hover:border-stone-400';
   };
 
-  // 0. CANCELED SLOT CARD: Completely greyed out, showing only struck-through course code + CANCELED
+  // 0. CANCELED SLOT CARD: Quiet, borderless, baseline-aligned strikethrough CourseCode only
   if (isCancelled) {
     return (
       <div
@@ -155,23 +155,35 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`Canceled: ${event.subject}`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity] duration-150 ease-out active:scale-[0.98] flex flex-col justify-center h-[calc(100%-8px)] p-2.5 focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,background-color] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-100' : 'focus-visible:ring-stone-900'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'}`}
       >
+        {/* Invisible top timestamp placeholder matching active tile height */}
         <div
-          className={`font-semibold text-sm font-sans tracking-normal line-through whitespace-nowrap overflow-visible ${
-            isDark ? 'text-stone-500' : 'text-stone-400'
-          }`}
+          aria-hidden="true"
+          className="invisible flex items-center gap-1 min-w-0 shrink-0 text-[11px] font-sans font-medium leading-none tabular-nums"
         >
-          {courseCode}
+          <span className="whitespace-nowrap shrink-0 leading-none">{formattedStartTime}</span>
         </div>
+
+        {/* Middle Course Code aligned on the exact same horizontal baseline as active tiles */}
+        <div className="my-auto w-full overflow-visible">
+          <div
+            className={`font-bold text-sm font-sans tracking-tight leading-tight line-through opacity-45 whitespace-nowrap overflow-visible ${
+              isDark ? 'text-stone-100' : 'text-stone-900'
+            }`}
+          >
+            {courseCode}
+          </div>
+        </div>
+
+        {/* Invisible bottom row placeholder preserving exact middle-row vertical centering */}
         <div
-          className={`text-[10px] font-medium font-sans uppercase tracking-wider mt-0.5 leading-none ${
-            isDark ? 'text-stone-500' : 'text-stone-400'
-          }`}
+          aria-hidden="true"
+          className="invisible text-[11px] font-sans shrink-0 leading-none"
         >
-          CANCELED
+          &nbsp;
         </div>
       </div>
     );
@@ -270,7 +282,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         }
       }}
       title={`${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] group flex flex-col justify-between h-[calc(100%-8px)] p-2.5 focus-visible:outline-none focus-visible:ring-1 ${
+      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] group flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
         isExam
           ? isDark
             ? 'focus-visible:ring-stone-900'
@@ -341,9 +353,9 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         </div>
       </div>
 
-      {/* BOTTOM ROW: Room and Faculty initials together (e.g. "MSE 312 · AH") */}
+      {/* BOTTOM ROW: Room and Faculty initials together (e.g. "MSE 312 · SA") */}
       <div
-        className={`text-[11px] font-sans tabular-nums shrink-0 truncate flex items-center gap-1 leading-none ${
+        className={`text-[11px] font-sans tabular-nums shrink-0 min-w-0 flex items-center gap-1 leading-none overflow-hidden ${
           isExam
             ? isDark
               ? 'text-stone-600'
@@ -353,11 +365,11 @@ export const SlotCard: React.FC<SlotCardProps> = ({
             : 'text-stone-500'
         }`}
       >
-        <span className="font-medium truncate">{event.room || 'TBA'}</span>
+        <span className="font-medium shrink-0 whitespace-nowrap">{event.room || 'TBA'}</span>
         {facultyInitials && (
           <>
             <span
-              className={
+              className={`shrink-0 ${
                 isExam
                   ? isDark
                     ? 'text-stone-400'
@@ -365,11 +377,11 @@ export const SlotCard: React.FC<SlotCardProps> = ({
                   : isDark
                   ? 'text-stone-600'
                   : 'text-stone-400'
-              }
+              }`}
             >
               ·
             </span>
-            <span className="font-normal truncate">{facultyInitials}</span>
+            <span className="font-normal truncate min-w-0">{facultyInitials}</span>
           </>
         )}
       </div>

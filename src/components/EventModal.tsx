@@ -354,7 +354,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
         </div>
 
         {/* Bottom action: Light secondary/ghost pill button ("Close") */}
-        <div className="pt-1">
+        <div className="pt-1 pb-[env(safe-area-inset-bottom)] sm:pb-0">
           <button
             onClick={(e) => {
               e.stopPropagation();

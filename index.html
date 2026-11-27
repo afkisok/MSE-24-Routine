@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>MSE 2K24 / Batch Routine — KUET</title>
     <meta name="description" content="MSE 2K24 / Batch Routine — Dept. of Materials Science and Engineering, KUET. University timetable dashboard with dynamic timeline scaling, live Google Sheets CSV sync, exam alerts, and mobile timetable tracks." />
     <meta property="og:title" content="MSE 2K24 / Batch Routine — KUET" />
@@ -10,7 +10,7 @@
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#FAF9F6" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0D0D0D" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -20,9 +20,16 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+    <script>
+      try {
+        if (localStorage.getItem('aviation_theme') === 'dark') {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    </script>
   </head>
-  <body class="bg-[#FAF9F6] text-stone-900 antialiased selection:bg-stone-200 selection:text-stone-900">
+  <body class="text-stone-900 antialiased selection:bg-stone-200 selection:text-stone-900">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>

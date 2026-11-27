@@ -199,9 +199,9 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Standalone Bold Heading directly below MSE '24 */}
+        {/* Standalone Editorial Serif Masthead directly below MSE '24 */}
         <h1
-          className={`mt-3 text-[2rem] font-bold tracking-tight leading-tight ${
+          className={`mt-3 font-['Newsreader',Georgia,serif] text-[2.125rem] font-semibold tracking-[-0.02em] leading-tight ${
             isDark ? 'text-stone-100' : 'text-stone-900'
           }`}
         >

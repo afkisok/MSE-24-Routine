@@ -50,9 +50,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
   const renderHeader = (title: string) => (
-    <div className="flex items-center justify-between gap-2 mb-3 px-1">
+    <div className="flex items-end justify-between gap-2 mb-3 px-1">
       <h2
-        className={`text-[1.0625rem] font-bold tracking-tight leading-snug ${
+        className={`pb-0.5 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-snug ${
           isDark ? 'text-stone-100' : 'text-stone-900'
         }`}
       >
@@ -73,7 +73,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             <span
               className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none ${
                 isDark
-                  ? 'bg-[#C84B4D] ring-[#0D0D0D]'
+                  ? 'bg-[#C84B4D] ring-[#161514]'
                   : 'bg-[#9E2A2B] ring-[#FAF9F6]'
               }`}
               aria-hidden="true"
@@ -84,6 +84,40 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
       )}
     </div>
   );
+
+  const parseHeroRooms = (rawRoom?: string): string[] => {
+    const trimmed = (rawRoom || '').trim();
+    if (!trimmed) return ['TBA'];
+    const parts = trimmed
+      .split(/\s*[&/,]\s*/)
+      .map((part) => part.trim())
+      .filter(Boolean);
+    return parts.length > 0 ? parts : ['TBA'];
+  };
+
+  const renderHeroRoomBlock = (rawRoom?: string) => {
+    const rooms = parseHeroRooms(rawRoom);
+    const isMultiRoom = rooms.length > 1;
+
+    return (
+      <div className="shrink-0 text-right mt-[2px]">
+        <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
+          {isMultiRoom ? 'ROOMS' : 'ROOM'}
+        </div>
+        <div
+          className={`mt-1 flex flex-col items-end text-xl font-bold tracking-tight leading-tight tabular-nums ${
+            isDark ? 'text-stone-100' : 'text-stone-900'
+          }`}
+        >
+          {rooms.map((room, idx) => (
+            <span key={`${room}-${idx}`} className="whitespace-nowrap">
+              {room}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   // TERM FINAL MODE: UPCOMING EXAMS
   if (isTermFinalMode) {
@@ -166,18 +200,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       )}
                     </div>
 
-                    <div className="shrink-0 text-right mt-[2px]">
-                      <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
-                        ROOM
-                      </div>
-                      <div
-                        className={`mt-1 text-xl font-bold tracking-tight leading-tight tabular-nums whitespace-nowrap ${
-                          isDark ? 'text-stone-100' : 'text-stone-900'
-                        }`}
-                      >
-                        {heroExam.room || 'TBA'}
-                      </div>
-                    </div>
+                    {renderHeroRoomBlock(heroExam.room)}
                   </div>
 
                   {/* Bottom Row: High-Contrast Day & Time Range */}
@@ -429,18 +452,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     )}
                   </div>
 
-                  <div className="shrink-0 text-right mt-[2px]">
-                    <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
-                      ROOM
-                    </div>
-                    <div
-                      className={`mt-1 text-xl font-bold tracking-tight leading-tight tabular-nums whitespace-nowrap ${
-                        isDark ? 'text-stone-100' : 'text-stone-900'
-                      }`}
-                    >
-                      {event.room || 'TBA'}
-                    </div>
-                  </div>
+                  {renderHeroRoomBlock(event.room)}
                 </div>
 
                 {/* Bottom Row: High-Contrast Day & Time Range */}
@@ -454,7 +466,16 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       isDark ? 'text-stone-100' : 'text-stone-900'
                     }`}
                   >
-                    {`${relativeLabel || event.day} · ${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}`}
+                    {(() => {
+                      const timeRange = `${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}`;
+                      if (relativeLabel === 'Active Now') {
+                        return `Now · ${timeRange}`;
+                      }
+                      if (relativeLabel.startsWith('in ')) {
+                        return `Today at ${timeRange} (${relativeLabel})`;
+                      }
+                      return `${relativeLabel || event.day} at ${timeRange}`;
+                    })()}
                   </span>
                   {!isExam && alternating.groupVariant && (
                     <span className="text-[11px] font-semibold uppercase tracking-wide shrink-0 text-neutral-400">

@@ -40,9 +40,23 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   const periodMarkers: PeriodMarker[] = getAcademicPeriodMarkers(safeTotalMinutes);
   const isDark = theme === 'dark';
 
-  const minTrackWidthPx = Math.round((safeTotalMinutes / TOTAL_DAY_MINUTES) * 960) + 48;
+  const minTrackWidthPx = Math.round((safeTotalMinutes / TOTAL_DAY_MINUTES) * 1145) + 48;
+  const internalScrollRef = useRef<HTMLDivElement | null>(null);
+  const activeScrollRef = scrollRef ?? internalScrollRef;
   const headerAxisRef = useRef<HTMLDivElement | null>(null);
   const [axisWidthPx, setAxisWidthPx] = useState<number>(minTrackWidthPx - 48);
+  const [isScrolled, setIsScrolled] = useState<boolean>(false);
+
+  const syncScrollState = (el: HTMLDivElement | null) => {
+    if (!el) return;
+    setIsScrolled((prev) => {
+      const hasEnoughOverflow = el.scrollWidth - el.clientWidth > 32;
+      if (!hasEnoughOverflow) return false;
+      if (!prev && el.scrollLeft > 32) return true;
+      if (prev && el.scrollLeft < 12) return false;
+      return prev;
+    });
+  };
 
   useEffect(() => {
     const el = headerAxisRef.current;
@@ -52,6 +66,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
       if (el.clientWidth > 0) {
         setAxisWidthPx(el.clientWidth);
       }
+      syncScrollState(activeScrollRef.current);
     };
 
     updateWidth();
@@ -63,7 +78,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
-  }, [minTrackWidthPx]);
+  }, [minTrackWidthPx, activeScrollRef]);
 
   const isNowVisible =
     currentMinuteOffset !== null &&
@@ -75,30 +90,51 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   return (
     <div className="flex flex-col">
       <div
-        className={`rounded-2xl overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
+        className={`relative rounded-2xl overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
           isDark
-            ? 'bg-[#141414] border-stone-800'
+            ? 'bg-[#161514] border-stone-800'
             : 'bg-[#F4F3EF] border-stone-200'
         }`}
       >
-      {/* 1. RIGID STATIC LEFT CONTAINER: Precision Day Track Column (borderless, tucked via pr-2) */}
+      {/* Unbroken full-width header divider rendered at z-30 strictly above the edge-fade fogs */}
       <div
-        className={`w-24 sm:w-32 shrink-0 flex flex-col z-20 pr-2 transition-colors ${
-          isDark ? 'bg-[#141414]' : 'bg-[#F4F3EF]'
+        aria-hidden="true"
+        className={`pointer-events-none absolute top-11 left-0 right-0 h-px z-30 transition-colors ${
+          isDark ? 'bg-white/[0.06]' : 'bg-black/[0.06]'
         }`}
+      />
+
+      {/* 1. GPU-COMPOSITED OVERLAY DAY RAIL: Out-of-flow so the scroll container never reflows during touch scroll */}
+      <div
+        className={`absolute top-0 bottom-0 left-0 flex flex-col z-20 will-change-transform transform-gpu transition-[width,transform,opacity] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
+          isScrolled ? 'w-[48px]' : 'w-[108px]'
+        } ${isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'}`}
       >
-        {/* Static Header Axis Box (h-11) */}
+        {/* Full-height left-edge fog glued to the rail's right edge so it glides cleanly with zero layout thrash */}
         <div
-          className={`h-11 pl-2 -mr-2 pr-2 flex items-center justify-center text-center text-xs font-bold tracking-tight leading-none border-b transition-colors ${
+          aria-hidden="true"
+          className="timeline-fade-left pointer-events-none absolute top-0 bottom-0 left-full w-7"
+        />
+
+        {/* Static Header Axis Box (h-11) — Day label fades out cleanly when scrolled */}
+        <div
+          className={`h-11 flex items-center justify-center text-center text-xs font-bold tracking-tight leading-none transition-colors ${
             isDark
-              ? 'border-white/[0.05] bg-[#141414] text-stone-100'
-              : 'border-black/[0.05] bg-[#F4F3EF] text-stone-900'
+              ? 'bg-[#161514] text-stone-100'
+              : 'bg-[#F4F3EF] text-stone-900'
           }`}
         >
-          <span>Day</span>
+          <span
+            aria-hidden={isScrolled || undefined}
+            className={`will-change-transform transform-gpu transition-opacity duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
+              isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            }`}
+          >
+            Day
+          </span>
         </div>
 
-        {/* Static Day Rows with Centered Gate Identifier Style (h-24) */}
+        {/* Static Day Rows with Smooth Locked rounded-2xl Pill (h-24) */}
         {days.map((day) => {
           const isToday = day.toLowerCase() === todayName.toLowerCase();
           const dayEventsCount = events.filter((e) => {
@@ -110,11 +146,13 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           return (
             <div
               key={`static-${day}`}
-              className="h-24 py-2 pl-2 flex items-center justify-center bg-transparent transition-colors"
+              className="h-24 py-2 flex items-center justify-center bg-transparent"
             >
-              {/* Centered Day Identifier Card */}
+              {/* Centered Day Card / Vertical Pill — locked rounded-2xl & GPU-promoted */}
               <div
-                className={`w-full h-full rounded-xl p-2 flex flex-col items-center justify-center text-center transition-all border ${
+                className={`h-full rounded-2xl flex flex-col items-center justify-center text-center border overflow-hidden will-change-transform transform-gpu transition-[width,transform,opacity] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
+                  isScrolled ? 'w-[36px]' : 'w-[96px]'
+                } ${
                   isToday
                     ? isDark
                       ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
@@ -125,12 +163,27 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-center leading-none">
-                  <span className="text-base font-bold tracking-tight">
+                  <span
+                    className={`inline-block font-bold text-base tracking-tight will-change-transform transform-gpu transition-transform duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] whitespace-nowrap ${
+                      isScrolled ? '-rotate-90 scale-[0.8]' : 'rotate-0 scale-100'
+                    }`}
+                  >
                     {day.slice(0, 3)}
                   </span>
                 </div>
-                <div className="mt-1 flex items-center justify-center gap-1 text-[10px] tracking-normal opacity-85 leading-none">
-                  <span>{dayEventsCount} {dayEventsCount === 1 ? 'class' : 'classes'}</span>
+                <div
+                  className={`flex items-center justify-center text-[10px] tracking-normal leading-none whitespace-nowrap overflow-hidden will-change-transform transform-gpu transition-[max-height,opacity,margin] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
+                    isScrolled ? 'opacity-0 max-h-0 mt-0' : 'opacity-100 max-h-5 mt-1'
+                  }`}
+                  aria-hidden={isScrolled || undefined}
+                >
+                  <span className="opacity-85">
+                    {dayEventsCount === 0
+                      ? 'Free day'
+                      : dayEventsCount === 1
+                      ? 'Just 1 class'
+                      : `${dayEventsCount} classes`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -138,28 +191,26 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
         })}
       </div>
 
-      {/* 2. TIMELINE TRACK CONTAINER (SCROLLS HORIZONTALLY, WITH FLOATING VERTICAL TIME GUIDES) */}
+      {/* 2. FULL-WIDTH TIMELINE TRACK CONTAINER (CONSTANT clientWidth — ZERO LAYOUT THRASH ON SCROLL) */}
       <div className="relative flex-1 min-w-0 overflow-hidden flex flex-col">
-        {/* Scrim-eased left & right scroll-fade overlays positioned strictly below the h-11 header strip */}
+        {/* Full-height right edge-fade overlay (top-0 bottom-0, z-20 beneath z-30 divider) */}
         <div
           aria-hidden="true"
-          className="timeline-fade-left pointer-events-none absolute top-11 bottom-0 left-0 w-[18px] z-[35]"
-        />
-        <div
-          aria-hidden="true"
-          className="timeline-fade-right pointer-events-none absolute top-11 bottom-0 right-0 w-[28px] z-[35]"
+          className="timeline-fade-right pointer-events-none absolute top-0 bottom-0 right-0 w-7 z-20"
         />
 
         <div
-          ref={scrollRef}
+          ref={activeScrollRef}
+          onScroll={(e) => syncScrollState(e.currentTarget)}
           className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
-            isDark ? 'bg-[#141414]' : 'bg-[#F4F3EF]'
+            isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'
           }`}
         >
           <div
-            className="relative flex flex-col"
-            style={{ minWidth: `${minTrackWidthPx}px` }}
+            className="pl-[108px]"
+            style={{ minWidth: `${minTrackWidthPx + 108}px` }}
           >
+          <div className="relative flex flex-col w-full">
           {/* Floating vertical time-column guides behind class rows (below header & inset from bottom) */}
           <div
             className="absolute top-12 bottom-3 left-6 right-6 pointer-events-none z-0"
@@ -178,10 +229,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 
           {/* Top Academic Period Start-Time Axis Track (h-11) with symmetric px-6 buffer */}
           <div
-            className={`relative z-10 h-11 px-6 flex items-center select-none border-b transition-colors ${
-              isDark
-                ? 'border-white/[0.05] bg-[#141414]'
-                : 'border-black/[0.05] bg-[#F4F3EF]'
+            className={`relative z-10 h-11 px-6 flex items-center select-none transition-colors ${
+              isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'
             }`}
           >
             <div ref={headerAxisRef} className="relative w-full h-full flex items-center">
@@ -290,10 +339,11 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               </div>
             );
           })}
+          </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
-</div>
 );
 };

@@ -158,22 +158,29 @@ export default function App() {
       isExportModalOpen
   );
 
-  useEffect(() => {
+  const isDark = theme === 'dark';
+
+  useLayoutEffect(() => {
     try {
       localStorage.setItem('aviation_theme', theme);
     } catch (e) {
       console.warn('localStorage write error:', e);
     }
-    if (theme === 'dark') {
+    if (isDark) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [theme]);
+  }, [theme, isDark]);
 
-  useEffect(() => {
-    const targetColor =
-      theme === 'dark' ? '#0D0D0D' : isAnyModalOpen ? '#969593' : '#FAF9F6';
+  useLayoutEffect(() => {
+    const targetColor = isDark
+      ? isAnyModalOpen
+        ? '#060606'
+        : '#161514'
+      : isAnyModalOpen
+      ? '#464544'
+      : '#FAF9F6';
 
     const existingMetas = Array.from(
       document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
@@ -196,13 +203,11 @@ export default function App() {
       freshMeta.content = targetColor;
       document.head.appendChild(freshMeta);
     }
-  }, [theme, isAnyModalOpen]);
+  }, [isDark, isAnyModalOpen]);
 
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
-
-  const isDark = theme === 'dark';
 
   // Section / Group filter state with localStorage persistence
   const [selectedGroup, setSelectedGroup] = useState<'All' | 'Group A' | 'Group B'>(() => {
@@ -700,9 +705,9 @@ export default function App() {
 
   return (
     <div
-      className={`relative min-h-screen flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
+      className={`relative min-h-dvh flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
         isDark
-          ? 'bg-[#141312] text-stone-100 selection:bg-stone-800 selection:text-stone-100'
+          ? 'bg-[#161514] text-stone-100 selection:bg-stone-800 selection:text-stone-100'
           : 'bg-[#FAF9F6] text-stone-900 selection:bg-stone-200 selection:text-stone-900'
       }`}
     >
@@ -714,7 +719,7 @@ export default function App() {
         }`}
       />
 
-      <div className="relative z-10 flex-1 flex flex-col">
+      <div className="relative z-10 flex-1 flex flex-col pb-[env(safe-area-inset-bottom)]">
         {/* Aviation Operations Header with MSE '24 Hidden Admin Door and Discreet Refresh */}
         <Header
           onManualSync={() => fetchAndSync()}
@@ -753,7 +758,7 @@ export default function App() {
               isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
             }`}
           >
-            <div className="flex items-center justify-between sm:justify-start w-full">
+            <div className="flex items-center justify-between sm:justify-start w-full mb-0">
               {hasUpcomingFinals ? (
                 <div
                   className="flex items-center gap-[14px]"
@@ -765,7 +770,7 @@ export default function App() {
                     role="tab"
                     aria-selected={!isTermFinalView}
                     onClick={() => setViewOverride('weekly')}
-                    className={`text-[1.0625rem] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
+                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none transition-opacity duration-150 ${
                       isDark ? 'text-stone-100' : 'text-stone-900'
                     } ${!isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
                   >
@@ -776,7 +781,7 @@ export default function App() {
                     role="tab"
                     aria-selected={isTermFinalView}
                     onClick={() => setViewOverride('termFinals')}
-                    className={`text-[1.0625rem] font-bold tracking-tight leading-snug cursor-pointer select-none transition-opacity duration-150 ${
+                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none transition-opacity duration-150 ${
                       isDark ? 'text-stone-100' : 'text-stone-900'
                     } ${isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
                   >
@@ -785,7 +790,7 @@ export default function App() {
                 </div>
               ) : (
                 <h2
-                  className={`text-[1.0625rem] font-bold tracking-tight leading-snug ${
+                  className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight ${
                     isDark ? 'text-stone-100' : 'text-stone-900'
                   }`}
                 >
@@ -796,8 +801,8 @@ export default function App() {
 
             {!isTermFinalView && (
               <>
-                {/* Plain borderless muted-gray status line directly above the filter pill bar */}
-                <div className="mt-1 mb-2.5 flex flex-col gap-0.5 min-w-0">
+                {/* Plain borderless muted-gray status line with optically balanced spacing above and below */}
+                <div className="mt-1.5 mb-2.5 flex flex-col gap-0.5 min-w-0">
                   {visibleOffRoutineSlots.length === 0 ? (
                     <p
                       className={`text-sm leading-5 font-sans font-normal truncate select-none ${
