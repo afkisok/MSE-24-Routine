@@ -12,6 +12,7 @@ interface HeaderProps {
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onTriggerAdminVerification: () => void;
+  mastheadLines: readonly [string, string];
   isMounted?: boolean;
 }
 
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   theme,
   onToggleTheme,
   onTriggerAdminVerification,
+  mastheadLines,
   isMounted = true,
 }) => {
   const isDark = theme === 'dark';
@@ -201,11 +203,41 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Standalone Editorial Serif Masthead directly below MSE '24 */}
         <h1
-          className={`mt-3 font-['Newsreader',Georgia,serif] text-[2.125rem] font-semibold tracking-[-0.02em] leading-tight ${
+          className={`mt-6 mb-0 font-['Newsreader',Georgia,serif] text-[2.25rem] sm:text-[2.35rem] font-semibold tracking-[-0.02em] leading-[1.06] ${
             isDark ? 'text-stone-100' : 'text-stone-900'
           }`}
         >
-          2-2 Routine
+          {mastheadLines[0]}
+          <br />
+          {(() => {
+            const secondLine = mastheadLines[1];
+            const crimsonClass = 'text-[#9E2C2C]';
+            if (secondLine.endsWith('.')) {
+              return (
+                <>
+                  {secondLine.slice(0, -1)}
+                  <span className={crimsonClass}>.</span>
+                </>
+              );
+            }
+            if (secondLine.endsWith('?')) {
+              return (
+                <>
+                  {secondLine.slice(0, -1)}
+                  <span className="relative inline-block">
+                    <span>?</span>
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none select-none absolute inset-0 ${crimsonClass} [clip-path:inset(73%_0_0_0)]`}
+                    >
+                      ?
+                    </span>
+                  </span>
+                </>
+              );
+            }
+            return secondLine;
+          })()}
         </h1>
       </div>
     </header>

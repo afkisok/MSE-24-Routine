@@ -92,8 +92,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
       <div
         className={`relative rounded-2xl overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
           isDark
-            ? 'bg-[#161514] border-stone-800'
-            : 'bg-[#F4F3EF] border-stone-200'
+            ? 'bg-[#100F0E] border-transparent'
+            : 'bg-[#EAE8E2] border-stone-200'
         }`}
       >
       {/* Unbroken full-width header divider rendered at z-30 strictly above the edge-fade fogs */}
@@ -108,7 +108,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
       <div
         className={`absolute top-0 bottom-0 left-0 flex flex-col z-20 will-change-transform transform-gpu transition-[width,transform,opacity] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
           isScrolled ? 'w-[48px]' : 'w-[108px]'
-        } ${isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'}`}
+        } ${isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'}`}
       >
         {/* Full-height left-edge fog glued to the rail's right edge so it glides cleanly with zero layout thrash */}
         <div
@@ -120,8 +120,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
         <div
           className={`h-11 flex items-center justify-center text-center text-xs font-bold tracking-tight leading-none transition-colors ${
             isDark
-              ? 'bg-[#161514] text-stone-100'
-              : 'bg-[#F4F3EF] text-stone-900'
+              ? 'bg-[#100F0E] text-stone-100'
+              : 'bg-[#EAE8E2] text-stone-900'
           }`}
         >
           <span
@@ -158,7 +158,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
                       : 'bg-stone-900 border-stone-900 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_0_rgba(0,0,0,0.12)]'
                     : isDark
-                    ? 'bg-[#1C1A18] border-stone-800 text-stone-100 hover:border-stone-700'
+                    ? 'bg-[#1E1D1C] border-stone-800 text-stone-100 hover:border-stone-700'
                     : 'bg-white border-stone-200 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.03)] hover:border-stone-300'
                 }`}
               >
@@ -203,7 +203,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           ref={activeScrollRef}
           onScroll={(e) => syncScrollState(e.currentTarget)}
           className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
-            isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'
+            isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'
           }`}
         >
           <div
@@ -230,7 +230,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           {/* Top Academic Period Start-Time Axis Track (h-11) with symmetric px-6 buffer */}
           <div
             className={`relative z-10 h-11 px-6 flex items-center select-none transition-colors ${
-              isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'
+              isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'
             }`}
           >
             <div ref={headerAxisRef} className="relative w-full h-full flex items-center">
@@ -259,17 +259,11 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                   {/* 1.5px vertical stem extending downward from bottom center of pill */}
                   <div
                     style={{ left: `${nowLeftPercent}%` }}
-                    className={`absolute top-[calc(50%+11px)] bottom-0 -translate-x-1/2 w-[1.5px] z-10 pointer-events-none ${
-                      isDark ? 'bg-[#C84B4D]' : 'bg-[#9E2A2B]'
-                    }`}
+                    className="absolute top-[calc(50%+11px)] bottom-0 -translate-x-1/2 w-[1.5px] z-10 pointer-events-none bg-[#9E2C2C]"
                   />
                   <div
                     style={{ left: `${nowLeftPercent}%` }}
-                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-6 px-2.5 rounded-full text-[11px] font-sans font-semibold leading-none tabular-nums inline-flex items-center justify-center whitespace-nowrap shadow-sm z-20 pointer-events-none ${
-                      isDark
-                        ? 'bg-[#C84B4D] text-white'
-                        : 'bg-[#9E2A2B] text-white'
-                    }`}
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-6 px-2.5 rounded-full text-[11px] font-sans font-semibold leading-none tabular-nums inline-flex items-center justify-center whitespace-nowrap shadow-sm z-20 pointer-events-none bg-[#9E2C2C] text-white"
                   >
                     {formatMinutesTo12Hour(DAY_START_MINUTES + currentMinuteOffset)}
                   </div>
@@ -296,8 +290,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                   {isToday && isNowVisible && nowLeftPercent !== null && (
                     <div
                       style={{ left: `${nowLeftPercent}%` }}
-                      className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none ${
-                        isDark ? 'bg-[#C84B4D] opacity-90' : 'bg-[#9E2A2B] opacity-85'
+                      className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none bg-[#9E2C2C] ${
+                        isDark ? 'opacity-90' : 'opacity-85'
                       }`}
                     />
                   )}

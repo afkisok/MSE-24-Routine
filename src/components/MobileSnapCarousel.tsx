@@ -134,7 +134,7 @@ export const MobileSnapCarousel: React.FC<MobileSnapCarouselProps> = ({
                         }}
                         className={`relative p-3 border cursor-pointer transition-none ${
                           isCancelled
-                            ? 'bg-black border-red-950/60 opacity-40 hover:opacity-80'
+                            ? 'bg-black border-[#9E2C2C]/60 opacity-40 hover:opacity-80'
                             : isExam
                             ? 'bg-black border-2 border-[#FFCC00] hover:bg-[#FFCC00] hover:text-black group'
                             : isLab
@@ -153,7 +153,7 @@ export const MobileSnapCarousel: React.FC<MobileSnapCarouselProps> = ({
                               y1="0"
                               x2="100%"
                               y2="100%"
-                              stroke="rgba(239, 68, 68, 0.85)"
+                              stroke="rgba(158, 44, 44, 0.85)"
                               strokeWidth="2"
                             />
                             <line
@@ -161,7 +161,7 @@ export const MobileSnapCarousel: React.FC<MobileSnapCarouselProps> = ({
                               y1="100%"
                               x2="100%"
                               y2="0"
-                              stroke="rgba(239, 68, 68, 0.85)"
+                              stroke="rgba(158, 44, 44, 0.85)"
                               strokeWidth="2"
                             />
                           </svg>
@@ -176,7 +176,7 @@ export const MobileSnapCarousel: React.FC<MobileSnapCarouselProps> = ({
                                 : isLab
                                 ? 'text-[#00FF66] group-hover:text-black'
                                 : 'text-[#888888] group-hover:text-black'
-                            } ${isCancelled ? 'line-through text-red-400' : ''}`}
+                            } ${isCancelled ? 'line-through text-[#9E2C2C]' : ''}`}
                           >
                             [{evt.type}]
                           </span>

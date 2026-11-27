@@ -7,17 +7,29 @@
 
   html {
     font-size: 17px;
-    scrollbar-gutter: stable;
+    width: 100%;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     background-color: #F4F3EF;
   }
 
   body {
-    scrollbar-gutter: stable;
+    width: 100%;
+    margin: 0;
     background-color: #F4F3EF;
     color: #1C1917;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     transition: background-color 150ms ease, color 150ms ease;
+  }
+
+  #root {
+    width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
   html.dark {
@@ -43,30 +55,13 @@
   }
 }
 
-/* Warm stone precision scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #F4F3EF;
-  border-radius: 2px;
-}
-html.dark ::-webkit-scrollbar-track {
-  background: #161514;
-}
-::-webkit-scrollbar-thumb {
-  background: #D6D3D1;
-  border-radius: 2px;
-}
-html.dark ::-webkit-scrollbar-thumb {
-  background: #292524;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #A8A29E;
-}
-html.dark ::-webkit-scrollbar-thumb:hover {
-  background: #44403C;
+/* Hide outer page scrollbars and reclaim reserved right-edge gutter */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Utility Buttons & Controls */
@@ -143,43 +138,43 @@ html.dark .aviation-btn-secondary:hover {
 .timeline-fade-left {
   background: linear-gradient(
     to right,
-    rgba(244, 243, 239, 1) 0%,
-    rgba(244, 243, 239, 0.94) 22%,
-    rgba(244, 243, 239, 0.64) 52%,
-    rgba(244, 243, 239, 0.22) 78%,
-    rgba(244, 243, 239, 0) 100%
+    rgba(234, 232, 226, 1) 0%,
+    rgba(234, 232, 226, 0.94) 22%,
+    rgba(234, 232, 226, 0.64) 52%,
+    rgba(234, 232, 226, 0.22) 78%,
+    rgba(234, 232, 226, 0) 100%
   );
 }
 html.dark .timeline-fade-left {
   background: linear-gradient(
     to right,
-    rgba(22, 21, 20, 1) 0%,
-    rgba(22, 21, 20, 0.94) 22%,
-    rgba(22, 21, 20, 0.64) 52%,
-    rgba(22, 21, 20, 0.22) 78%,
-    rgba(22, 21, 20, 0) 100%
+    rgba(16, 15, 14, 1) 0%,
+    rgba(16, 15, 14, 0.94) 22%,
+    rgba(16, 15, 14, 0.64) 52%,
+    rgba(16, 15, 14, 0.22) 78%,
+    rgba(16, 15, 14, 0) 100%
   );
 }
 .timeline-fade-right {
   background: linear-gradient(
     to left,
-    rgba(244, 243, 239, 1) 0%,
-    rgba(244, 243, 239, 0.92) 18%,
-    rgba(244, 243, 239, 0.72) 39%,
-    rgba(244, 243, 239, 0.38) 64%,
-    rgba(244, 243, 239, 0.1) 86%,
-    rgba(244, 243, 239, 0) 100%
+    rgba(234, 232, 226, 1) 0%,
+    rgba(234, 232, 226, 0.92) 18%,
+    rgba(234, 232, 226, 0.72) 39%,
+    rgba(234, 232, 226, 0.38) 64%,
+    rgba(234, 232, 226, 0.1) 86%,
+    rgba(234, 232, 226, 0) 100%
   );
 }
 html.dark .timeline-fade-right {
   background: linear-gradient(
     to left,
-    rgba(22, 21, 20, 1) 0%,
-    rgba(22, 21, 20, 0.92) 18%,
-    rgba(22, 21, 20, 0.72) 39%,
-    rgba(22, 21, 20, 0.38) 64%,
-    rgba(22, 21, 20, 0.1) 86%,
-    rgba(22, 21, 20, 0) 100%
+    rgba(16, 15, 14, 1) 0%,
+    rgba(16, 15, 14, 0.92) 18%,
+    rgba(16, 15, 14, 0.72) 39%,
+    rgba(16, 15, 14, 0.38) 64%,
+    rgba(16, 15, 14, 0.1) 86%,
+    rgba(16, 15, 14, 0) 100%
   );
 }
 
@@ -221,30 +216,30 @@ html.dark .badge-group {
 /* Temporary crimson flash outline & glow on "Now" tap (fades cleanly back to monochrome) */
 @keyframes slotPulseLight {
   0% {
-    box-shadow: 0 0 0 2px rgba(158, 42, 43, 0.95), 0 0 0 2px rgba(158, 42, 43, 0.45);
+    box-shadow: 0 0 0 2px rgba(158, 44, 44, 0.95), 0 0 0 2px rgba(158, 44, 44, 0.45);
   }
   35% {
-    box-shadow: 0 0 0 2px rgba(158, 42, 43, 0.9), 0 0 0 7px rgba(158, 42, 43, 0.22);
+    box-shadow: 0 0 0 2px rgba(158, 44, 44, 0.9), 0 0 0 7px rgba(158, 44, 44, 0.22);
   }
   75% {
-    box-shadow: 0 0 0 2px rgba(158, 42, 43, 0.45), 0 0 0 9px rgba(158, 42, 43, 0);
+    box-shadow: 0 0 0 2px rgba(158, 44, 44, 0.45), 0 0 0 9px rgba(158, 44, 44, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(158, 42, 43, 0), 0 0 0 0 rgba(158, 42, 43, 0);
+    box-shadow: 0 0 0 0 rgba(158, 44, 44, 0), 0 0 0 0 rgba(158, 44, 44, 0);
   }
 }
 @keyframes slotPulseDark {
   0% {
-    box-shadow: 0 0 0 2px rgba(200, 75, 77, 0.95), 0 0 0 2px rgba(200, 75, 77, 0.5);
+    box-shadow: 0 0 0 2px rgba(158, 44, 44, 0.95), 0 0 0 2px rgba(158, 44, 44, 0.5);
   }
   35% {
-    box-shadow: 0 0 0 2px rgba(200, 75, 77, 0.9), 0 0 0 7px rgba(200, 75, 77, 0.26);
+    box-shadow: 0 0 0 2px rgba(158, 44, 44, 0.9), 0 0 0 7px rgba(158, 44, 44, 0.26);
   }
   75% {
-    box-shadow: 0 0 0 2px rgba(200, 75, 77, 0.45), 0 0 0 9px rgba(200, 75, 77, 0);
+    box-shadow: 0 0 0 2px rgba(158, 44, 44, 0.45), 0 0 0 9px rgba(158, 44, 44, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(200, 75, 77, 0), 0 0 0 0 rgba(200, 75, 77, 0);
+    box-shadow: 0 0 0 0 rgba(158, 44, 44, 0), 0 0 0 0 rgba(158, 44, 44, 0);
   }
 }
 .animate-slot-pulse {

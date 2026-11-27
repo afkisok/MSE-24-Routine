@@ -16,6 +16,7 @@ import {
   isWithinTermFinalWindow,
   termFinalToRoutineEvent,
 } from './utils/termFinalUtils';
+import { getScheduleMastheadLines } from './utils/mastheadCopy';
 import { Header } from './components/Header';
 import { AtAGlanceWidget } from './components/AtAGlanceWidget';
 import { MasterTimelineGrid } from './components/MasterTimelineGrid';
@@ -312,6 +313,7 @@ export default function App() {
   });
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [mastheadSeed] = useState(() => Math.floor(Math.random() * 1000));
   const [currentMinuteOffset, setCurrentMinuteOffset] = useState<number | null>(null);
   const [todayName, setTodayName] = useState<string>('');
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
@@ -336,6 +338,7 @@ export default function App() {
   }, [hasUpcomingFinals, viewOverride]);
 
   // Sliding pill measurement for Group Toggle
+  const groupTrackRef = useRef<HTMLDivElement | null>(null);
   const groupTabRefs = useRef<Record<'All' | 'Group A' | 'Group B', HTMLButtonElement | null>>({
     All: null,
     'Group A': null,
@@ -350,18 +353,30 @@ export default function App() {
   useLayoutEffect(() => {
     if (isTermFinalView) return;
     const updatePill = () => {
+      const trackEl = groupTrackRef.current;
       const activeEl = groupTabRefs.current[selectedGroup];
-      if (!activeEl) return;
+      if (!trackEl || !activeEl) return;
+      const trackRect = trackEl.getBoundingClientRect();
+      const activeRect = activeEl.getBoundingClientRect();
       setPillStyle({
-        left: activeEl.offsetLeft,
-        width: activeEl.offsetWidth,
+        left: activeRect.left - trackRect.left,
+        width: activeRect.width,
         ready: true,
       });
     };
 
     updatePill();
     window.addEventListener('resize', updatePill);
-    return () => window.removeEventListener('resize', updatePill);
+    let cancelled = false;
+    if (typeof document !== 'undefined' && document.fonts?.ready) {
+      document.fonts.ready.then(() => {
+        if (!cancelled) updatePill();
+      });
+    }
+    return () => {
+      cancelled = true;
+      window.removeEventListener('resize', updatePill);
+    };
   }, [selectedGroup, isTermFinalView]);
 
   const [isMounted, setIsMounted] = useState(false);
@@ -868,6 +883,14 @@ export default function App() {
     }
   };
 
+  const mastheadLines = getScheduleMastheadLines({
+    events,
+    termFinals,
+    selectedGroup,
+    nowMs,
+    seed: mastheadSeed,
+  });
+
   return (
     <div
       className={`relative min-h-dvh flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
@@ -892,10 +915,11 @@ export default function App() {
           theme={theme}
           onToggleTheme={handleToggleTheme}
           onTriggerAdminVerification={() => setIsPinDialogOpen(true)}
+          mastheadLines={mastheadLines}
           isMounted={isMounted}
         />
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-3 pb-7 flex flex-col overflow-x-hidden">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-0 pb-7 flex flex-col overflow-x-hidden">
         {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
         <div
           className={`transition-[opacity,transform] duration-300 ease-out delay-[50ms] ${
@@ -999,52 +1023,54 @@ export default function App() {
                 <div className="flex items-center gap-2 flex-nowrap self-start">
                 {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
                 <div
-                  className={`relative h-9 inline-flex items-center p-1 rounded-full border transition-colors box-border shrink-0 ${
-                    isDark ? 'bg-[#24211E] border-stone-800' : 'bg-stone-100 border-stone-200'
+                  className={`h-9 inline-flex items-center p-1 rounded-full border border-transparent transition-colors box-border shrink-0 ${
+                    isDark ? 'bg-[#1E1D1C]' : 'bg-[#EAE8E2]'
                   }`}
                   role="tablist"
                   aria-label="Filter schedule by Section or Lab Group"
                 >
-                  {/* Sliding Active Indicator Pill */}
-                  <div
-                    aria-hidden="true"
-                    style={{
-                      transform: `translateX(${pillStyle.left}px)`,
-                      width: `${pillStyle.width}px`,
-                      opacity: pillStyle.ready ? 1 : 0,
-                    }}
-                    className={`absolute top-1 bottom-1 left-0 rounded-full pointer-events-none ${
-                      pillStyle.ready ? 'transition-[transform,width] duration-200 ease-out' : ''
-                    } ${
-                      isDark ? 'bg-stone-100 shadow-xs' : 'bg-stone-900 shadow-xs'
-                    }`}
-                  />
-                  {(['All', 'Group A', 'Group B'] as const).map((groupOption) => {
-                    const isSelected = selectedGroup === groupOption;
-                    return (
-                      <button
-                        key={groupOption}
-                        ref={(el) => {
-                          groupTabRefs.current[groupOption] = el;
-                        }}
-                        type="button"
-                        role="tab"
-                        aria-selected={isSelected}
-                        onClick={() => setSelectedGroup(groupOption)}
-                        className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center whitespace-nowrap ${
-                          isSelected
-                            ? isDark
-                              ? 'text-stone-900'
-                              : 'text-stone-50'
-                            : isDark
-                            ? 'text-stone-400 hover:text-stone-100'
-                            : 'text-stone-600 hover:text-stone-900'
-                        }`}
-                      >
-                        {groupOption}
-                      </button>
-                    );
-                  })}
+                  <div ref={groupTrackRef} className="relative h-full inline-flex items-center">
+                    {/* Sliding Active Indicator Pill (concentric inside uniform p-1 outer track) */}
+                    <div
+                      aria-hidden="true"
+                      style={{
+                        transform: `translateX(${pillStyle.left}px)`,
+                        width: `${pillStyle.width}px`,
+                        opacity: pillStyle.ready ? 1 : 0,
+                      }}
+                      className={`absolute inset-y-0 left-0 rounded-full pointer-events-none ${
+                        pillStyle.ready ? 'transition-[transform,width] duration-200 ease-out' : ''
+                      } ${
+                        isDark ? 'bg-stone-100 shadow-xs' : 'bg-stone-900 shadow-xs'
+                      }`}
+                    />
+                    {(['All', 'Group A', 'Group B'] as const).map((groupOption) => {
+                      const isSelected = selectedGroup === groupOption;
+                      return (
+                        <button
+                          key={groupOption}
+                          ref={(el) => {
+                            groupTabRefs.current[groupOption] = el;
+                          }}
+                          type="button"
+                          role="tab"
+                          aria-selected={isSelected}
+                          onClick={() => setSelectedGroup(groupOption)}
+                          className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center whitespace-nowrap ${
+                            isSelected
+                              ? isDark
+                                ? 'text-stone-900'
+                                : 'text-stone-50'
+                              : isDark
+                              ? 'text-stone-400 hover:text-stone-100'
+                              : 'text-stone-600 hover:text-stone-900'
+                          }`}
+                        >
+                          {groupOption}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Compact Tactile Micro-Pill "Now" / "Next" Jump Button (Harmonized h-9) */}
@@ -1064,12 +1090,12 @@ export default function App() {
                 >
                   {hasActiveOrRemainingSlotToday ? (
                     <>
-                      <Clock className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
+                      <Clock className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
                       <span className="leading-none">Now</span>
                     </>
                   ) : (
                     <>
-                      <ArrowRight className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-[#C84B4D]' : 'text-[#9E2A2B]'}`} />
+                      <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
                       <span className="leading-none">Next</span>
                     </>
                   )}

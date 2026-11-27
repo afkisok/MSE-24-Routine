@@ -24,8 +24,8 @@ export const DispatchLogSection: React.FC<DispatchLogSectionProps> = ({
           <span
             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-sans font-semibold uppercase ${
               isDark
-                ? 'bg-rose-950/60 text-rose-300 border border-rose-800/80'
-                : 'bg-rose-50 text-rose-800 border border-rose-200'
+                ? 'bg-[#9E2C2C]/20 text-[#9E2C2C] border border-[#9E2C2C]/50'
+                : 'bg-[#9E2C2C]/10 text-[#9E2C2C] border border-[#9E2C2C]/30'
             }`}
           >
             <AlertOctagon className="w-3 h-3" />

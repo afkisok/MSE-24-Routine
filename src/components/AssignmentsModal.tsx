@@ -232,10 +232,10 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
               e.stopPropagation();
               handleRequestClose();
             }}
-            className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 shadow-sm border ${
+            className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 border ${
               isDark
-                ? 'bg-stone-100 text-stone-900 hover:bg-stone-200 border-stone-100'
-                : 'bg-stone-900 text-stone-50 hover:bg-stone-800 border-stone-900'
+                ? 'bg-[#262523] text-[#F4F3EF] hover:bg-[#2F2E2B] border-white/[0.06]'
+                : 'bg-[#EFEDE8] text-[#1C1B1A] hover:bg-[#E5E2DB] border-black/[0.06]'
             }`}
           >
             Close

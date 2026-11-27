@@ -183,7 +183,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
                 return (
                   <>
                     <span> for </span>
-                    <span className={isDark ? 'text-red-500' : 'text-[#DC2626]'}>
+                    <span className="text-[#9E2C2C]">
                       {groupPhrase}
                     </span>
                   </>
@@ -303,8 +303,8 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             }}
             className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 border ${
               isDark
-                ? 'bg-[#24211E] text-stone-200 hover:bg-stone-800 hover:text-stone-100 border-stone-800'
-                : 'bg-stone-100 text-stone-700 hover:bg-stone-200 hover:text-stone-900 border-stone-200'
+                ? 'bg-[#262523] text-[#F4F3EF] hover:bg-[#2F2E2B] border-white/[0.06]'
+                : 'bg-[#EFEDE8] text-[#1C1B1A] hover:bg-[#E5E2DB] border-black/[0.06]'
             }`}
           >
             Close

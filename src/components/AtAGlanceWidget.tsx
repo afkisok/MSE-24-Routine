@@ -71,10 +71,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         >
           {assignmentsCount > 0 && (
             <span
-              className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none ${
-                isDark
-                  ? 'bg-[#C84B4D] ring-[#161514]'
-                  : 'bg-[#9E2A2B] ring-[#F4F3EF]'
+              className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none bg-[#9E2C2C] ${
+                isDark ? 'ring-[#161514]' : 'ring-[#F4F3EF]'
               }`}
               aria-hidden="true"
             />
@@ -168,7 +166,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   }}
                   className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                     isDark
-                      ? 'bg-[#1E1D1B] border-white/15 text-stone-100 hover:border-white/25 shadow-sm'
+                      ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                       : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
                   }`}
                 >
@@ -206,7 +204,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   {/* Bottom Row: High-Contrast Day & Time Range */}
                   <div
                     className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
-                      isDark ? 'border-white/5' : 'border-black/5'
+                      isDark ? 'border-white/[0.06]' : 'border-black/5'
                     }`}
                   >
                     <span
@@ -418,7 +416,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 }}
                 className={`rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                   isDark
-                    ? 'bg-[#1E1D1B] border-white/15 text-stone-100 hover:border-white/25 shadow-sm'
+                    ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                     : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
                 }`}
               >
@@ -458,7 +456,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 {/* Bottom Row: High-Contrast Day & Time Range */}
                 <div
                   className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
-                    isDark ? 'border-white/5' : 'border-black/5'
+                    isDark ? 'border-white/[0.06]' : 'border-black/5'
                   }`}
                 >
                   <span
