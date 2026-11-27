@@ -93,7 +93,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
         className={`relative rounded-2xl overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
           isDark
             ? 'bg-[#100F0E] border-transparent'
-            : 'bg-[#EAE8E2] border-stone-200'
+            : 'bg-[#EAE8E2] border-transparent'
         }`}
       >
       {/* Unbroken full-width header divider rendered at z-30 strictly above the edge-fade fogs */}
@@ -159,11 +159,11 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 } ${
                   isToday
                     ? isDark
-                      ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
-                      : 'bg-stone-900 border-stone-900 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_0_rgba(0,0,0,0.12)]'
+                      ? 'bg-stone-100 border-transparent text-stone-900 shadow-xs'
+                      : 'bg-stone-900 border-transparent text-stone-50 shadow-[0_1px_2px_0_rgba(0,0,0,0.12)]'
                     : isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                    : 'bg-white border-stone-200 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.03)] hover:border-stone-300'
+                    : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)] hover:bg-stone-50'
                 }`}
               >
                 <div className="flex items-center justify-center leading-none">
@@ -187,8 +187,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     {dayEventsCount === 0
                       ? 'Free day'
                       : dayEventsCount === 1
-                      ? 'Just 1 class'
-                      : `${dayEventsCount} classes`}
+                      ? 'Just 1 event'
+                      : `${dayEventsCount} events`}
                   </span>
                 </div>
               </div>

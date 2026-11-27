@@ -101,21 +101,28 @@ export function formatTimeTo12Hour(timeStr: string): string {
 }
 
 export function computeDynamicDayEndMinutes(
-  events: Array<{ startTime: string; endTime: string; status?: string }>
+  events: Array<{ startTime: string; endTime: string; status?: string; subject?: string }>
 ): number {
+  let hasLateEvent = false;
   let latestEnd = DAY_END_MINUTES; // 17:00 (1020)
 
   for (const evt of events) {
     const status = (evt.status || '').trim().toLowerCase();
     if (status === 'cancelled' || status === 'canceled') continue;
+    if (evt.subject !== undefined && !evt.subject.trim()) continue;
 
     const start = timeToMinutes(evt.startTime);
     const end = timeToMinutes(evt.endTime);
     const effectiveEnd = end > start ? end : start + 50;
 
-    if (start >= DAY_END_MINUTES || effectiveEnd > DAY_END_MINUTES) {
-      latestEnd = Math.max(latestEnd, effectiveEnd + 30);
+    if (start >= DAY_END_MINUTES) {
+      hasLateEvent = true;
+      latestEnd = Math.max(latestEnd, 18 * 60, effectiveEnd);
     }
+  }
+
+  if (!hasLateEvent) {
+    return DAY_END_MINUTES;
   }
 
   return Math.min(23 * 60 + 50, latestEnd);
@@ -133,7 +140,7 @@ export function calculateSlotGeometry(
   const safeTotal = Math.max(TOTAL_DAY_MINUTES, totalDayMinutes);
   const startMins = timeToMinutes(startTime);
   const endMins = timeToMinutes(endTime);
-  const duration = Math.max(0, endMins - startMins);
+  const duration = endMins > startMins ? endMins - startMins : 50;
 
   const leftPercent = ((startMins - DAY_START_MINUTES) / safeTotal) * 100;
   const widthPercent = (duration / safeTotal) * 100;
@@ -153,9 +160,18 @@ export function getAcademicPeriodMarkers(
   const markerTimes: string[] = [...ACADEMIC_PERIOD_TIMES];
 
   // Append hourly markers past 17:00 (e.g., 18:00, 19:00) if the timeline extends past 5:00 PM
+  let lastMarkerMins = DAY_END_MINUTES;
   for (let mins = 18 * 60; mins <= endMinutes; mins += 60) {
     const hh = String(Math.floor(mins / 60)).padStart(2, '0');
     const mm = String(mins % 60).padStart(2, '0');
+    markerTimes.push(`${hh}:${mm}`);
+    lastMarkerMins = mins;
+  }
+
+  // If the dynamic end time extends at least 30 minutes past the last full hour, add a closing edge marker
+  if (endMinutes > lastMarkerMins && endMinutes - lastMarkerMins >= 30) {
+    const hh = String(Math.floor(endMinutes / 60)).padStart(2, '0');
+    const mm = String(endMinutes % 60).padStart(2, '0');
     markerTimes.push(`${hh}:${mm}`);
   }
 

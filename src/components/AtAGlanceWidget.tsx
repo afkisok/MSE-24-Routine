@@ -1,4 +1,5 @@
 import React from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { RoutineEvent, TermFinalExam } from '../types/routine';
 import { timeToMinutes, formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
@@ -50,15 +51,26 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const todayDayNum = now.getDay();
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
+  const VIEW_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
   const renderHeader = (title: string) => (
     <div className="flex items-end justify-between gap-2 mb-3 px-1">
-      <h2
-        className={`pb-0.5 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-snug ${
-          isDark ? 'text-stone-100' : 'text-stone-900'
-        }`}
-      >
-        {title}
-      </h2>
+      <div className="relative pb-0.5 min-w-0">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.h2
+            key={title}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.18, ease: VIEW_EASE }}
+            className={`font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-snug ${
+              isDark ? 'text-stone-100' : 'text-stone-900'
+            }`}
+          >
+            {title}
+          </motion.h2>
+        </AnimatePresence>
+      </div>
 
       {onOpenAssignments && (
         <button
@@ -67,7 +79,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
           className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
             isDark
               ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#262523]'
-              : 'bg-white border-stone-300 text-stone-900 hover:bg-stone-50 hover:border-stone-400'
+              : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50'
           }`}
         >
           {assignmentsCount > 0 && (
@@ -126,17 +138,17 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
     );
   };
 
-  // TERM FINAL MODE: UPCOMING EXAMS
-  if (isTermFinalMode) {
-    const upcomingFinals = sortTermFinalsChronologically(termFinals).filter((exam) =>
-      isTermFinalUpcoming(exam, effectiveNowMs)
-    );
-    const heroExam = upcomingFinals[0] || null;
-    const remainingExams = upcomingFinals.slice(1);
+  // TERM FINAL MODE: UPCOMING EXAMS BODY
+  const upcomingFinals = isTermFinalMode
+    ? sortTermFinalsChronologically(termFinals).filter((exam) =>
+        isTermFinalUpcoming(exam, effectiveNowMs)
+      )
+    : [];
+  const heroExam = upcomingFinals[0] || null;
+  const remainingExams = upcomingFinals.slice(1);
 
-    return (
-      <section className="mb-6 select-none">
-        {renderHeader('Upcoming Exams')}
+  const renderTermFinalBody = () => (
+    <>
 
         {upcomingFinals.length === 0 ? (
           <div
@@ -186,7 +198,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                     isDark
                       ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                      : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
+                      : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50/70'
                   }`}
                 >
                   {/* Top Row: Course Code + Title (left) & Co-Star ROOM Readout (right) */}
@@ -354,9 +366,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             )}
           </div>
         )}
-      </section>
-    );
-  }
+    </>
+  );
 
   // STANDARD WEEKLY MODE: UPCOMING CLASSES
   const getUpcomingEvents = (): { event: RoutineEvent; relativeLabel: string }[] => {
@@ -448,7 +459,27 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
   return (
     <section className="mb-6 select-none">
-      {renderHeader('Upcoming Classes')}
+      {renderHeader(isTermFinalMode ? 'Upcoming Exams' : 'Upcoming Classes')}
+
+      <AnimatePresence mode="wait" initial={false}>
+        {isTermFinalMode ? (
+          <motion.div
+            key="term-finals-widget"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: VIEW_EASE }}
+          >
+            {renderTermFinalBody()}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="weekly-classes-widget"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: VIEW_EASE }}
+          >
 
       {upcomingList.length === 0 ? (
         <div
@@ -518,7 +549,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
                   isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                    : 'bg-white border-black/15 text-stone-900 hover:border-black/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.05)]'
+                    : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50/70'
                 }`}
               >
                 {/* Top Row: Course Code + Name (left) & Co-Star ROOM Readout (right) */}
@@ -722,6 +753,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
           )}
         </div>
       )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 };

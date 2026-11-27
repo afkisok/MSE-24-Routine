@@ -233,7 +233,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-95 border cursor-pointer shrink-0 ${
               isDark
                 ? 'bg-[#262523] border-transparent text-stone-400 hover:text-stone-100 hover:bg-[#2F2E2B]'
-                : 'bg-stone-100 border-stone-200 text-stone-500 hover:text-stone-900 hover:bg-stone-200'
+                : 'bg-stone-100 border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-200'
             }`}
           >
             <X className="w-4 h-4" />

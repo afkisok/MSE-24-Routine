@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { TermFinalExam } from '../types/routine';
 import { formatTo12Hour } from '../utils/timeCalculations';
 import {
@@ -58,19 +59,26 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
       className={`rounded-2xl p-2 shadow-2xs border select-none transition-colors ${
         isDark
           ? 'bg-[#100F0E] border-transparent'
-          : 'bg-[#EAE8E2] border-stone-200'
+          : 'bg-[#EAE8E2] border-transparent'
       }`}
     >
       <div className="flex flex-col gap-2">
-        {dateGroups.map((group) => {
+        {dateGroups.map((group, groupIdx) => {
           const isNextDate = group.dateISO === nextUpcomingDateISO;
           const isEntireDatePast = group.exams.every(
             (exam) => exam.status !== 'Cancelled' && isTermFinalPast(exam, nowMs)
           );
 
           return (
-            <div
+            <motion.div
               key={group.dateISO}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.24,
+                delay: Math.min(groupIdx * 0.03, 0.15),
+                ease: [0.22, 1, 0.36, 1],
+              }}
               className="flex items-stretch gap-2 w-full min-w-0"
             >
               {/* Left Date Badge Tile (Fixed compact w-20, centered vertically) */}
@@ -78,11 +86,11 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                 className={`w-20 shrink-0 rounded-xl px-2 py-2.5 flex flex-col items-center justify-center text-center transition-all border ${
                   isNextDate
                     ? isDark
-                      ? 'bg-stone-100 border-stone-100 text-stone-900 shadow-xs'
-                      : 'bg-stone-900 border-stone-900 text-stone-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_1px_2px_0_rgba(0,0,0,0.12)]'
+                      ? 'bg-stone-100 border-transparent text-stone-900 shadow-xs'
+                      : 'bg-stone-900 border-transparent text-stone-50 shadow-[0_1px_2px_0_rgba(0,0,0,0.12)]'
                     : isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100'
-                    : 'bg-white border-stone-200 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.03)]'
+                    : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]'
                 } ${isEntireDatePast ? 'opacity-45' : ''}`}
               >
                 <span className="text-sm font-bold tracking-tight leading-none whitespace-nowrap">
@@ -121,7 +129,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                             : 'bg-transparent border-dashed border-stone-300 text-stone-400'
                           : isDark
                           ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                          : 'bg-white border-stone-300 text-stone-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.85),0_1px_2px_0_rgba(0,0,0,0.04)] hover:border-stone-400'
+                          : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50'
                       } ${isPast ? 'opacity-45' : ''}`}
                     >
                       {/* 1. Top Metadata Line: Time Window */}
@@ -195,7 +203,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           );
         })}
       </div>

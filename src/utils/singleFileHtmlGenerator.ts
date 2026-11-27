@@ -1231,7 +1231,8 @@ export function generateSingleFileHtml(): string {
 
       updateSyncStatus('syncing', 'FETCHING_STREAM...');
       try {
-        const res = await fetch(url);
+        const sep = url.includes('?') ? '&' : '?';
+        const res = await fetch(url + sep + '_cb=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) throw new Error('HTTP_' + res.status);
         const text = await res.text();
         const rows = text.split(/\\r?\\n/).map(l => l.split(',').map(c => c.replace(/^"(.*)"$/, '$1').trim()));

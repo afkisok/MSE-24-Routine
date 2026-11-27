@@ -235,7 +235,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
             className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 border ${
               isDark
                 ? 'bg-[#262523] text-[#F4F3EF] hover:bg-[#2F2E2B] border-transparent'
-                : 'bg-[#EFEDE8] text-[#1C1B1A] hover:bg-[#E5E2DB] border-black/[0.06]'
+                : 'bg-[#EFEDE8] text-[#1C1B1A] hover:bg-[#E5E2DB] border-transparent'
             }`}
           >
             Close

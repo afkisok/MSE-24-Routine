@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mse24-routine-v6';
+const CACHE_NAME = 'mse24-routine-v7';
 const STATIC_PRECACHE_URLS = [
   '/manifest.json',
   '/icon.svg',
@@ -44,14 +44,22 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Strict NetworkOnly for Google Sheets & CSV endpoints (localStorage handles offline fallback)
-  const isSpreadsheetOrCsv =
+  // Strict NetworkOnly for Google Sheets, remote CSV/data feeds, cache-busted requests, and /api/
+  // App-level atomic localStorage snapshot provides instant offline fallback without SW cache races.
+  const tqxParam = (url.searchParams.get('tqx') || '').toLowerCase();
+  const isRemoteDataRequest =
     url.hostname.endsWith('docs.google.com') ||
+    url.hostname.endsWith('sheets.googleapis.com') ||
     url.hostname.endsWith('googleusercontent.com') ||
+    url.hostname.endsWith('script.google.com') ||
+    url.searchParams.has('_cb') ||
     url.pathname.endsWith('.csv') ||
-    url.searchParams.get('output') === 'csv';
+    url.searchParams.get('output') === 'csv' ||
+    url.searchParams.get('format') === 'csv' ||
+    tqxParam.includes('csv') ||
+    url.pathname.startsWith('/api/');
 
-  if (isSpreadsheetOrCsv) {
+  if (isRemoteDataRequest) {
     return;
   }
 
@@ -75,17 +83,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Network-first for HTML navigations and dynamic data/manifest files so updates deploy immediately
+  // Network-first for HTML navigations and manifest files so app updates deploy immediately
   const isNetworkFirst =
     request.mode === 'navigate' ||
     url.pathname === '/' ||
     url.pathname.endsWith('.html') ||
-    url.pathname.endsWith('.json') ||
-    url.pathname.startsWith('/api/');
+    url.pathname.endsWith('.json');
 
   if (isNetworkFirst) {
     event.respondWith(
-      fetch(request)
+      fetch(request, { cache: 'no-cache' })
         .then((response) => {
           if (response && response.ok) {
             const clone = response.clone();

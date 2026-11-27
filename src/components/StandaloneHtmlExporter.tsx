@@ -84,7 +84,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             className={`w-7 h-7 rounded-2xs flex items-center justify-center transition-colors cursor-pointer border ${
               isDark
                 ? 'bg-[#262523] hover:bg-[#2F2E2B] text-stone-300 hover:text-stone-100 border-transparent'
-                : 'bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border-stone-200'
+                : 'bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border-transparent'
             }`}
             aria-label="Close dialog"
           >

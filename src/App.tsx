@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'motion/react';
 import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
 import { baselineTestData } from './data/baselineData';
 import {
   DAY_START_MINUTES,
+  DAY_END_MINUTES,
   TOTAL_DAY_MINUTES,
   computeDynamicDayEndMinutes,
-  formatTo12Hour,
+  formatMinutesTo12Hour,
   timeToMinutes,
 } from './utils/timeCalculations';
 import { parseAlternatingSchedule } from './utils/alternatingLabEngine';
@@ -28,11 +30,51 @@ import { AdminPinDialog } from './components/AdminPinDialog';
 import { StandaloneHtmlExporter } from './components/StandaloneHtmlExporter';
 import { Clock, ArrowRight } from 'lucide-react';
 
+const CACHED_ROUTINE_SNAPSHOT_KEY = 'mse24_routine_snapshot_v1';
 const CACHED_EVENTS_KEY = 'mse24_cached_routine_events';
 const CACHED_ASSIGNMENTS_KEY = 'mse24_cached_routine_assignments';
 const CACHED_TERM_FINALS_KEY = 'mse24_cached_routine_term_finals';
 const CACHED_SYNC_TIME_KEY = 'mse24_cached_sync_time';
 const ADMIN_CSV_URL_KEY = 'admin_routine_csv_url';
+
+interface CachedRoutineSnapshot {
+  events: RoutineEvent[];
+  assignments: RoutineAssignment[];
+  termFinals: TermFinalExam[];
+  lastFetchedAt: number;
+}
+
+function readCachedRoutineSnapshot(): CachedRoutineSnapshot | null {
+  try {
+    const raw = localStorage.getItem(CACHED_ROUTINE_SNAPSHOT_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && Array.isArray(parsed.events)) {
+        return {
+          events: parsed.events,
+          assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
+          termFinals: Array.isArray(parsed.termFinals) ? parsed.termFinals : [],
+          lastFetchedAt: typeof parsed.lastFetchedAt === 'number' ? parsed.lastFetchedAt : 0,
+        };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load atomic routine snapshot:', e);
+  }
+  return null;
+}
+
+function buildCacheBustedUrl(rawUrl: string): string {
+  const cb = String(Date.now());
+  try {
+    const parsedUrl = new URL(rawUrl);
+    parsedUrl.searchParams.set('_cb', cb);
+    return parsedUrl.toString();
+  } catch {
+    const separator = rawUrl.includes('?') ? '&' : '?';
+    return `${rawUrl}${separator}_cb=${cb}`;
+  }
+}
 
 const STALE_SYNC_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
 const VISIBLE_AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutes
@@ -70,35 +112,51 @@ const DAY_TO_WEEKDAY_NUM: Record<string, number> = {
   Saturday: 6,
 };
 
+const DAY_SHORT_LABEL: Record<string, string> = {
+  Sunday: 'Sun',
+  Monday: 'Mon',
+  Tuesday: 'Tue',
+  Wednesday: 'Wed',
+  Thursday: 'Thu',
+  Friday: 'Fri',
+  Saturday: 'Sat',
+};
+
 function extractShortCourseCode(subject: string): string {
   if (!subject) return '';
   const colonIdx = subject.indexOf(':');
   return (colonIdx !== -1 ? subject.slice(0, colonIdx) : subject).trim();
 }
 
-function formatOffRoutineRowLabel(evt: RoutineEvent): string {
+function formatCourseAndKind(evt: RoutineEvent): string {
   const courseCode = extractShortCourseCode(evt.subject);
   const meta = parseAlternatingSchedule(evt.type, evt.subject, evt.syllabus);
   const typeStatus = `${evt.type || ''} ${evt.status || ''}`.toLowerCase();
   const isExam = meta.category === 'EXAM' || /\b(exam|ct|quiz)\b/.test(typeStatus);
   const isLab = meta.category === 'LAB';
-  const isSaturday = evt.day.toLowerCase() === 'saturday';
-
   const eventKind = isExam ? 'exam' : isLab ? 'lab' : 'class';
+  return courseCode ? `${courseCode} ${eventKind}` : eventKind;
+}
 
-  if (isSaturday) {
-    return `${courseCode} ${eventKind} on Saturday`;
-  }
-
-  const compactStartTime = formatTo12Hour(evt.startTime)
-    .replace(/\s*(am|pm)$/i, '')
-    .trim();
-  return `${courseCode} ${eventKind} at ${compactStartTime}`;
+function joinWithAmpersand(parts: string[]): string {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  if (parts.length === 2) return `${parts[0]} & ${parts[1]}`;
+  return `${parts.slice(0, -1).join(', ')} & ${parts[parts.length - 1]}`;
 }
 
 export default function App() {
-  // 1. Instant zero-lag cache resolution on mount
+  const initialSnapshotRef = useRef<CachedRoutineSnapshot | null | undefined>(undefined);
+  if (initialSnapshotRef.current === undefined) {
+    initialSnapshotRef.current = readCachedRoutineSnapshot();
+  }
+  const initialSnapshot = initialSnapshotRef.current;
+
+  // 1. Instant zero-lag cache resolution on mount (atomic snapshot with legacy fallback)
   const [events, setEvents] = useState<RoutineEvent[]>(() => {
+    if (initialSnapshot && initialSnapshot.events.length > 0) {
+      return initialSnapshot.events;
+    }
     try {
       const cached = localStorage.getItem(CACHED_EVENTS_KEY);
       if (cached) {
@@ -114,6 +172,9 @@ export default function App() {
   });
 
   const [assignments, setAssignments] = useState<RoutineAssignment[]>(() => {
+    if (initialSnapshot) {
+      return initialSnapshot.assignments;
+    }
     try {
       const cached = localStorage.getItem(CACHED_ASSIGNMENTS_KEY);
       if (cached) {
@@ -129,6 +190,9 @@ export default function App() {
   });
 
   const [termFinals, setTermFinals] = useState<TermFinalExam[]>(() => {
+    if (initialSnapshot) {
+      return initialSnapshot.termFinals;
+    }
     try {
       const cached = localStorage.getItem(CACHED_TERM_FINALS_KEY);
       if (cached) {
@@ -151,6 +215,9 @@ export default function App() {
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(() => {
+    if (initialSnapshot && initialSnapshot.lastFetchedAt > 0) {
+      return new Date(initialSnapshot.lastFetchedAt).toISOString();
+    }
     try {
       return localStorage.getItem(CACHED_SYNC_TIME_KEY) || null;
     } catch {
@@ -413,6 +480,7 @@ export default function App() {
     };
 
     updatePill();
+    const rafId = requestAnimationFrame(updatePill);
     window.addEventListener('resize', updatePill);
     let cancelled = false;
     if (typeof document !== 'undefined' && document.fonts?.ready) {
@@ -422,6 +490,7 @@ export default function App() {
     }
     return () => {
       cancelled = true;
+      cancelAnimationFrame(rafId);
       window.removeEventListener('resize', updatePill);
     };
   }, [selectedGroup, isTermFinalView]);
@@ -465,7 +534,15 @@ export default function App() {
   };
 
   const isSyncInFlightRef = useRef(false);
+  const syncGenerationRef = useRef(0);
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
+  const eventsRef = useRef<RoutineEvent[]>(events);
+  eventsRef.current = events;
+
   const lastSyncAtRef = useRef<number>((() => {
+    if (initialSnapshot && initialSnapshot.lastFetchedAt > 0) {
+      return initialSnapshot.lastFetchedAt;
+    }
     try {
       const cachedIso = localStorage.getItem(CACHED_SYNC_TIME_KEY);
       if (cachedIso) {
@@ -479,10 +556,12 @@ export default function App() {
   })());
 
   /**
-   * Clean Single-Table Sync & Differential Engine
-   * Silent background syncs never spin the manual refresh icon.
+   * Race-Safe Single-Table Sync & Atomic Snapshot Engine
+   * - Appends unique `_cb` timestamp and uses `{ cache: 'no-store' }`
+   * - Guards against out-of-order responses via monotonic syncGenerationRef + AbortController
+   * - Commits atomically to localStorage (`lastFetchedAt`) and React state only on valid `res.ok` payload
    */
-  const fetchAndSync = async (targetUrl?: string, isSilent = false) => {
+  const fetchAndSync = async (targetUrl?: string, isSilent = false): Promise<void> => {
     const url = (targetUrl !== undefined ? targetUrl : getActiveCsvUrl()).trim();
     if (!url) {
       if (!isSilent) setSyncStatus({ status: 'error', message: 'ERROR: EMPTY_ENDPOINT_URL' });
@@ -493,24 +572,34 @@ export default function App() {
       return;
     }
 
+    // Manual or explicit sync supersedes any older in-flight background request
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+      activeAbortControllerRef.current = null;
+    }
+
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    activeAbortControllerRef.current = controller;
+
+    const reqId = ++syncGenerationRef.current;
     isSyncInFlightRef.current = true;
     if (!isSilent) {
       setSyncStatus({ status: 'syncing', message: 'FETCHING_STREAM...' });
     }
 
     try {
-      let fetchUrl = url;
-      try {
-        const parsedUrl = new URL(url);
-        parsedUrl.searchParams.set('_cb', String(Date.now()));
-        fetchUrl = parsedUrl.toString();
-      } catch {
-        const separator = url.includes('?') ? '&' : '?';
-        fetchUrl = `${url}${separator}_cb=${Date.now()}`;
-      }
-      const res = await fetch(fetchUrl, { cache: 'no-store' });
+      const fetchUrl = buildCacheBustedUrl(url);
+      const res = await fetch(fetchUrl, {
+        cache: 'no-store',
+        signal: controller?.signal,
+      });
+
+      if (reqId !== syncGenerationRef.current) return;
       if (!res.ok) throw new Error(`HTTP_${res.status}`);
+
       const csvText = await res.text();
+      if (reqId !== syncGenerationRef.current) return;
+
       const rawRows = parseCSV(csvText);
       const {
         events: parsed,
@@ -521,36 +610,47 @@ export default function App() {
         throw new Error('NO_VALID_DATA_ROWS');
       }
 
-      if (parsed.length > 0) {
-        setEvents(parsed);
-      }
-      setAssignments(parsedAssignments);
-      setTermFinals(parsedTermFinals);
+      if (reqId !== syncGenerationRef.current) return;
 
+      const nextEvents = parsed.length > 0 ? parsed : eventsRef.current;
       const syncCompletedMs = Date.now();
-      lastSyncAtRef.current = syncCompletedMs;
+      const nowISO = new Date(syncCompletedMs).toISOString();
+
+      // Atomic localStorage write with lastFetchedAt before committing React state
+      const atomicSnapshot: CachedRoutineSnapshot = {
+        events: nextEvents,
+        assignments: parsedAssignments,
+        termFinals: parsedTermFinals,
+        lastFetchedAt: syncCompletedMs,
+      };
 
       try {
-        if (parsed.length > 0) {
-          localStorage.setItem(CACHED_EVENTS_KEY, JSON.stringify(parsed));
-        }
+        localStorage.setItem(CACHED_ROUTINE_SNAPSHOT_KEY, JSON.stringify(atomicSnapshot));
+        localStorage.setItem(CACHED_EVENTS_KEY, JSON.stringify(nextEvents));
         localStorage.setItem(CACHED_ASSIGNMENTS_KEY, JSON.stringify(parsedAssignments));
         localStorage.setItem(CACHED_TERM_FINALS_KEY, JSON.stringify(parsedTermFinals));
-        const nowISO = new Date(syncCompletedMs).toISOString();
         localStorage.setItem(CACHED_SYNC_TIME_KEY, nowISO);
-        setLastSyncTime(nowISO);
       } catch (e) {
-        console.warn('Failed to cache events to localStorage:', e);
+        console.warn('Failed to cache routine snapshot to localStorage:', e);
       }
 
+      lastSyncAtRef.current = syncCompletedMs;
+      setEvents(nextEvents);
+      setAssignments(parsedAssignments);
+      setTermFinals(parsedTermFinals);
+      setLastSyncTime(nowISO);
+
       // Run differential changelog engine: diff against snapshot
-      const { newLogsCount } = processDifferentialLogs(parsed);
+      const { newLogsCount } = processDifferentialLogs(nextEvents);
 
       setSyncStatus({
         status: 'success',
-        message: `SYNC_OK: ${parsed.length}_CLASSES · ${newLogsCount}_DIFFS_RECORDED`,
+        message: `SYNC_OK: ${nextEvents.length}_CLASSES · ${newLogsCount}_DIFFS_RECORDED`,
       });
     } catch (err: any) {
+      if (err?.name === 'AbortError' || reqId !== syncGenerationRef.current) {
+        return;
+      }
       console.warn('[fetchAndSync] Execution failed:', err);
       if (!isSilent) {
         setSyncStatus({
@@ -559,7 +659,12 @@ export default function App() {
         });
       }
     } finally {
-      isSyncInFlightRef.current = false;
+      if (reqId === syncGenerationRef.current) {
+        isSyncInFlightRef.current = false;
+        if (activeAbortControllerRef.current === controller) {
+          activeAbortControllerRef.current = null;
+        }
+      }
     }
   };
 
@@ -654,12 +759,16 @@ export default function App() {
 
   const handleResetBaseline = () => {
     try {
+      localStorage.removeItem(CACHED_ROUTINE_SNAPSHOT_KEY);
       localStorage.removeItem(CACHED_EVENTS_KEY);
       localStorage.removeItem(CACHED_ASSIGNMENTS_KEY);
       localStorage.removeItem(CACHED_TERM_FINALS_KEY);
+      localStorage.removeItem(CACHED_SYNC_TIME_KEY);
     } catch (e) {
       console.warn('Failed to clear cached events:', e);
     }
+    lastSyncAtRef.current = 0;
+    setLastSyncTime(null);
     setEvents(baselineTestData);
     setAssignments([]);
     setTermFinals([]);
@@ -737,15 +846,27 @@ export default function App() {
     });
   })();
 
-  // Time-gated off-routine slots:
-  // - Saturday events: visible only on Thu (4), Fri (5), or Sat (6) until start time passes
-  // - 5:00 PM+ weekday events: visible only on the same day until start time passes
-  const visibleOffRoutineSlots = (() => {
-    const nowDate = new Date(nowMs);
-    const todayDayNum = nowDate.getDay();
-    const currentMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+  // Out-of-the-ordinary detection across all active routine events (respecting selected group):
+  // - hasSaturday: any active event scheduled on Saturday
+  // - hasLateEvent: any active event with start time >= 5:00 PM (17 * 60)
+  //   (regular periods ending at 5:00 PM like 4:10 PM – 5:00 PM do NOT trigger this)
+  const outOfOrdinaryNotice = (() => {
+    interface OffRoutineEntry {
+      evt: RoutineEvent;
+      key: string;
+      day: string;
+      dayShort: string;
+      startMins: number;
+      exactTime: string;
+      courseAndKind: string;
+      isSaturday: boolean;
+      isLate: boolean;
+      orderScore: number;
+    }
 
-    const items: Array<{ evt: RoutineEvent; key: string; label: string; sortScore: number }> = [];
+    const saturdayEntries: OffRoutineEntry[] = [];
+    const lateEntries: OffRoutineEntry[] = [];
+    const lateWeekdayEntries: OffRoutineEntry[] = [];
 
     operationalDays.forEach((day) => {
       const dayEvents = events.filter((e) => e.day.toLowerCase() === day.toLowerCase());
@@ -760,35 +881,108 @@ export default function App() {
 
         const startMins = timeToMinutes(evt.startTime);
         const isSaturday = evt.day.toLowerCase() === 'saturday';
-        const isLateWeekday = !isSaturday && startMins >= 17 * 60;
-        if (!isSaturday && !isLateWeekday) return;
+        const isLate = startMins >= DAY_END_MINUTES; // >= 17 * 60 (5:00 PM)
+        if (!isSaturday && !isLate) return;
 
-        const targetDayNum = DAY_TO_WEEKDAY_NUM[evt.day];
-        if (targetDayNum === undefined) return;
-
-        if (isSaturday) {
-          const isThuFriSat = todayDayNum === 4 || todayDayNum === 5 || todayDayNum === 6;
-          if (!isThuFriSat) return;
-          if (todayDayNum === 6 && currentMins >= startMins) return;
-        } else {
-          // 5:00 PM+ weekday event: same day only, hide once start time has passed
-          if (todayDayNum !== targetDayNum) return;
-          if (currentMins >= startMins) return;
-        }
-
-        const dayDiff = (targetDayNum - todayDayNum + 7) % 7;
-
-        items.push({
+        const dayNum = DAY_TO_WEEKDAY_NUM[evt.day] ?? 0;
+        const entry: OffRoutineEntry = {
           evt,
           key: evt.id || `${day}-${evt.startTime}-${idx}`,
-          label: formatOffRoutineRowLabel(evt),
-          sortScore: dayDiff * 1440 + startMins,
-        });
+          day: evt.day,
+          dayShort: DAY_SHORT_LABEL[evt.day] || evt.day.slice(0, 3),
+          startMins,
+          exactTime: formatMinutesTo12Hour(startMins),
+          courseAndKind: formatCourseAndKind(evt),
+          isSaturday,
+          isLate,
+          orderScore: dayNum * 1440 + startMins,
+        };
+
+        if (isSaturday) saturdayEntries.push(entry);
+        if (isLate) lateEntries.push(entry);
+        if (isLate && !isSaturday) lateWeekdayEntries.push(entry);
       });
     });
 
-    items.sort((a, b) => a.sortScore - b.sortScore);
-    return items;
+    saturdayEntries.sort((a, b) => a.orderScore - b.orderScore);
+    lateEntries.sort((a, b) => a.orderScore - b.orderScore);
+    lateWeekdayEntries.sort((a, b) => a.orderScore - b.orderScore);
+
+    const hasSaturday = saturdayEntries.length > 0;
+    const hasLateEvent = lateEntries.length > 0;
+
+    if (!hasSaturday && !hasLateEvent) {
+      return null;
+    }
+
+    const formatLateListSummary = (entries: OffRoutineEntry[], capitalizePrefix: boolean): string => {
+      if (entries.length === 1) {
+        const item = entries[0];
+        return `${item.courseAndKind} at ${item.exactTime} on ${item.day}`;
+      }
+      const prefix = capitalizePrefix ? 'Events' : 'events';
+      return `${prefix} at ${joinWithAmpersand(
+        entries.map((item) => `${item.exactTime} (${item.dayShort})`)
+      )}`;
+    };
+
+    const formatSaturdaySummary = (entries: OffRoutineEntry[]): string => {
+      if (entries.length === 1) {
+        const item = entries[0];
+        return item.isLate
+          ? `${item.courseAndKind} at ${item.exactTime} on Saturday`
+          : `${item.courseAndKind} on Saturday`;
+      }
+      const anyLateOnSaturday = entries.some((item) => item.isLate);
+      if (entries.length === 2 && !anyLateOnSaturday) {
+        return `${entries[0].courseAndKind} & ${entries[1].courseAndKind} on Saturday`;
+      }
+      if (anyLateOnSaturday) {
+        const satLateTimes = joinWithAmpersand(
+          entries.filter((item) => item.isLate).map((item) => item.exactTime)
+        );
+        return `${entries.length} events on Saturday (incl. ${satLateTimes})`;
+      }
+      return `${entries.length} events on Saturday`;
+    };
+
+    let label = '';
+    if (hasSaturday && !hasLateEvent) {
+      label = formatSaturdaySummary(saturdayEntries);
+    } else if (!hasSaturday && hasLateEvent) {
+      label = formatLateListSummary(lateEntries, true);
+    } else {
+      // Both hasSaturday and hasLateEvent
+      if (lateWeekdayEntries.length === 0) {
+        // Every late event is itself on Saturday
+        label = formatSaturdaySummary(saturdayEntries);
+      } else {
+        const satPart = formatSaturdaySummary(saturdayEntries);
+        const latePart = formatLateListSummary(lateWeekdayEntries, false);
+        label = `${satPart} & ${latePart}`;
+      }
+    }
+
+    // Choose the nearest upcoming off-routine slot to jump to on click
+    const nowDate = new Date(nowMs);
+    const todayDayNum = nowDate.getDay();
+    const currentMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+    const allTargets = [...saturdayEntries, ...lateWeekdayEntries];
+    allTargets.sort((a, b) => {
+      const getUpcomingScore = (item: OffRoutineEntry) => {
+        const targetDayNum = DAY_TO_WEEKDAY_NUM[item.day] ?? 0;
+        let dayDiff = (targetDayNum - todayDayNum + 7) % 7;
+        if (dayDiff === 0 && currentMins >= item.startMins) dayDiff = 7;
+        return dayDiff * 1440 + item.startMins;
+      };
+      return getUpcomingScore(a) - getUpcomingScore(b);
+    });
+
+    const primaryTarget = allTargets[0];
+    return {
+      label,
+      primaryTarget: { evt: primaryTarget.evt, key: primaryTarget.key },
+    };
   })();
 
   const handleScrollToOffRoutineSlot = (target: { evt: RoutineEvent; key: string }) => {
@@ -975,6 +1169,8 @@ export default function App() {
           isMounted={isMounted}
         />
 
+        <MotionConfig reducedMotion="user">
+        <LayoutGroup>
         <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-0 pb-7 flex flex-col overflow-x-hidden">
         {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
         <div
@@ -997,7 +1193,10 @@ export default function App() {
         </div>
 
         {/* UNIFIED SCHEDULE MATRIX / TERM FINALS FULL-WIDTH VIEW */}
-        <div>
+        <motion.div
+          layout="position"
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
           <div
             className={`flex flex-col mb-3 px-1 transition-[opacity,transform] duration-300 ease-out delay-[100ms] ${
               isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
@@ -1044,34 +1243,40 @@ export default function App() {
               )}
             </div>
 
-            {!isTermFinalView && (
-              <>
+            <AnimatePresence initial={false}>
+              {!isTermFinalView && (
+                <motion.div
+                  key="weekly-controls"
+                  initial={{ height: 0, opacity: 0, y: -4 }}
+                  animate={{ height: 'auto', opacity: 1, y: 0 }}
+                  exit={{ height: 0, opacity: 0, y: -4 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden -mx-1 px-1"
+                >
+                  <div className="pb-0.5">
                 {/* Plain borderless muted-gray status line with optically balanced spacing above and below */}
                 <div className="mt-1.5 mb-2.5 flex flex-col gap-0.5 min-w-0">
-                  {visibleOffRoutineSlots.length === 0 ? (
+                  {!outOfOrdinaryNotice ? (
                     <p
-                      className={`text-sm leading-5 font-sans font-normal truncate select-none ${
+                      className={`text-sm leading-5 font-sans font-normal select-none ${
                         isDark ? 'text-neutral-400' : 'text-neutral-500'
                       }`}
                     >
                       Nothing out of the ordinary
                     </p>
                   ) : (
-                    visibleOffRoutineSlots.map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => handleScrollToOffRoutineSlot(item)}
-                        title={`Jump to ${item.label}`}
-                        className={`p-0 m-0 border-0 bg-transparent text-left text-sm leading-5 font-sans font-normal tabular-nums truncate cursor-pointer select-none transition-colors duration-150 self-start max-w-full ${
-                          isDark
-                            ? 'text-neutral-400 hover:text-neutral-200'
-                            : 'text-neutral-500 hover:text-neutral-800'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))
+                    <button
+                      type="button"
+                      onClick={() => handleScrollToOffRoutineSlot(outOfOrdinaryNotice.primaryTarget)}
+                      title={`Jump to ${outOfOrdinaryNotice.label}`}
+                      className={`p-0 m-0 border-0 bg-transparent text-left text-sm leading-5 font-sans font-normal tabular-nums cursor-pointer select-none transition-colors duration-150 self-start max-w-full ${
+                        isDark
+                          ? 'text-neutral-400 hover:text-neutral-200'
+                          : 'text-neutral-500 hover:text-neutral-800'
+                      }`}
+                    >
+                      {outOfOrdinaryNotice.label}
+                    </button>
                   )}
                 </div>
 
@@ -1141,7 +1346,7 @@ export default function App() {
                   className={`h-9 px-3.5 py-0 text-xs font-semibold leading-none rounded-full inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none shrink-0 whitespace-nowrap ${
                     isDark
                       ? 'bg-[#1E1D1C] hover:bg-[#262523] text-stone-100 border-transparent'
-                      : 'bg-white hover:bg-stone-50 text-stone-900 border-stone-300 shadow-2xs'
+                      : 'bg-white hover:bg-stone-50 text-stone-900 border-transparent shadow-[0_1px_2px_0_rgba(0,0,0,0.04)]'
                   }`}
                 >
                   {hasActiveOrRemainingSlotToday ? (
@@ -1157,39 +1362,66 @@ export default function App() {
                   )}
                 </button>
               </div>
-              </>
-            )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div
-            className={`transition-[opacity,transform] duration-300 ease-out delay-[150ms] ${
-              isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
+          <motion.div
+            layout="position"
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           >
-            {isTermFinalView ? (
-              <TermFinalsList
-                termFinals={termFinals}
-                nowMs={nowMs}
-                theme={theme}
-                onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
-              />
-            ) : (
-              <MasterTimelineGrid
-                days={operationalDays}
-                events={events}
-                todayName={todayName}
-                currentMinuteOffset={currentMinuteOffset}
-                onSelectEvent={(evt) => setSelectedEvent(evt)}
-                scrollRef={scrollContainerRef}
-                theme={theme}
-                selectedGroup={selectedGroup}
-                highlightedEventKey={highlightedEventKey}
-                totalDayMinutes={dynamicTotalDayMinutes}
-              />
-            )}
-          </div>
-        </div>
+            <div
+              className={`transition-[opacity,transform] duration-300 ease-out delay-[150ms] ${
+                isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+              }`}
+            >
+              <AnimatePresence mode="wait" initial={false}>
+                {isTermFinalView ? (
+                  <motion.div
+                    key="term-finals-view"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <TermFinalsList
+                      termFinals={termFinals}
+                      nowMs={nowMs}
+                      theme={theme}
+                      onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="weekly-routine-view"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <MasterTimelineGrid
+                      days={operationalDays}
+                      events={events}
+                      todayName={todayName}
+                      currentMinuteOffset={currentMinuteOffset}
+                      onSelectEvent={(evt) => setSelectedEvent(evt)}
+                      scrollRef={scrollContainerRef}
+                      theme={theme}
+                      selectedGroup={selectedGroup}
+                      highlightedEventKey={highlightedEventKey}
+                      totalDayMinutes={dynamicTotalDayMinutes}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        </motion.div>
       </main>
+      </LayoutGroup>
+      </MotionConfig>
       </div>
 
       {/* Flight Manifest Modal Inspector */}

@@ -205,7 +205,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               className={`flex-1 py-2 px-3 text-xs font-medium rounded-full cursor-pointer transition-all active:scale-95 border ${
                 isDark
                   ? 'bg-[#262523] border-transparent text-stone-300 hover:bg-[#2F2E2B] hover:text-stone-100'
-                  : 'border-stone-200 text-stone-600 hover:bg-stone-100'
+                  : 'bg-[#EFEDE8] border-transparent text-[#1C1B1A] hover:bg-[#E5E2DB]'
               }`}
             >
               Cancel

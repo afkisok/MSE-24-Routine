@@ -168,7 +168,7 @@ export const Header: React.FC<HeaderProps> = ({
               className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none disabled:opacity-60 ${
                 isDark
                   ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#262523]'
-                  : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
+                  : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
               }`}
             >
               <span
@@ -189,7 +189,7 @@ export const Header: React.FC<HeaderProps> = ({
               className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
                 isDark
                   ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:bg-[#262523] hover:text-stone-100'
-                  : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50 hover:border-stone-400 hover:text-stone-900'
+                  : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
               }`}
             >
               {isDark ? (
