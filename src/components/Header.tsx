@@ -230,7 +230,7 @@ export const Header: React.FC<HeaderProps> = ({
                     </span>
                     <span
                       aria-hidden="true"
-                      className={`pointer-events-none select-none absolute left-[43%] -translate-x-1/2 bottom-0 leading-none ${crimsonTextClass}`}
+                      className={`pointer-events-none select-none absolute left-[43%] -translate-x-1/2 bottom-[2px] leading-none ${crimsonTextClass}`}
                     >
                       .
                     </span>
