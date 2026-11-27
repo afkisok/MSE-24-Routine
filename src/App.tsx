@@ -33,6 +33,24 @@ const CACHED_TERM_FINALS_KEY = 'mse24_cached_routine_term_finals';
 const CACHED_SYNC_TIME_KEY = 'mse24_cached_sync_time';
 const ADMIN_CSV_URL_KEY = 'admin_routine_csv_url';
 
+const STALE_SYNC_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
+const VISIBLE_AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutes
+const THEME_COLOR_FADE_MS = 200;
+
+function hexToRgb(hex: string): [number, number, number] {
+  const clean = hex.replace('#', '');
+  const num = parseInt(clean, 16);
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const toHex = (v: number) =>
+    Math.max(0, Math.min(255, Math.round(v)))
+      .toString(16)
+      .padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
 const BASE_OPERATIONAL_DAYS: Array<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday'> = [
   'Sunday',
   'Monday',
@@ -159,6 +177,9 @@ export default function App() {
   );
 
   const isDark = theme === 'dark';
+  const currentThemeColorRef = useRef<string | null>(null);
+  const prevThemeRef = useRef<'light' | 'dark'>(theme);
+  const themeColorRafRef = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     try {
@@ -171,6 +192,7 @@ export default function App() {
     } else {
       document.documentElement.classList.remove('dark');
     }
+    document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
   }, [theme, isDark]);
 
   useLayoutEffect(() => {
@@ -180,12 +202,12 @@ export default function App() {
         : '#161514'
       : isAnyModalOpen
       ? '#464544'
-      : '#FAF9F6';
+      : '#F4F3EF';
 
     const existingMetas = Array.from(
       document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')
     );
-    const dynamicMeta = existingMetas.find((el) => !el.hasAttribute('media'));
+    let dynamicMeta = existingMetas.find((el) => !el.hasAttribute('media'));
 
     existingMetas.forEach((el) => {
       if (el !== dynamicMeta) {
@@ -193,17 +215,69 @@ export default function App() {
       }
     });
 
-    if (dynamicMeta) {
+    if (!dynamicMeta) {
+      dynamicMeta = document.createElement('meta');
+      dynamicMeta.name = 'theme-color';
+      document.head.appendChild(dynamicMeta);
+    }
+
+    if (themeColorRafRef.current !== null) {
+      cancelAnimationFrame(themeColorRafRef.current);
+      themeColorRafRef.current = null;
+    }
+
+    const fromColor = currentThemeColorRef.current;
+    const themeChanged = prevThemeRef.current !== theme;
+    prevThemeRef.current = theme;
+
+    // Apply immediately on initial mount, theme toggle, or when already at target
+    if (!fromColor || themeChanged || fromColor.toLowerCase() === targetColor.toLowerCase()) {
       if (dynamicMeta.content !== targetColor) {
         dynamicMeta.content = targetColor;
       }
-    } else {
-      const freshMeta = document.createElement('meta');
-      freshMeta.name = 'theme-color';
-      freshMeta.content = targetColor;
-      document.head.appendChild(freshMeta);
+      currentThemeColorRef.current = targetColor;
+      return;
     }
-  }, [isDark, isAnyModalOpen]);
+
+    // Smoothly interpolate RGB over 200ms in sync with modal backdrop fade
+    const startRgb = hexToRgb(fromColor);
+    const endRgb = hexToRgb(targetColor);
+    const startTime = performance.now();
+    const metaEl = dynamicMeta;
+
+    const step = (now: number) => {
+      const progress = Math.min(1, (now - startTime) / THEME_COLOR_FADE_MS);
+      const eased = 1 - Math.pow(1 - progress, 2);
+      const nextHex =
+        progress >= 1
+          ? targetColor
+          : rgbToHex(
+              startRgb[0] + (endRgb[0] - startRgb[0]) * eased,
+              startRgb[1] + (endRgb[1] - startRgb[1]) * eased,
+              startRgb[2] + (endRgb[2] - startRgb[2]) * eased
+            );
+
+      if (metaEl.content !== nextHex) {
+        metaEl.content = nextHex;
+      }
+      currentThemeColorRef.current = nextHex;
+
+      if (progress < 1) {
+        themeColorRafRef.current = requestAnimationFrame(step);
+      } else {
+        themeColorRafRef.current = null;
+      }
+    };
+
+    themeColorRafRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (themeColorRafRef.current !== null) {
+        cancelAnimationFrame(themeColorRafRef.current);
+        themeColorRafRef.current = null;
+      }
+    };
+  }, [theme, isDark, isAnyModalOpen]);
 
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -328,8 +402,23 @@ export default function App() {
     return DEFAULT_ROUTINE_CSV_URL;
   };
 
+  const isSyncInFlightRef = useRef(false);
+  const lastSyncAtRef = useRef<number>((() => {
+    try {
+      const cachedIso = localStorage.getItem(CACHED_SYNC_TIME_KEY);
+      if (cachedIso) {
+        const parsedMs = Date.parse(cachedIso);
+        if (!Number.isNaN(parsedMs)) return parsedMs;
+      }
+    } catch {
+      // Ignore storage errors
+    }
+    return 0;
+  })());
+
   /**
    * Clean Single-Table Sync & Differential Engine
+   * Silent background syncs never spin the manual refresh icon.
    */
   const fetchAndSync = async (targetUrl?: string, isSilent = false) => {
     const url = (targetUrl !== undefined ? targetUrl : getActiveCsvUrl()).trim();
@@ -338,7 +427,15 @@ export default function App() {
       return;
     }
 
-    setSyncStatus({ status: 'syncing', message: 'FETCHING_STREAM...' });
+    if (isSilent && isSyncInFlightRef.current) {
+      return;
+    }
+
+    isSyncInFlightRef.current = true;
+    if (!isSilent) {
+      setSyncStatus({ status: 'syncing', message: 'FETCHING_STREAM...' });
+    }
+
     try {
       let fetchUrl = url;
       try {
@@ -368,13 +465,16 @@ export default function App() {
       setAssignments(parsedAssignments);
       setTermFinals(parsedTermFinals);
 
+      const syncCompletedMs = Date.now();
+      lastSyncAtRef.current = syncCompletedMs;
+
       try {
         if (parsed.length > 0) {
           localStorage.setItem(CACHED_EVENTS_KEY, JSON.stringify(parsed));
         }
         localStorage.setItem(CACHED_ASSIGNMENTS_KEY, JSON.stringify(parsedAssignments));
         localStorage.setItem(CACHED_TERM_FINALS_KEY, JSON.stringify(parsedTermFinals));
-        const nowISO = new Date().toISOString();
+        const nowISO = new Date(syncCompletedMs).toISOString();
         localStorage.setItem(CACHED_SYNC_TIME_KEY, nowISO);
         setLastSyncTime(nowISO);
       } catch (e) {
@@ -390,17 +490,82 @@ export default function App() {
       });
     } catch (err: any) {
       console.warn('[fetchAndSync] Execution failed:', err);
-      setSyncStatus({
-        status: 'error',
-        message: `FAILED: ${err?.message || 'NETWORK_OR_CORS_ERROR'}`,
-      });
+      if (!isSilent) {
+        setSyncStatus({
+          status: 'error',
+          message: `FAILED: ${err?.message || 'NETWORK_OR_CORS_ERROR'}`,
+        });
+      }
+    } finally {
+      isSyncInFlightRef.current = false;
     }
   };
 
-  // Silent sync in the background on mount
+  const fetchAndSyncRef = useRef(fetchAndSync);
+  fetchAndSyncRef.current = fetchAndSync;
+
+  // Smart silent background auto-refresh:
+  // - Initial silent sync on mount
+  // - Stale check (> 3 min) on visibilitychange (visible) & window focus
+  // - 10-minute interval active strictly while tab/app is visible
   useEffect(() => {
     const activeUrl = getActiveCsvUrl();
-    fetchAndSync(activeUrl, true);
+    fetchAndSyncRef.current(activeUrl, true);
+
+    let pollIntervalId: number | null = null;
+
+    const startVisiblePolling = () => {
+      if (pollIntervalId !== null) return;
+      pollIntervalId = window.setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          fetchAndSyncRef.current(undefined, true);
+        }
+      }, VISIBLE_AUTO_REFRESH_MS);
+    };
+
+    const stopVisiblePolling = () => {
+      if (pollIntervalId !== null) {
+        window.clearInterval(pollIntervalId);
+        pollIntervalId = null;
+      }
+    };
+
+    const triggerSilentSyncIfStale = () => {
+      if (document.visibilityState !== 'visible') return;
+      const elapsed = Date.now() - lastSyncAtRef.current;
+      if (elapsed >= STALE_SYNC_THRESHOLD_MS) {
+        fetchAndSyncRef.current(undefined, true);
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        triggerSilentSyncIfStale();
+        startVisiblePolling();
+      } else {
+        stopVisiblePolling();
+      }
+    };
+
+    const handleWindowFocus = () => {
+      triggerSilentSyncIfStale();
+      if (document.visibilityState === 'visible') {
+        startVisiblePolling();
+      }
+    };
+
+    if (document.visibilityState === 'visible') {
+      startVisiblePolling();
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      stopVisiblePolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, []);
 
   const handleSaveAdminUrl = (newUrl: string) => {
@@ -708,7 +873,7 @@ export default function App() {
       className={`relative min-h-dvh flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
         isDark
           ? 'bg-[#161514] text-stone-100 selection:bg-stone-800 selection:text-stone-100'
-          : 'bg-[#FAF9F6] text-stone-900 selection:bg-stone-200 selection:text-stone-900'
+          : 'bg-[#F4F3EF] text-stone-900 selection:bg-stone-200 selection:text-stone-900'
       }`}
     >
       {/* Tactile warm paper grain overlay across full viewport (light & dark) */}

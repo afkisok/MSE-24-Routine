@@ -74,7 +74,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
               className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none ${
                 isDark
                   ? 'bg-[#C84B4D] ring-[#161514]'
-                  : 'bg-[#9E2A2B] ring-[#FAF9F6]'
+                  : 'bg-[#9E2A2B] ring-[#F4F3EF]'
               }`}
               aria-hidden="true"
             />

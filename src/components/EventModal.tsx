@@ -155,80 +155,46 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             />
           </div>
 
-          {/* Top Header Strip: Flat Borderless Uppercase Metadata */}
+          {/* Top Header Strip: Natural Human Phrasing in Uppercase Micro-Tracking */}
           <div
-            className={`flex items-center gap-2 flex-wrap pb-3 mb-3.5 border-b transition-colors ${
+            className={`pb-3 mb-3.5 border-b transition-colors ${
               isDark ? 'border-stone-800' : 'border-stone-200'
             }`}
           >
-            <span
-              className={`text-[11px] font-semibold uppercase tracking-wider ${
+            <div
+              className={`text-[11px] font-semibold uppercase tracking-wider leading-snug ${
                 isDark ? 'text-stone-400' : 'text-stone-500'
               }`}
             >
-              {isTermFinal ? 'Term Final' : isLab ? 'Lab' : isExam ? 'Exam' : 'Lecture'}
-            </span>
+              <span>
+                {isTermFinal ? 'Term Final' : isLab ? 'Lab' : isExam ? 'Exam' : 'Lecture'}
+              </span>
+              {(() => {
+                const groupPhrase =
+                  alternating.groupVariant === 'A' || alternating.groupTag === 'GRP A'
+                    ? 'Group A'
+                    : alternating.groupVariant === 'B' || alternating.groupTag === 'GRP B'
+                    ? 'Group B'
+                    : alternating.groupTag === 'GRP A/B'
+                    ? 'Group A & B'
+                    : null;
 
-            {alternating.groupTag && !isCancelled && (
-              <>
-                <span className="text-stone-400">·</span>
-                <span
-                  className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isDark ? 'text-stone-400' : 'text-stone-500'
-                  }`}
-                >
-                  {alternating.groupTag}
-                </span>
-              </>
-            )}
-
-            {isLab && !isCancelled && rawSyllabus.length === 0 && alternating.hasReportDue && (
-              <>
-                <span className="text-stone-400">·</span>
-                <span
-                  className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isDark ? 'text-stone-400' : 'text-stone-500'
-                  }`}
-                >
-                  Report Due
-                </span>
-              </>
-            )}
-
-            <span className="text-stone-400">·</span>
-            <span
-              className={`text-[11px] font-semibold uppercase tracking-wider ${
-                isDark ? 'text-stone-400' : 'text-stone-500'
-              }`}
-            >
-              {event.dateLabel || event.day}
-            </span>
-
-            {marksEyebrowText && (
-              <>
-                <span className="text-stone-400">·</span>
-                <span
-                  className={`text-[11px] font-semibold uppercase tracking-wider tabular-nums ${
-                    isDark ? 'text-stone-400' : 'text-stone-500'
-                  }`}
-                >
-                  {marksEyebrowText}
-                </span>
-              </>
-            )}
-
-            {isCancelled && (
-              <>
-                <span className="text-stone-400">·</span>
-                <span
-                  className={`text-[11px] font-semibold uppercase tracking-wider ${
-                    isDark ? 'text-stone-400' : 'text-stone-500'
-                  }`}
-                >
-                  Canceled
-                </span>
-              </>
-            )}
+                if (!groupPhrase) return null;
+                return (
+                  <>
+                    <span> for </span>
+                    <span className={isDark ? 'text-red-500' : 'text-[#DC2626]'}>
+                      {groupPhrase}
+                    </span>
+                  </>
+                );
+              })()}
+              <span>{` on ${event.dateLabel || event.day}`}</span>
+              {marksEyebrowText && (
+                <span className="tabular-nums">{`, for ${marksEyebrowText}`}</span>
+              )}
+              {isCancelled && <span>, Canceled</span>}
+            </div>
           </div>
         </div>
 
@@ -251,7 +217,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             isDark ? 'divide-stone-800' : 'divide-stone-200'
           }`}
         >
-          {/* SYLLABUS (first borderless row above TIME when syllabus exists) */}
+          {/* SYLLABUS / REPORT DUE (first borderless row above TIME when notes exist) */}
           {syllabusLines.length > 0 && (
             <div className="py-3 first:pt-1">
               <div
@@ -259,7 +225,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
                   isDark ? 'text-stone-400' : 'text-stone-500'
                 }`}
               >
-                Syllabus
+                {isLab ? 'Report Due' : 'Syllabus'}
               </div>
               <div
                 className={`text-sm font-medium mt-1 leading-relaxed space-y-1 ${
@@ -326,31 +292,6 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             </div>
           )}
 
-          {/* Assigned Lab Group (when Lab) */}
-          {alternating.category === 'LAB' && (
-            <div className="py-3">
-              <div
-                className={`text-[11px] font-semibold uppercase tracking-wider ${
-                  isDark ? 'text-stone-400' : 'text-stone-500'
-                }`}
-              >
-                Assigned Lab Group
-              </div>
-              <div
-                className={`text-sm font-semibold mt-1 ${
-                  isDark ? 'text-stone-100' : 'text-stone-900'
-                }`}
-              >
-                {alternating.groupTag === 'GRP A'
-                  ? 'Group A Only (Sessional Attendance)'
-                  : alternating.groupTag === 'GRP B'
-                  ? 'Group B Only (Sessional Attendance)'
-                  : alternating.groupTag === 'GRP A/B'
-                  ? 'Dual Group (Group A & Group B Dual Attendance)'
-                  : 'Full Batch Laboratory Sessional (Combined Attendance)'}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Bottom action: Light secondary/ghost pill button ("Close") */}

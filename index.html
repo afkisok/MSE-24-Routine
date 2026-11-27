@@ -9,7 +9,8 @@
     <meta property="og:description" content="MSE 2K24 / Batch Routine — Dept. of Materials Science and Engineering, KUET. University timetable dashboard with dynamic timeline scaling, live Google Sheets CSV sync, exam alerts, and mobile timetable tracks." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#FAF9F6" media="(prefers-color-scheme: light)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#F4F3EF" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#161514" media="(prefers-color-scheme: dark)" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -23,9 +24,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
     <script>
       try {
-        if (localStorage.getItem('aviation_theme') === 'dark') {
+        var isDarkPref = localStorage.getItem('aviation_theme') === 'dark';
+        if (isDarkPref) {
           document.documentElement.classList.add('dark');
         }
+        document.documentElement.style.colorScheme = isDarkPref ? 'dark' : 'light';
       } catch (e) {}
     </script>
   </head>
