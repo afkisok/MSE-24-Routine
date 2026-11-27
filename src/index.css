@@ -64,6 +64,17 @@ body::-webkit-scrollbar,
   height: 0;
 }
 
+/* Hide visible scrollbars inside modal cards while keeping overflow scrollable */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 /* Utility Buttons & Controls */
 .aviation-btn-primary {
   display: inline-flex;
@@ -134,48 +145,106 @@ html.dark .aviation-btn-secondary:hover {
   -webkit-overflow-scrolling: touch;
 }
 
-/* Scrim-eased horizontal scroll edge fades (full-height beneath z-30 header divider) */
+/* Stacked multi-layer scrim horizontal scroll edge fades (full-height beneath z-30 header divider) */
 .timeline-fade-left {
-  background: linear-gradient(
-    to right,
-    rgba(234, 232, 226, 1) 0%,
-    rgba(234, 232, 226, 0.94) 22%,
-    rgba(234, 232, 226, 0.64) 52%,
-    rgba(234, 232, 226, 0.22) 78%,
-    rgba(234, 232, 226, 0) 100%
-  );
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(234, 232, 226, 1) 0%,
+      rgba(234, 232, 226, 0.92) 14%,
+      rgba(234, 232, 226, 0.56) 32%,
+      rgba(234, 232, 226, 0.18) 48%,
+      rgba(234, 232, 226, 0) 64%
+    ),
+    linear-gradient(
+      to right,
+      rgba(234, 232, 226, 0.45) 0%,
+      rgba(234, 232, 226, 0.28) 34%,
+      rgba(234, 232, 226, 0.1) 64%,
+      rgba(234, 232, 226, 0) 86%
+    ),
+    linear-gradient(
+      to right,
+      rgba(234, 232, 226, 0.2) 0%,
+      rgba(234, 232, 226, 0.08) 54%,
+      rgba(234, 232, 226, 0.02) 82%,
+      rgba(234, 232, 226, 0) 100%
+    );
 }
 html.dark .timeline-fade-left {
-  background: linear-gradient(
-    to right,
-    rgba(16, 15, 14, 1) 0%,
-    rgba(16, 15, 14, 0.94) 22%,
-    rgba(16, 15, 14, 0.64) 52%,
-    rgba(16, 15, 14, 0.22) 78%,
-    rgba(16, 15, 14, 0) 100%
-  );
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(16, 15, 14, 1) 0%,
+      rgba(16, 15, 14, 0.92) 14%,
+      rgba(16, 15, 14, 0.56) 32%,
+      rgba(16, 15, 14, 0.18) 48%,
+      rgba(16, 15, 14, 0) 64%
+    ),
+    linear-gradient(
+      to right,
+      rgba(16, 15, 14, 0.45) 0%,
+      rgba(16, 15, 14, 0.28) 34%,
+      rgba(16, 15, 14, 0.1) 64%,
+      rgba(16, 15, 14, 0) 86%
+    ),
+    linear-gradient(
+      to right,
+      rgba(16, 15, 14, 0.2) 0%,
+      rgba(16, 15, 14, 0.08) 54%,
+      rgba(16, 15, 14, 0.02) 82%,
+      rgba(16, 15, 14, 0) 100%
+    );
 }
 .timeline-fade-right {
-  background: linear-gradient(
-    to left,
-    rgba(234, 232, 226, 1) 0%,
-    rgba(234, 232, 226, 0.92) 18%,
-    rgba(234, 232, 226, 0.72) 39%,
-    rgba(234, 232, 226, 0.38) 64%,
-    rgba(234, 232, 226, 0.1) 86%,
-    rgba(234, 232, 226, 0) 100%
-  );
+  background-image:
+    linear-gradient(
+      to left,
+      rgba(234, 232, 226, 1) 0%,
+      rgba(234, 232, 226, 0.92) 14%,
+      rgba(234, 232, 226, 0.56) 32%,
+      rgba(234, 232, 226, 0.18) 48%,
+      rgba(234, 232, 226, 0) 64%
+    ),
+    linear-gradient(
+      to left,
+      rgba(234, 232, 226, 0.45) 0%,
+      rgba(234, 232, 226, 0.28) 34%,
+      rgba(234, 232, 226, 0.1) 64%,
+      rgba(234, 232, 226, 0) 86%
+    ),
+    linear-gradient(
+      to left,
+      rgba(234, 232, 226, 0.2) 0%,
+      rgba(234, 232, 226, 0.08) 54%,
+      rgba(234, 232, 226, 0.02) 82%,
+      rgba(234, 232, 226, 0) 100%
+    );
 }
 html.dark .timeline-fade-right {
-  background: linear-gradient(
-    to left,
-    rgba(16, 15, 14, 1) 0%,
-    rgba(16, 15, 14, 0.92) 18%,
-    rgba(16, 15, 14, 0.72) 39%,
-    rgba(16, 15, 14, 0.38) 64%,
-    rgba(16, 15, 14, 0.1) 86%,
-    rgba(16, 15, 14, 0) 100%
-  );
+  background-image:
+    linear-gradient(
+      to left,
+      rgba(16, 15, 14, 1) 0%,
+      rgba(16, 15, 14, 0.92) 14%,
+      rgba(16, 15, 14, 0.56) 32%,
+      rgba(16, 15, 14, 0.18) 48%,
+      rgba(16, 15, 14, 0) 64%
+    ),
+    linear-gradient(
+      to left,
+      rgba(16, 15, 14, 0.45) 0%,
+      rgba(16, 15, 14, 0.28) 34%,
+      rgba(16, 15, 14, 0.1) 64%,
+      rgba(16, 15, 14, 0) 86%
+    ),
+    linear-gradient(
+      to left,
+      rgba(16, 15, 14, 0.2) 0%,
+      rgba(16, 15, 14, 0.08) 54%,
+      rgba(16, 15, 14, 0.02) 82%,
+      rgba(16, 15, 14, 0) 100%
+    );
 }
 
 /* High-contrast utilitarian group micro-chip */
@@ -256,12 +325,36 @@ html.dark .animate-slot-pulse {
   background-size: 200px 200px;
 }
 
-/* Frame-locked instant theme switching (prevents staggered color transitions) */
+/* Frame-locked instant snapshot swap during View Transition capture */
 html.theme-switching,
 html.theme-switching *,
 html.theme-switching *::before,
 html.theme-switching *::after {
   transition: none !important;
+}
+
+/* Smooth circular reveal for Dark <-> Light mode View Transitions */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* Synchronized smooth fade fallback for browsers without View Transitions API */
+html.theme-fading,
+html.theme-fading *,
+html.theme-fading *::before,
+html.theme-fading *::after {
+  transition-property: background-color, color, border-color, fill, stroke, box-shadow !important;
+  transition-duration: 320ms !important;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1) !important;
+  transition-delay: 0ms !important;
 }
 
 /* Accessibility: Disable translations & transitions for prefers-reduced-motion */

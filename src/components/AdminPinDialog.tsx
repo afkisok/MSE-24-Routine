@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { X, Lock, KeyRound, AlertCircle } from 'lucide-react';
 
 interface AdminPinDialogProps {
@@ -33,20 +34,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
     }
   }, [isOpen]);
 
-  // Body scroll lock with cleanup hook
-  useEffect(() => {
-    if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
-    const originalTouchAction = document.body.style.touchAction;
-
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      document.body.style.touchAction = originalTouchAction;
-    };
-  }, [isOpen]);
+  // Body scroll lock is centrally managed by App.tsx via isAnyModalOpen
 
   // Handle ESC key
   useEffect(() => {
@@ -58,7 +46,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  // Rendered inside AnimatePresence below for spring open/close physics
 
   const handleInputChange = (val: string) => {
     const clean = val.replace(/\D/g, '').slice(0, 4);
@@ -92,23 +80,40 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs select-none"
-      onClick={onClose}
-    >
-      <div
-        className={`w-full max-w-sm rounded-2xl shadow-2xl border p-6 flex flex-col transition-all transform ${
-          shake ? 'animate-shake' : ''
-        } ${
-          isDark
-            ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-black/80'
-            : 'bg-white border-stone-200 text-stone-900 shadow-stone-300/50'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="pin-dialog-title"
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="admin-pin-modal"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none pointer-events-auto"
+        >
+          <div
+            aria-hidden="true"
+            onClick={onClose}
+            className="fixed inset-0 z-0 pointer-events-auto"
+          />
+          <motion.div
+            key="admin-pin-dialog"
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            transition={{
+              type: 'spring',
+              stiffness: 440,
+              damping: 40,
+              mass: 0.9,
+            }}
+            className={`relative z-10 w-full max-w-sm rounded-2xl shadow-2xl border p-6 flex flex-col will-change-transform transform-gpu ${
+              shake ? 'animate-shake' : ''
+            } ${
+              isDark
+                ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-black/80'
+                : 'bg-white border-stone-200 text-stone-900 shadow-stone-300/50'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pin-dialog-title"
+          >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
@@ -223,7 +228,9 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

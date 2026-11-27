@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { animate, motion } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
+import { UNIFIED_SPRING } from '../utils/springs';
 import {
   DAY_START_MINUTES,
   TOTAL_DAY_MINUTES,
@@ -46,20 +48,99 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   const headerAxisRef = useRef<HTMLDivElement | null>(null);
   const [axisWidthPx, setAxisWidthPx] = useState<number>(minTrackWidthPx - 48);
   const [isScrolled, setIsScrolled] = useState<boolean>(false);
+  const [showLeftFade, setShowLeftFade] = useState<boolean>(false);
+  const [showRightFade, setShowRightFade] = useState<boolean>(false);
+  const scrollAnimRef = useRef<{ stop: () => void } | null>(null);
+  const scrollCleanupRef = useRef<(() => void) | null>(null);
+
+  const stopScrollToStart = () => {
+    if (scrollAnimRef.current) {
+      scrollAnimRef.current.stop();
+      scrollAnimRef.current = null;
+    }
+    if (scrollCleanupRef.current) {
+      scrollCleanupRef.current();
+      scrollCleanupRef.current = null;
+    }
+  };
+
+  const scrollToStart = () => {
+    const container = activeScrollRef.current;
+    if (!container || container.scrollLeft <= 0) return;
+
+    stopScrollToStart();
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      container.scrollLeft = 0;
+      return;
+    }
+
+    const cancelOnUserInteract = () => stopScrollToStart();
+    const cleanupListeners = () => {
+      container.removeEventListener('wheel', cancelOnUserInteract);
+      container.removeEventListener('touchstart', cancelOnUserInteract);
+      container.removeEventListener('pointerdown', cancelOnUserInteract);
+    };
+
+    scrollCleanupRef.current = cleanupListeners;
+    container.addEventListener('wheel', cancelOnUserInteract, { passive: true, once: true });
+    container.addEventListener('touchstart', cancelOnUserInteract, { passive: true, once: true });
+    container.addEventListener('pointerdown', cancelOnUserInteract, { passive: true, once: true });
+
+    const controls = animate(container.scrollLeft, 0, {
+      type: 'spring',
+      stiffness: 180,
+      damping: 26,
+      mass: 0.9,
+      onUpdate: (latest) => {
+        container.scrollLeft = latest;
+      },
+      onComplete: () => {
+        if (scrollCleanupRef.current === cleanupListeners) {
+          cleanupListeners();
+          scrollCleanupRef.current = null;
+        }
+        if (scrollAnimRef.current === controls) {
+          scrollAnimRef.current = null;
+        }
+      },
+    });
+
+    scrollAnimRef.current = controls;
+  };
+
+  useEffect(() => {
+    return () => stopScrollToStart();
+  }, []);
 
   const syncScrollState = (el: HTMLDivElement | null) => {
     if (!el) return;
+    const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+    const leftOffset = el.scrollLeft;
+    const rightRemaining = maxScroll - leftOffset;
+
+    const nextShowLeft = maxScroll > 16 && leftOffset > 16;
+    const nextShowRight = maxScroll > 16 && rightRemaining > 16;
+
+    setShowLeftFade((prev) => (prev === nextShowLeft ? prev : nextShowLeft));
+    setShowRightFade((prev) => (prev === nextShowRight ? prev : nextShowRight));
+
     setIsScrolled((prev) => {
-      const hasEnoughOverflow = el.scrollWidth - el.clientWidth > 32;
+      const hasEnoughOverflow = maxScroll > 32;
       if (!hasEnoughOverflow) return false;
-      if (!prev && el.scrollLeft > 32) return true;
-      if (prev && el.scrollLeft < 12) return false;
+      if (!prev && leftOffset > 32) return true;
+      if (prev && leftOffset < 12) return false;
       return prev;
     });
   };
 
   useEffect(() => {
     const el = headerAxisRef.current;
+    const scrollEl = activeScrollRef.current;
     if (!el) return;
 
     const updateWidth = () => {
@@ -73,6 +154,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
     if (typeof ResizeObserver !== 'undefined') {
       const observer = new ResizeObserver(updateWidth);
       observer.observe(el);
+      if (scrollEl) observer.observe(scrollEl);
       return () => observer.disconnect();
     }
 
@@ -104,16 +186,21 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
         }`}
       />
 
-      {/* 1. GPU-COMPOSITED OVERLAY DAY RAIL: Out-of-flow so the scroll container never reflows during touch scroll */}
-      <div
-        className={`absolute top-0 bottom-0 left-0 flex flex-col z-20 will-change-transform transform-gpu transition-[width,transform,opacity] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
-          isScrolled ? 'w-[48px]' : 'w-[108px]'
-        } ${isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'}`}
+      {/* 1. GPU-COMPOSITED OVERLAY DAY RAIL: Spring-driven collapse & expand with zero scroll reflow */}
+      <motion.div
+        initial={false}
+        animate={{ width: isScrolled ? 48 : 108 }}
+        transition={UNIFIED_SPRING}
+        className={`absolute top-0 bottom-0 left-0 flex flex-col z-20 will-change-transform transform-gpu ${
+          isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'
+        }`}
       >
-        {/* Full-height left-edge fog glued to the rail's right edge so it glides cleanly with zero layout thrash */}
+        {/* Full-height left-edge stacked scrim fog glued to the rail's right edge */}
         <div
           aria-hidden="true"
-          className="timeline-fade-left pointer-events-none absolute top-0 bottom-0 left-full w-7"
+          className={`timeline-fade-left pointer-events-none absolute top-0 bottom-0 left-full w-14 transition-opacity duration-200 ease-out ${
+            showLeftFade ? 'opacity-100' : 'opacity-0'
+          }`}
         />
 
         {/* Static Header Axis Box (h-11) — Day label fades out cleanly when scrolled */}
@@ -124,17 +211,23 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               : 'bg-[#EAE8E2] text-stone-900'
           }`}
         >
-          <span
+          <motion.span
+            initial={false}
+            animate={{
+              opacity: isScrolled ? 0 : 1,
+              scale: isScrolled ? 0.88 : 1,
+            }}
+            transition={{ type: 'spring', stiffness: 400, damping: 28, mass: 0.8 }}
             aria-hidden={isScrolled || undefined}
-            className={`will-change-transform transform-gpu transition-opacity duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
-              isScrolled ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            className={`will-change-transform transform-gpu ${
+              isScrolled ? 'pointer-events-none' : ''
             }`}
           >
             Day
-          </span>
+          </motion.span>
         </div>
 
-        {/* Static Day Rows with Smooth Locked rounded-2xl Pill (h-24) */}
+        {/* Static Day Rows with Spring-Animated rounded-2xl Pill (h-24) */}
         {days.map((day) => {
           const isToday = day.toLowerCase() === todayName.toLowerCase();
           const dayEventsCount = events.filter((e) => {
@@ -152,10 +245,29 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               key={`static-${day}`}
               className="h-24 py-2 flex items-center justify-center bg-transparent"
             >
-              {/* Centered Day Card / Vertical Pill — locked rounded-2xl & GPU-promoted */}
-              <div
-                className={`relative h-full rounded-2xl flex flex-col items-center justify-center text-center border overflow-hidden will-change-transform transform-gpu transition-[width,transform,opacity] duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] ${
-                  isScrolled ? 'w-[36px]' : 'w-[96px]'
+              {/* Centered Day Card / Vertical Pill — synchronized spring physics */}
+              <motion.div
+                initial={false}
+                animate={{ width: isScrolled ? 36 : 96 }}
+                whileTap={isScrolled ? { scale: 0.94 } : undefined}
+                transition={UNIFIED_SPRING}
+                onClick={isScrolled ? scrollToStart : undefined}
+                role={isScrolled ? 'button' : undefined}
+                tabIndex={isScrolled ? 0 : undefined}
+                title={isScrolled ? 'Scroll to start of routine' : undefined}
+                aria-label={isScrolled ? `Scroll to start of ${day} routine` : undefined}
+                onKeyDown={
+                  isScrolled
+                    ? (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          scrollToStart();
+                        }
+                      }
+                    : undefined
+                }
+                className={`relative h-full rounded-2xl flex flex-col items-center justify-center text-center border overflow-hidden will-change-transform transform-gpu ${
+                  isScrolled ? 'cursor-pointer' : ''
                 } ${
                   isToday
                     ? isDark
@@ -167,19 +279,24 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 }`}
               >
                 <div className="flex items-center justify-center leading-none">
-                  <span
-                    className={`inline-block font-bold text-base tracking-tight will-change-transform transform-gpu transition-transform duration-[420ms] ease-[cubic-bezier(0.25,1.18,0.45,1)] whitespace-nowrap ${
-                      isScrolled
-                        ? 'translate-y-0 -rotate-90 scale-[0.8]'
-                        : '-translate-y-[7px] rotate-0 scale-100'
-                    }`}
+                  <motion.span
+                    initial={false}
+                    animate={{
+                      y: isScrolled ? 0 : -7,
+                      rotate: isScrolled ? -90 : 0,
+                      scale: isScrolled ? 0.8 : 1,
+                    }}
+                    transition={UNIFIED_SPRING}
+                    className="inline-block font-bold text-base tracking-tight will-change-transform transform-gpu whitespace-nowrap"
                   >
                     {day.slice(0, 3)}
-                  </span>
+                  </motion.span>
                 </div>
                 <div
-                  className={`pointer-events-none absolute left-1/2 -translate-x-1/2 top-[calc(50%+6px)] flex items-center justify-center text-[10px] tracking-normal leading-none whitespace-nowrap transition-opacity duration-75 ease-out ${
-                    isScrolled ? 'opacity-0' : 'opacity-100'
+                  className={`pointer-events-none absolute left-1/2 -translate-x-1/2 top-[calc(50%+6px)] flex items-center justify-center text-[10px] tracking-normal leading-none whitespace-nowrap transition-opacity ease-out ${
+                    isScrolled
+                      ? 'opacity-0 duration-75 delay-0'
+                      : 'opacity-100 duration-150 delay-[70ms]'
                   }`}
                   aria-hidden={isScrolled || undefined}
                 >
@@ -191,24 +308,26 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       : `${dayEventsCount} events`}
                   </span>
                 </div>
-              </div>
+              </motion.div>
             </div>
           );
         })}
-      </div>
+      </motion.div>
 
       {/* 2. FULL-WIDTH TIMELINE TRACK CONTAINER (CONSTANT clientWidth — ZERO LAYOUT THRASH ON SCROLL) */}
       <div className="relative flex-1 min-w-0 overflow-hidden flex flex-col">
-        {/* Full-height right edge-fade overlay (top-0 bottom-0, z-20 beneath z-30 divider) */}
+        {/* Full-height right edge-fade stacked scrim overlay (top-0 bottom-0, z-20 beneath z-30 divider) */}
         <div
           aria-hidden="true"
-          className="timeline-fade-right pointer-events-none absolute top-0 bottom-0 right-0 w-7 z-20"
+          className={`timeline-fade-right pointer-events-none absolute top-0 bottom-0 right-0 w-14 z-20 transition-opacity duration-200 ease-out ${
+            showRightFade ? 'opacity-100' : 'opacity-0'
+          }`}
         />
 
         <div
           ref={activeScrollRef}
           onScroll={(e) => syncScrollState(e.currentTarget)}
-          className={`flex-1 overflow-x-auto scroll-smooth timeline-touch-track transition-colors [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
+          className={`flex-1 overflow-x-auto timeline-touch-track transition-colors [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
             isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'
           }`}
         >

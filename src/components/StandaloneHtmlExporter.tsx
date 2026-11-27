@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { generateSingleFileHtml } from '../utils/singleFileHtmlGenerator';
 import { Copy, Download, Check, X, FileCode } from 'lucide-react';
 
@@ -15,9 +16,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const [copied, setCopied] = useState(false);
-  const htmlContent = generateSingleFileHtml();
-
-  if (!isOpen) return null;
+  const htmlContent = isOpen ? generateSingleFileHtml() : '';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(htmlContent);
@@ -38,20 +37,37 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-2xs select-none"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className={`relative w-full max-w-2xl rounded-xs p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] transition-all border ${
-          isDark
-            ? 'bg-[#1E1D1C] border-transparent text-stone-100'
-            : 'bg-white border-stone-200 text-stone-900'
-        }`}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="standalone-exporter-modal"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none pointer-events-auto"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div
+            aria-hidden="true"
+            onClick={onClose}
+            className="fixed inset-0 z-0 pointer-events-auto"
+          />
+          <motion.div
+            key="standalone-exporter-dialog"
+            initial={{ opacity: 0, y: 20, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
+            transition={{
+              type: 'spring',
+              stiffness: 440,
+              damping: 40,
+              mass: 0.9,
+            }}
+            className={`relative z-10 w-full max-w-2xl rounded-xs p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] border will-change-transform transform-gpu ${
+              isDark
+                ? 'bg-[#1E1D1C] border-transparent text-stone-100'
+                : 'bg-white border-stone-200 text-stone-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
         <div
           className={`flex items-center justify-between pb-3 mb-2 border-b transition-colors ${
             isDark ? 'border-stone-800' : 'border-stone-200'
@@ -140,7 +156,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
               : 'border-stone-200 bg-stone-50 text-stone-700'
           }`}
         >
-          <pre className="overflow-y-auto max-h-[240px] leading-relaxed select-all">
+          <pre className="overflow-y-auto no-scrollbar max-h-[240px] leading-relaxed select-all">
             {htmlContent.slice(0, 2200)}
             {'\n... [REMAINDER OF COMPLETE SELF-CONTAINED STANDALONE AVIATION HTML PAYLOAD INCLUDED] ...'}
           </pre>
@@ -161,7 +177,9 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             DISMISS
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };

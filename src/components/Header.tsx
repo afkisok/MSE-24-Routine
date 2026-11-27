@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import { RefreshCw, Sun, Moon } from 'lucide-react';
 
 interface SyncStatus {
@@ -10,7 +11,7 @@ interface HeaderProps {
   onManualSync: () => void;
   syncStatus: SyncStatus;
   theme: 'light' | 'dark';
-  onToggleTheme: () => void;
+  onToggleTheme: (e?: React.MouseEvent<HTMLButtonElement>) => void;
   onTriggerAdminVerification: () => void;
   mastheadLines: readonly [string, string];
   isMounted?: boolean;
@@ -182,21 +183,41 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Clean Circular Theme Toggle Button */}
             <button
-              onClick={onToggleTheme}
+              onClick={(e) => onToggleTheme(e)}
               type="button"
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none ${
+              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none overflow-hidden ${
                 isDark
                   ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:bg-[#262523] hover:text-stone-100'
                   : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
               }`}
             >
-              {isDark ? (
-                <Sun className="w-4 h-4 block" />
-              ) : (
-                <Moon className="w-4 h-4 block" />
-              )}
+              <AnimatePresence mode="wait" initial={false}>
+                {isDark ? (
+                  <motion.span
+                    key="theme-icon-sun"
+                    initial={{ rotate: -45, scale: 0.65, opacity: 0 }}
+                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                    exit={{ rotate: 45, scale: 0.65, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
+                    className="inline-flex items-center justify-center"
+                  >
+                    <Sun className="w-4 h-4 block" />
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="theme-icon-moon"
+                    initial={{ rotate: 45, scale: 0.65, opacity: 0 }}
+                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                    exit={{ rotate: -45, scale: 0.65, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
+                    className="inline-flex items-center justify-center"
+                  >
+                    <Moon className="w-4 h-4 block" />
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
           </div>
         </div>
@@ -225,14 +246,18 @@ export const Header: React.FC<HeaderProps> = ({
                 <>
                   {secondLine.slice(0, -1)}
                   <span className="relative inline-block leading-none">
-                    <span className="inline-block leading-none" style={{ clipPath: 'inset(0 0 38% 0)' }}>
+                    <span
+                      className="inline-block leading-none"
+                      style={{ clipPath: 'inset(0 0 45% 0)' }}
+                    >
                       ?
                     </span>
                     <span
                       aria-hidden="true"
-                      className={`pointer-events-none select-none absolute left-[43%] -translate-x-1/2 bottom-[2px] leading-none ${crimsonTextClass}`}
+                      className={`pointer-events-none select-none absolute inset-0 inline-block leading-none ${crimsonTextClass}`}
+                      style={{ clipPath: 'inset(55% 0 0 0)' }}
                     >
-                      .
+                      ?
                     </span>
                   </span>
                 </>

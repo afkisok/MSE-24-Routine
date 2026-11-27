@@ -1,18 +1,25 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import type { TargetAndTransition, Transition } from 'motion/react';
 
 interface UseBottomSheetDragOptions {
-  isVisible: boolean;
+  isClosing: boolean;
   onDismiss: () => void;
   dismissThreshold?: number;
   velocityThreshold?: number;
 }
 
+export type SheetMotionPose = TargetAndTransition;
+
 interface UseBottomSheetDragReturn {
   dragY: number;
   isDragging: boolean;
   dismissedByDrag: boolean;
-  backdropStyle: React.CSSProperties;
-  sheetStyle: React.CSSProperties;
+  isDesktop: boolean;
+  backdropAnimate: TargetAndTransition;
+  backdropTransition: Transition;
+  sheetInitial: SheetMotionPose;
+  sheetAnimate: SheetMotionPose;
+  sheetTransition: Transition;
   dragHandleProps: {
     onTouchStart: (e: React.TouchEvent) => void;
     onTouchMove: (e: React.TouchEvent) => void;
@@ -21,15 +28,36 @@ interface UseBottomSheetDragReturn {
   };
 }
 
+export const MODAL_OPEN_SPRING: Transition = {
+  type: 'spring',
+  stiffness: 360,
+  damping: 26,
+  mass: 0.86,
+};
+
+export const MODAL_SNAPBACK_SPRING: Transition = {
+  type: 'spring',
+  stiffness: 420,
+  damping: 28,
+  mass: 0.85,
+};
+
+export const MODAL_CLOSE_SPRING: Transition = {
+  type: 'spring',
+  stiffness: 460,
+  damping: 34,
+  mass: 0.78,
+};
+
 /**
- * Shared touch drag-to-dismiss physics for bottom sheet modals.
- * - Tracks 1:1 finger movement while dragging downward (deltaY > 0) with transition: none
- * - Proportionally fades backdrop opacity
- * - Dismisses smoothly off-screen if dragged > 90px or flicked downward quickly
- * - Springs back to translateY(0) otherwise
+ * Shared spring-physics open/close and touch drag-to-dismiss hook for expanded modals.
+ * - Mobile (< 640px): bottom sheet springs up from below the viewport and springs down on dismiss.
+ * - Desktop (>= 640px): centered modal springs cleanly into place with subtle scale & vertical lift.
+ * - Dragging downward tracks 1:1 with zero transition lag, forwards flick velocity on dismiss,
+ *   or springs smoothly back to rest if released below threshold.
  */
 export function useBottomSheetDrag({
-  isVisible,
+  isClosing,
   onDismiss,
   dismissThreshold = 90,
   velocityThreshold = 0.55,
@@ -37,6 +65,24 @@ export function useBottomSheetDrag({
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dismissedByDrag, setDismissedByDrag] = useState(false);
+  const [releaseVelocityPxPerSec, setReleaseVelocityPxPerSec] = useState(0);
+  const [hasSnappedBack, setHasSnappedBack] = useState(false);
+
+  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      return false;
+    }
+    return window.matchMedia('(min-width: 640px)').matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mql = window.matchMedia('(min-width: 640px)');
+    const handleChange = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    setIsDesktop(mql.matches);
+    mql.addEventListener('change', handleChange);
+    return () => mql.removeEventListener('change', handleChange);
+  }, []);
 
   const startXRef = useRef<number>(0);
   const startYRef = useRef<number>(0);
@@ -72,6 +118,7 @@ export function useBottomSheetDrag({
       if (deltaY > 4) {
         activeGestureRef.current = 'vertical';
         setIsDragging(true);
+        setHasSnappedBack(false);
       } else if (deltaY < -6) {
         activeGestureRef.current = 'ignored';
         return;
@@ -89,7 +136,7 @@ export function useBottomSheetDrag({
       const now = performance.now();
       const dt = Math.max(1, now - lastTimeRef.current);
       const instantVelocity = (touch.clientY - lastYRef.current) / dt;
-      // Light smoothing on downward flick velocity
+      // Light smoothing on downward flick velocity (px/ms)
       velocityYRef.current = velocityYRef.current * 0.4 + instantVelocity * 0.6;
       lastYRef.current = touch.clientY;
       lastTimeRef.current = now;
@@ -114,53 +161,62 @@ export function useBottomSheetDrag({
     setIsDragging(false);
 
     if (shouldDismiss) {
+      setReleaseVelocityPxPerSec(Math.max(0, velocity * 1000));
       setDismissedByDrag(true);
       onDismiss();
     } else {
       dragYRef.current = 0;
       setDragY(0);
+      setHasSnappedBack(true);
     }
   }, [dismissThreshold, velocityThreshold, onDismiss]);
 
-  // Compute proportional backdrop opacity while dragging
+  const isClosed = isClosing || dismissedByDrag;
   const dragProgress = Math.min(1, dragY / 280);
-  const backdropStyle: React.CSSProperties = isDragging
-    ? {
-        opacity: Math.max(0.12, 1 - dragProgress * 0.88),
-        transition: 'none',
-        overscrollBehaviorY: 'contain',
-      }
-    : {
-        overscrollBehaviorY: 'contain',
-      };
 
-  // Sheet transform & transition:
-  // - 1:1 tracking with transition: none while dragging
-  // - Symmetric 200ms ease-out slide-up on open (100% -> 0px) and slide-down on close (0px -> 100%)
-  const sheetStyle: React.CSSProperties = isDragging
+  const backdropAnimate = {
+    opacity: isDragging ? Math.max(0.12, 1 - dragProgress * 0.88) : isClosed ? 0 : 1,
+  };
+
+  const backdropTransition: Transition = isDragging
+    ? { duration: 0 }
+    : { duration: isClosed ? 0.2 : 0.24, ease: [0.22, 1, 0.36, 1] };
+
+  const closedPose: SheetMotionPose = isDesktop
+    ? { y: 28, scale: 0.94, opacity: 0 }
+    : { y: '104%', scale: 0.985, opacity: 1 };
+
+  const openPose: SheetMotionPose = { y: 0, scale: 1, opacity: 1 };
+
+  const sheetAnimate: SheetMotionPose = isDragging
+    ? { y: dragY, scale: 1, opacity: 1 }
+    : isClosed
+    ? closedPose
+    : openPose;
+
+  const sheetTransition: Transition = isDragging
+    ? { duration: 0 }
+    : isClosed
     ? {
-        transform: `translateY(${dragY}px)`,
-        transition: 'none',
-        overscrollBehaviorY: 'contain',
+        ...MODAL_CLOSE_SPRING,
+        ...(dismissedByDrag && releaseVelocityPxPerSec > 0
+          ? { velocity: releaseVelocityPxPerSec }
+          : {}),
       }
-    : isVisible && !dismissedByDrag
-    ? {
-        transform: 'translateY(0px)',
-        transition: 'transform 200ms cubic-bezier(0, 0, 0.2, 1)',
-        overscrollBehaviorY: 'contain',
-      }
-    : {
-        transform: 'translateY(100%)',
-        transition: 'transform 200ms cubic-bezier(0, 0, 0.2, 1)',
-        overscrollBehaviorY: 'contain',
-      };
+    : hasSnappedBack
+    ? MODAL_SNAPBACK_SPRING
+    : MODAL_OPEN_SPRING;
 
   return {
     dragY,
     isDragging,
     dismissedByDrag,
-    backdropStyle,
-    sheetStyle,
+    isDesktop,
+    backdropAnimate,
+    backdropTransition,
+    sheetInitial: closedPose,
+    sheetAnimate,
+    sheetTransition,
     dragHandleProps: {
       onTouchStart: handleTouchStart,
       onTouchMove: handleTouchMove,

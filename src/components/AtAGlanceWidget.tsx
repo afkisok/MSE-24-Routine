@@ -52,6 +52,18 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
   const VIEW_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+  const HERO_TILE_PRESS_SPRING = {
+    type: 'spring' as const,
+    stiffness: 390,
+    damping: 28,
+    mass: 0.95,
+  };
+  const HERO_VIEW_SPRING = {
+    type: 'spring' as const,
+    stiffness: 390,
+    damping: 32,
+    mass: 0.95,
+  };
 
   const renderHeader = (title: string) => (
     <div className="flex items-end justify-between gap-2 mb-3 px-1">
@@ -181,7 +193,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
               const timeRange = `${formatTo12Hour(heroExam.startTime)} – ${formatTo12Hour(heroExam.endTime)}`;
 
               return (
-                <div
+                <motion.div
+                  whileTap={{ scale: 0.985 }}
+                  transition={HERO_TILE_PRESS_SPRING}
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelectTermFinal?.(heroExam);
@@ -195,7 +209,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       onSelectTermFinal?.(heroExam);
                     }
                   }}
-                  className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
+                  className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-colors duration-150 border will-change-transform ${
                     isDark
                       ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                       : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50/70'
@@ -297,7 +311,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       />
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })()}
 
@@ -465,20 +479,20 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         {isTermFinalMode ? (
           <motion.div
             key="term-finals-widget"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.22, ease: VIEW_EASE }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={HERO_VIEW_SPRING}
           >
             {renderTermFinalBody()}
           </motion.div>
         ) : (
           <motion.div
             key="weekly-classes-widget"
-            initial={{ opacity: 0, y: 8 }}
+            initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.22, ease: VIEW_EASE }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={HERO_VIEW_SPRING}
           >
 
       {upcomingList.length === 0 ? (
@@ -532,7 +546,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             const remainingLabel = isLiveNow ? formatRemainingDuration(endMs - effectiveNowMs) : '';
 
             return (
-              <div
+              <motion.div
+                whileTap={{ scale: 0.985 }}
+                transition={HERO_TILE_PRESS_SPRING}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelectEvent(event);
@@ -546,7 +562,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     onSelectEvent(event);
                   }
                 }}
-                className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-all duration-150 ease-out active:scale-[0.98] border ${
+                className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-colors duration-150 border will-change-transform ${
                   isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                     : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50/70'
@@ -670,7 +686,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     />
                   </div>
                 )}
-              </div>
+              </motion.div>
             );
           })()}
 

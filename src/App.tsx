@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { AnimatePresence, LayoutGroup, MotionConfig, motion } from 'motion/react';
+import { flushSync } from 'react-dom';
+import { AnimatePresence, MotionConfig, animate, motion } from 'motion/react';
 import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
 import { baselineTestData } from './data/baselineData';
 import {
@@ -28,7 +29,15 @@ import { AssignmentsModal } from './components/AssignmentsModal';
 import { AdminConfigModal } from './components/AdminConfigModal';
 import { AdminPinDialog } from './components/AdminPinDialog';
 import { StandaloneHtmlExporter } from './components/StandaloneHtmlExporter';
+import { BACKDROP_TRANSITION, BOTTOM_SHEET_SPRING } from './components/BottomSheetModal';
 import { Clock, ArrowRight } from 'lucide-react';
+
+const GROUP_PILL_SPRING = {
+  type: 'spring' as const,
+  stiffness: 500,
+  damping: 42,
+  mass: 0.8,
+};
 
 const CACHED_ROUTINE_SNAPSHOT_KEY = 'mse24_routine_snapshot_v1';
 const CACHED_EVENTS_KEY = 'mse24_cached_routine_events';
@@ -78,7 +87,7 @@ function buildCacheBustedUrl(rawUrl: string): string {
 
 const STALE_SYNC_THRESHOLD_MS = 3 * 60 * 1000; // 3 minutes
 const VISIBLE_AUTO_REFRESH_MS = 10 * 60 * 1000; // 10 minutes
-const THEME_COLOR_FADE_MS = 200;
+const THEME_COLOR_FADE_MS = 300;
 
 function hexToRgb(hex: string): [number, number, number] {
   const clean = hex.replace('#', '');
@@ -236,18 +245,48 @@ export default function App() {
     return 'light';
   });
 
-  const isAnyModalOpen = Boolean(
-    selectedEvent ||
-      isAssignmentsModalOpen ||
-      isPinDialogOpen ||
-      isAdminModalOpen ||
-      isExportModalOpen
+  const isBottomSheetOpen = Boolean(
+    selectedEvent || isAssignmentsModalOpen || isAdminModalOpen
   );
+
+  const isAnyModalOpen = Boolean(
+    isBottomSheetOpen || isPinDialogOpen || isExportModalOpen
+  );
+
+  const closeAllModals = () => {
+    setSelectedEvent(null);
+    setIsAssignmentsModalOpen(false);
+    setIsAdminModalOpen(false);
+    setIsPinDialogOpen(false);
+    setIsExportModalOpen(false);
+  };
+
+  // Centralized body scroll lock tied strictly to modal visibility (prevents races across overlapping modals)
+  useEffect(() => {
+    if (!isAnyModalOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    const prevTouchAction = document.body.style.touchAction;
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.touchAction = prevTouchAction;
+    };
+  }, [isAnyModalOpen]);
+
+  // Capture viewport-centered transformOrigin synchronously on modal open (no extra re-render mid-spring)
+  const prevModalOpenRef = useRef(false);
+  const canvasOriginYRef = useRef<number>(300);
+  if (isAnyModalOpen && !prevModalOpenRef.current && typeof window !== 'undefined') {
+    canvasOriginYRef.current = Math.round(window.scrollY + window.innerHeight * 0.42);
+  }
+  prevModalOpenRef.current = isAnyModalOpen;
 
   const isDark = theme === 'dark';
   const currentThemeColorRef = useRef<string | null>(null);
-  const prevThemeRef = useRef<'light' | 'dark'>(theme);
   const themeColorRafRef = useRef<number | null>(null);
+  const themeTransitionIdRef = useRef<number>(0);
+  const themeFadeTimerRef = useRef<number | null>(null);
   const themeSwitchRafRef = useRef<{ outer: number | null; inner: number | null }>({
     outer: null,
     inner: null,
@@ -261,7 +300,10 @@ export default function App() {
       if (themeSwitchRafRef.current.inner !== null) {
         cancelAnimationFrame(themeSwitchRafRef.current.inner);
       }
-      document.documentElement.classList.remove('theme-switching');
+      if (themeFadeTimerRef.current !== null) {
+        window.clearTimeout(themeFadeTimerRef.current);
+      }
+      document.documentElement.classList.remove('theme-switching', 'theme-fading');
     };
   }, []);
 
@@ -282,10 +324,10 @@ export default function App() {
   useLayoutEffect(() => {
     const targetColor = isDark
       ? isAnyModalOpen
-        ? '#060606'
+        ? '#0C0C0B'
         : '#161514'
       : isAnyModalOpen
-      ? '#464544'
+      ? '#868683'
       : '#F4F3EF';
 
     const existingMetas = Array.from(
@@ -311,11 +353,9 @@ export default function App() {
     }
 
     const fromColor = currentThemeColorRef.current;
-    const themeChanged = prevThemeRef.current !== theme;
-    prevThemeRef.current = theme;
 
-    // Apply immediately on initial mount, theme toggle, or when already at target
-    if (!fromColor || themeChanged || fromColor.toLowerCase() === targetColor.toLowerCase()) {
+    // Apply immediately on initial mount or when already at target
+    if (!fromColor || fromColor.toLowerCase() === targetColor.toLowerCase()) {
       if (dynamicMeta.content !== targetColor) {
         dynamicMeta.content = targetColor;
       }
@@ -363,8 +403,11 @@ export default function App() {
     };
   }, [theme, isDark, isAnyModalOpen]);
 
-  const handleToggleTheme = () => {
+  const handleToggleTheme = (e?: React.MouseEvent<HTMLButtonElement>) => {
     const root = document.documentElement;
+    const nextTheme: 'light' | 'dark' = theme === 'dark' ? 'light' : 'dark';
+    const transitionId = ++themeTransitionIdRef.current;
+
     if (themeSwitchRafRef.current.outer !== null) {
       cancelAnimationFrame(themeSwitchRafRef.current.outer);
       themeSwitchRafRef.current.outer = null;
@@ -373,20 +416,115 @@ export default function App() {
       cancelAnimationFrame(themeSwitchRafRef.current.inner);
       themeSwitchRafRef.current.inner = null;
     }
+    if (themeFadeTimerRef.current !== null) {
+      window.clearTimeout(themeFadeTimerRef.current);
+      themeFadeTimerRef.current = null;
+    }
 
-    root.classList.add('theme-switching');
-    const nextTheme: 'light' | 'dark' = theme === 'dark' ? 'light' : 'dark';
-    root.classList.toggle('dark', nextTheme === 'dark');
-    root.style.colorScheme = nextTheme;
-    setTheme(nextTheme);
+    const applyThemeDom = () => {
+      root.classList.toggle('dark', nextTheme === 'dark');
+      root.style.colorScheme = nextTheme;
+      setTheme(nextTheme);
+    };
 
-    themeSwitchRafRef.current.outer = requestAnimationFrame(() => {
-      themeSwitchRafRef.current.outer = null;
-      themeSwitchRafRef.current.inner = requestAnimationFrame(() => {
-        themeSwitchRafRef.current.inner = null;
-        root.classList.remove('theme-switching');
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (prefersReducedMotion) {
+      root.classList.remove('theme-fading');
+      root.classList.add('theme-switching');
+      applyThemeDom();
+      themeSwitchRafRef.current.outer = requestAnimationFrame(() => {
+        themeSwitchRafRef.current.outer = null;
+        themeSwitchRafRef.current.inner = requestAnimationFrame(() => {
+          themeSwitchRafRef.current.inner = null;
+          if (themeTransitionIdRef.current === transitionId) {
+            root.classList.remove('theme-switching');
+          }
+        });
       });
-    });
+      return;
+    }
+
+    // Modern browsers: circular radial reveal expanding smoothly from the Theme Toggle button
+    const startViewTransition = (
+      document as Document & {
+        startViewTransition?: (cb: () => void) => {
+          ready: Promise<void>;
+          finished: Promise<void>;
+        };
+      }
+    ).startViewTransition;
+
+    if (typeof startViewTransition === 'function') {
+      let originX = window.innerWidth - 36;
+      let originY = 36;
+      if (e?.currentTarget) {
+        const rect = e.currentTarget.getBoundingClientRect();
+        originX = rect.left + rect.width / 2;
+        originY = rect.top + rect.height / 2;
+      }
+
+      const endRadius = Math.hypot(
+        Math.max(originX, window.innerWidth - originX),
+        Math.max(originY, window.innerHeight - originY)
+      );
+
+      root.classList.remove('theme-fading');
+      root.classList.add('theme-switching');
+
+      try {
+        const vt = startViewTransition.call(document, () => {
+          flushSync(() => {
+            applyThemeDom();
+          });
+        });
+
+        vt.ready
+          .then(() => {
+            document.documentElement.animate(
+              {
+                clipPath: [
+                  `circle(0px at ${originX}px ${originY}px)`,
+                  `circle(${endRadius}px at ${originX}px ${originY}px)`,
+                ],
+              },
+              {
+                duration: 480,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                pseudoElement: '::view-transition-new(root)',
+              }
+            );
+          })
+          .catch(() => {
+            // Ignore aborted transition if toggled rapidly
+          });
+
+        vt.finished
+          .catch(() => {})
+          .finally(() => {
+            if (themeTransitionIdRef.current === transitionId) {
+              root.classList.remove('theme-switching');
+            }
+          });
+        return;
+      } catch {
+        root.classList.remove('theme-switching');
+      }
+    }
+
+    // Fallback: synchronized smooth color crossfade across all elements
+    root.classList.remove('theme-switching');
+    root.classList.add('theme-fading');
+    applyThemeDom();
+    themeFadeTimerRef.current = window.setTimeout(() => {
+      themeFadeTimerRef.current = null;
+      if (themeTransitionIdRef.current === transitionId) {
+        root.classList.remove('theme-fading');
+      }
+    }, 340);
   };
 
   // Section / Group filter state with localStorage persistence
@@ -510,10 +648,93 @@ export default function App() {
     };
   }, []);
 
+  const scrollAnimationRef = useRef<{ stop: () => void } | null>(null);
+  const scrollCleanupRef = useRef<(() => void) | null>(null);
+
+  const springScrollTimeline = (container: HTMLElement, targetScroll: number) => {
+    if (scrollAnimationRef.current) {
+      scrollAnimationRef.current.stop();
+      scrollAnimationRef.current = null;
+    }
+    if (scrollCleanupRef.current) {
+      scrollCleanupRef.current();
+      scrollCleanupRef.current = null;
+    }
+
+    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+    const clampedTarget = Math.max(0, Math.min(maxScroll, targetScroll));
+    const startScroll = container.scrollLeft;
+
+    if (Math.abs(clampedTarget - startScroll) < 1) {
+      container.scrollLeft = clampedTarget;
+      return;
+    }
+
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      container.scrollLeft = clampedTarget;
+      return;
+    }
+
+    const cancelOnUserInteract = () => {
+      if (scrollAnimationRef.current) {
+        scrollAnimationRef.current.stop();
+        scrollAnimationRef.current = null;
+      }
+      if (scrollCleanupRef.current) {
+        scrollCleanupRef.current();
+        scrollCleanupRef.current = null;
+      }
+    };
+
+    const cleanupListeners = () => {
+      container.removeEventListener('wheel', cancelOnUserInteract);
+      container.removeEventListener('touchstart', cancelOnUserInteract);
+      container.removeEventListener('pointerdown', cancelOnUserInteract);
+    };
+
+    scrollCleanupRef.current = cleanupListeners;
+    container.addEventListener('wheel', cancelOnUserInteract, { passive: true, once: true });
+    container.addEventListener('touchstart', cancelOnUserInteract, { passive: true, once: true });
+    container.addEventListener('pointerdown', cancelOnUserInteract, { passive: true, once: true });
+
+    const controls = animate(startScroll, clampedTarget, {
+      type: 'spring',
+      stiffness: 180,
+      damping: 26,
+      mass: 0.9,
+      onUpdate: (latest) => {
+        container.scrollLeft = latest;
+      },
+      onComplete: () => {
+        if (scrollCleanupRef.current === cleanupListeners) {
+          cleanupListeners();
+          scrollCleanupRef.current = null;
+        }
+        if (scrollAnimationRef.current === controls) {
+          scrollAnimationRef.current = null;
+        }
+      },
+    });
+
+    scrollAnimationRef.current = controls;
+  };
+
   useEffect(() => {
     return () => {
       if (highlightTimerRef.current !== null) {
         window.clearTimeout(highlightTimerRef.current);
+      }
+      if (scrollAnimationRef.current) {
+        scrollAnimationRef.current.stop();
+        scrollAnimationRef.current = null;
+      }
+      if (scrollCleanupRef.current) {
+        scrollCleanupRef.current();
+        scrollCleanupRef.current = null;
       }
     };
   }, []);
@@ -998,7 +1219,7 @@ export default function App() {
       );
       const focusX = (centerOffset / dynamicTotalDayMinutes) * container.scrollWidth;
       const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 2));
-      container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+      springScrollTimeline(container, targetScroll);
 
       const rowEl = container.querySelector<HTMLElement>(
         `[data-day="${target.evt.day.toLowerCase()}"]`
@@ -1100,7 +1321,7 @@ export default function App() {
       if (hasActiveOrRemainingSlotToday && currentMinuteOffset !== null) {
         const focusX = (currentMinuteOffset / dynamicTotalDayMinutes) * container.scrollWidth;
         const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 2));
-        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+        springScrollTimeline(container, targetScroll);
       } else if (targetSlot) {
         const slotStartOffset = Math.max(
           0,
@@ -1111,9 +1332,9 @@ export default function App() {
         );
         const focusX = (slotStartOffset / dynamicTotalDayMinutes) * container.scrollWidth;
         const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 3));
-        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+        springScrollTimeline(container, targetScroll);
       } else {
-        container.scrollTo({ left: Math.min(240, maxScroll), behavior: 'smooth' });
+        springScrollTimeline(container, Math.min(240, maxScroll));
       }
     }
 
@@ -1142,22 +1363,43 @@ export default function App() {
   });
 
   return (
+    <MotionConfig reducedMotion="user">
     <div
-      className={`relative min-h-dvh flex flex-col w-full max-w-full overflow-x-hidden font-sans transition-colors ${
-        isDark
-          ? 'bg-[#161514] text-stone-100 selection:bg-stone-800 selection:text-stone-100'
-          : 'bg-[#F4F3EF] text-stone-900 selection:bg-stone-200 selection:text-stone-900'
+      className={`relative min-h-dvh w-full max-w-full overflow-x-hidden ${
+        isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'
       }`}
     >
-      {/* Tactile warm paper grain overlay across full viewport (light & dark) */}
+      {/* Tactile warm paper grain overlay pinned to viewport outside the scaled layer */}
       <div
         aria-hidden="true"
-        className={`paper-grain-overlay fixed inset-0 pointer-events-none z-50 ${
+        className={`paper-grain-overlay fixed inset-0 pointer-events-none z-40 ${
           isDark ? 'opacity-[0.03]' : 'opacity-[0.025]'
         }`}
       />
 
-      <div className="relative z-10 flex-1 flex flex-col pb-[env(safe-area-inset-bottom)]">
+      {/* Unified background dashboard layer: scales gently as one single cohesive unit with rounded corners clipped around backdrop */}
+      <motion.div
+        initial={false}
+        animate={{
+          scale: isAnyModalOpen ? 0.97 : 1,
+          borderRadius: isAnyModalOpen ? 20 : 0,
+        }}
+        transition={BOTTOM_SHEET_SPRING}
+        style={{
+          transformOrigin: `50% ${canvasOriginYRef.current}px`,
+          isolation: 'isolate',
+        }}
+        className={`relative min-h-dvh flex flex-col w-full max-w-full overflow-hidden font-sans will-change-transform transform-gpu ${
+          isDark
+            ? 'text-stone-100 selection:bg-stone-800 selection:text-stone-100'
+            : 'text-stone-900 selection:bg-stone-200 selection:text-stone-900'
+        }`}
+      >
+        <div
+          className={`relative z-10 flex-1 flex flex-col pb-[env(safe-area-inset-bottom)] ${
+            isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'
+          }`}
+        >
         {/* Aviation Operations Header with MSE '24 Hidden Admin Door and Discreet Refresh */}
         <Header
           onManualSync={() => fetchAndSync()}
@@ -1169,8 +1411,6 @@ export default function App() {
           isMounted={isMounted}
         />
 
-        <MotionConfig reducedMotion="user">
-        <LayoutGroup>
         <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-0 pb-7 flex flex-col overflow-x-hidden">
         {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
         <div
@@ -1193,10 +1433,7 @@ export default function App() {
         </div>
 
         {/* UNIFIED SCHEDULE MATRIX / TERM FINALS FULL-WIDTH VIEW */}
-        <motion.div
-          layout="position"
-          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-        >
+        <div>
           <div
             className={`flex flex-col mb-3 px-1 transition-[opacity,transform] duration-300 ease-out delay-[100ms] ${
               isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
@@ -1282,29 +1519,33 @@ export default function App() {
 
                 {/* Group Selector & Jump to Now Controls (Harmonized h-9 row) */}
                 <div className="flex items-center gap-2 flex-nowrap self-start">
-                {/* One UI-style segmented pill selector with sliding indicator (h-9) */}
+                {/* One UI-style segmented pill selector with spring-animated sliding indicator (h-9) */}
                 <div
-                  className={`h-9 inline-flex items-center p-1 rounded-full border border-transparent transition-colors box-border shrink-0 ${
+                  className={`h-9 inline-flex items-center p-1 rounded-full overflow-hidden border border-transparent transition-colors box-border shrink-0 ${
                     isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'
                   }`}
                   role="tablist"
                   aria-label="Filter schedule by Section or Lab Group"
                 >
-                  <div ref={groupTrackRef} className="relative h-full inline-flex items-center">
-                    {/* Sliding Active Indicator Pill (concentric inside uniform p-1 outer track) */}
-                    <div
-                      aria-hidden="true"
-                      style={{
-                        transform: `translateX(${pillStyle.left}px)`,
-                        width: `${pillStyle.width}px`,
-                        opacity: pillStyle.ready ? 1 : 0,
-                      }}
-                      className={`absolute inset-y-0 left-0 rounded-full pointer-events-none ${
-                        pillStyle.ready ? 'transition-[transform,width] duration-200 ease-out' : ''
-                      } ${
-                        isDark ? 'bg-stone-100 shadow-xs' : 'bg-stone-900 shadow-xs'
-                      }`}
-                    />
+                  <div
+                    ref={groupTrackRef}
+                    className="relative h-full inline-flex items-center rounded-full overflow-hidden"
+                  >
+                    {/* Sliding Active Indicator Pill (concentric & clipped inside uniform p-1 outer track) */}
+                    {pillStyle.ready && (
+                      <motion.div
+                        aria-hidden="true"
+                        initial={false}
+                        animate={{
+                          x: pillStyle.left,
+                          width: pillStyle.width,
+                        }}
+                        transition={GROUP_PILL_SPRING}
+                        className={`absolute inset-y-0 left-0 rounded-full pointer-events-none will-change-transform ${
+                          isDark ? 'bg-stone-100 shadow-xs' : 'bg-stone-900 shadow-xs'
+                        }`}
+                      />
+                    )}
                     {(['All', 'Group A', 'Group B'] as const).map((groupOption) => {
                       const isSelected = selectedGroup === groupOption;
                       return (
@@ -1368,79 +1609,111 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <motion.div
-            layout="position"
-            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          <div
+            className={`transition-[opacity,transform] duration-300 ease-out delay-[150ms] ${
+              isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+            }`}
           >
-            <div
-              className={`transition-[opacity,transform] duration-300 ease-out delay-[150ms] ${
-                isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-              }`}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {isTermFinalView ? (
-                  <motion.div
-                    key="term-finals-view"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <TermFinalsList
-                      termFinals={termFinals}
-                      nowMs={nowMs}
-                      theme={theme}
-                      onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
-                    />
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="weekly-routine-view"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <MasterTimelineGrid
-                      days={operationalDays}
-                      events={events}
-                      todayName={todayName}
-                      currentMinuteOffset={currentMinuteOffset}
-                      onSelectEvent={(evt) => setSelectedEvent(evt)}
-                      scrollRef={scrollContainerRef}
-                      theme={theme}
-                      selectedGroup={selectedGroup}
-                      highlightedEventKey={highlightedEventKey}
-                      totalDayMinutes={dynamicTotalDayMinutes}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        </motion.div>
+            <AnimatePresence mode="wait" initial={false}>
+              {isTermFinalView ? (
+                <motion.div
+                  key="term-finals-view"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <TermFinalsList
+                    termFinals={termFinals}
+                    nowMs={nowMs}
+                    theme={theme}
+                    onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
+                  />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="weekly-routine-view"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <MasterTimelineGrid
+                    days={operationalDays}
+                    events={events}
+                    todayName={todayName}
+                    currentMinuteOffset={currentMinuteOffset}
+                    onSelectEvent={(evt) => setSelectedEvent(evt)}
+                    scrollRef={scrollContainerRef}
+                    theme={theme}
+                    selectedGroup={selectedGroup}
+                    highlightedEventKey={highlightedEventKey}
+                    totalDayMinutes={dynamicTotalDayMinutes}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </main>
-      </LayoutGroup>
-      </MotionConfig>
-      </div>
+        </div>
+      </motion.div>
 
-      {/* Flight Manifest Modal Inspector */}
-      {selectedEvent && (
-        <EventModal
-          event={selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          theme={theme}
-        />
-      )}
+      {/* Full-viewport edge-to-edge dimmed + blurred modal backdrop (stays pointer-events-auto until fully closed) */}
+      <AnimatePresence>
+        {isAnyModalOpen && (
+          <motion.div
+            key="canvas-modal-backdrop"
+            aria-hidden="true"
+            initial={{
+              backgroundColor: 'rgba(0, 0, 0, 0)',
+              '--modal-blur': '0px',
+            }}
+            animate={{
+              backgroundColor: 'rgba(0, 0, 0, 0.45)',
+              '--modal-blur': '6px',
+            }}
+            exit={{
+              backgroundColor: 'rgba(0, 0, 0, 0)',
+              '--modal-blur': '0px',
+            }}
+            transition={BACKDROP_TRANSITION}
+            style={{
+              backdropFilter: 'blur(var(--modal-blur, 0px))',
+              WebkitBackdropFilter: 'blur(var(--modal-blur, 0px))',
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              closeAllModals();
+            }}
+            className="fixed inset-0 z-40 pointer-events-auto"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Flight Manifest Bottom Sheet Modal Inspector */}
+      <AnimatePresence>
+        {selectedEvent && (
+          <EventModal
+            key={`event-modal-${selectedEvent.id || `${selectedEvent.day}-${selectedEvent.startTime}-${selectedEvent.subject}`}`}
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Active Assignments Bottom Sheet Modal */}
-      {isAssignmentsModalOpen && (
-        <AssignmentsModal
-          assignments={assignments}
-          onClose={() => setIsAssignmentsModalOpen(false)}
-          theme={theme}
-        />
-      )}
+      <AnimatePresence>
+        {isAssignmentsModalOpen && (
+          <AssignmentsModal
+            key="assignments-modal"
+            assignments={assignments}
+            onClose={() => setIsAssignmentsModalOpen(false)}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Admin PIN Verification Dialog (PIN: 2024 via Triple-Tap) */}
       <AdminPinDialog
@@ -1450,22 +1723,25 @@ export default function App() {
         theme={theme}
       />
 
-      {/* Hidden Admin Configuration Door Modal */}
-      {isAdminModalOpen && (
-        <AdminConfigModal
-          onClose={() => setIsAdminModalOpen(false)}
-          currentUrl={getActiveCsvUrl()}
-          onSaveUrl={handleSaveAdminUrl}
-          onResetToOfficialDefault={handleResetToOfficialDefault}
-          onForceRefresh={() => fetchAndSync()}
-          onResetBaseline={handleResetBaseline}
-          onOpenExport={() => setIsExportModalOpen(true)}
-          syncStatus={syncStatus}
-          totalEventsCount={events.length}
-          lastSyncTime={lastSyncTime}
-          theme={theme}
-        />
-      )}
+      {/* Hidden Admin Configuration Bottom Sheet Modal */}
+      <AnimatePresence>
+        {isAdminModalOpen && (
+          <AdminConfigModal
+            key="admin-config-modal"
+            onClose={() => setIsAdminModalOpen(false)}
+            currentUrl={getActiveCsvUrl()}
+            onSaveUrl={handleSaveAdminUrl}
+            onResetToOfficialDefault={handleResetToOfficialDefault}
+            onForceRefresh={() => fetchAndSync()}
+            onResetBaseline={handleResetBaseline}
+            onOpenExport={() => setIsExportModalOpen(true)}
+            syncStatus={syncStatus}
+            totalEventsCount={events.length}
+            lastSyncTime={lastSyncTime}
+            theme={theme}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Standalone HTML Exporter (accessible via Admin Config) */}
       <StandaloneHtmlExporter
@@ -1474,5 +1750,6 @@ export default function App() {
         theme={theme}
       />
     </div>
+    </MotionConfig>
   );
 }
