@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { generateSingleFileHtml } from '../utils/singleFileHtmlGenerator';
-import { Copy, Download, Check, X, FileCode } from 'lucide-react';
+import { Copy, Download, Check, FileCode } from 'lucide-react';
 
 interface StandaloneHtmlExporterProps {
   isOpen: boolean;
@@ -94,18 +94,6 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
               </p>
             </div>
           </div>
-
-          <button
-            onClick={onClose}
-            className={`w-7 h-7 rounded-2xs flex items-center justify-center transition-colors cursor-pointer border ${
-              isDark
-                ? 'bg-[#262523] hover:bg-[#2F2E2B] text-stone-300 hover:text-stone-100 border-transparent'
-                : 'bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900 border-transparent'
-            }`}
-            aria-label="Close dialog"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         <p className={`text-xs mb-3 leading-relaxed ${isDark ? 'text-stone-300' : 'text-stone-600'}`}>
@@ -156,7 +144,10 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
               : 'border-stone-200 bg-stone-50 text-stone-700'
           }`}
         >
-          <pre className="overflow-y-auto no-scrollbar max-h-[240px] leading-relaxed select-all">
+          <pre
+            data-modal-scrollable="true"
+            className="overflow-y-auto no-scrollbar max-h-[240px] leading-relaxed select-all"
+          >
             {htmlContent.slice(0, 2200)}
             {'\n... [REMAINDER OF COMPLETE SELF-CONTAINED STANDALONE AVIATION HTML PAYLOAD INCLUDED] ...'}
           </pre>
@@ -168,14 +159,6 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
           }`}
         >
           <span>Ready for hosting on GitHub Pages, Cloudflare, or local offline run</span>
-          <button
-            onClick={onClose}
-            className={`font-bold hover:underline cursor-pointer ${
-              isDark ? 'text-stone-100' : 'text-stone-900'
-            }`}
-          >
-            DISMISS
-          </button>
         </div>
           </motion.div>
         </motion.div>

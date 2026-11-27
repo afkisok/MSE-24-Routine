@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { RefreshCw, Sun, Moon } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
+import { SmoothRefreshIcon } from './SmoothRefreshIcon';
 
 interface SyncStatus {
   status: 'idle' | 'syncing' | 'success' | 'error';
@@ -27,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
   isMounted = true,
 }) => {
   const isDark = theme === 'dark';
+  const [refreshPulseId, setRefreshPulseId] = useState(0);
 
   // Timing and tap counter state for mobile touchscreens (850ms window)
   const tapCountRef = useRef(0);
@@ -156,9 +158,14 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Header Right Actions: Discreet Manual Refresh + Clean Circular Theme Toggle */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Discreet Manual Refresh Button */}
-            <button
-              onClick={onManualSync}
+            <motion.button
+              onClick={() => {
+                setRefreshPulseId((id) => id + 1);
+                onManualSync();
+              }}
               disabled={syncStatus.status === 'syncing'}
+              whileTap={syncStatus.status === 'syncing' ? undefined : { scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 520, damping: 30, mass: 0.6 }}
               type="button"
               title={
                 syncStatus.status === 'syncing'
@@ -166,20 +173,35 @@ export const Header: React.FC<HeaderProps> = ({
                   : 'Refresh routine schedule'
               }
               aria-label="Refresh routine schedule"
-              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none disabled:opacity-60 ${
+              className={`relative overflow-hidden w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-colors duration-150 border select-none disabled:cursor-default ${
                 isDark
                   ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#262523]'
                   : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
               }`}
             >
-              <span
-                className={`inline-flex items-center justify-center leading-none transition-transform duration-200 ${
-                  syncStatus.status === 'syncing' ? 'animate-spin' : ''
-                }`}
-              >
-                <RefreshCw className="w-4 h-4 block" />
-              </span>
-            </button>
+              <AnimatePresence>
+                {refreshPulseId > 0 && (
+                  <motion.span
+                    key={refreshPulseId}
+                    aria-hidden="true"
+                    initial={{ scale: 0.45, opacity: isDark ? 0.28 : 0.16 }}
+                    animate={{ scale: 1.55, opacity: 0 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+                    className={`pointer-events-none absolute inset-0 rounded-full ${
+                      isDark ? 'bg-stone-200' : 'bg-stone-900'
+                    }`}
+                  />
+                )}
+              </AnimatePresence>
+              <SmoothRefreshIcon
+                isSyncing={syncStatus.status === 'syncing'}
+                syncStatus={syncStatus.status}
+                className="w-4 h-4 block"
+                showSuccessCheck
+                successClassName={isDark ? 'text-emerald-400' : 'text-emerald-600'}
+              />
+            </motion.button>
 
             {/* Clean Circular Theme Toggle Button */}
             <button

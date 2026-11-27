@@ -50,7 +50,8 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
     >
       {/* Scrollable Assignments List */}
       <div
-        className="overflow-y-auto no-scrollbar overscroll-y-contain mb-4 pr-0.5"
+        data-modal-scrollable="true"
+        className="overflow-y-auto no-scrollbar overscroll-y-contain pb-[env(safe-area-inset-bottom)] sm:pb-0 pr-0.5"
         onPointerDown={(e) => {
           if (e.currentTarget.scrollTop > 0) {
             e.stopPropagation();
@@ -125,24 +126,6 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
             })}
           </div>
         )}
-      </div>
-
-      {/* Bottom action: Full-width pill button ("Close") */}
-      <div className="pt-1 shrink-0 pb-[env(safe-area-inset-bottom)] sm:pb-0">
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClose();
-          }}
-          className={`w-full py-2.5 px-5 rounded-full cursor-pointer font-medium text-sm leading-tight transition-all duration-150 active:scale-95 border ${
-            isDark
-              ? 'bg-[#262523] text-[#F4F3EF] hover:bg-[#2F2E2B] border-transparent'
-              : 'bg-[#EFEDE8] text-[#1C1B1A] hover:bg-[#E5E2DB] border-transparent'
-          }`}
-        >
-          Close
-        </button>
       </div>
     </BottomSheetModal>
   );

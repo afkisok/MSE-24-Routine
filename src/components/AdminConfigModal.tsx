@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, RefreshCw, RotateCcw, Check, FileCode } from 'lucide-react';
+import { RotateCcw, Check, FileCode } from 'lucide-react';
 import { DEFAULT_ROUTINE_CSV_URL } from '../types/routine';
 import { BottomSheetModal } from './BottomSheetModal';
+import { SmoothRefreshIcon } from './SmoothRefreshIcon';
 
 interface AdminConfigModalProps {
   onClose: () => void;
@@ -121,26 +122,13 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 </div>
               </div>
             </div>
-
-            <button
-              onClick={onClose}
-              onPointerDown={(e) => e.stopPropagation()}
-              type="button"
-              aria-label="Close admin configuration"
-              className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-150 active:scale-95 border cursor-pointer shrink-0 ${
-                isDark
-                  ? 'bg-[#262523] border-transparent text-stone-400 hover:text-stone-100 hover:bg-[#2F2E2B]'
-                  : 'bg-stone-100 border-transparent text-stone-500 hover:text-stone-900 hover:bg-stone-200'
-              }`}
-            >
-              <X className="w-4 h-4" />
-            </button>
           </div>
         </div>
       )}
     >
       {/* Modal Body */}
       <div
+        data-modal-scrollable="true"
         className="p-5 overflow-y-auto no-scrollbar overscroll-y-contain space-y-5 text-xs"
         onPointerDown={(e) => {
           if (e.currentTarget.scrollTop > 0) {
@@ -191,8 +179,10 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 </>
               ) : (
                 <>
-                  <RefreshCw
-                    className={`w-3.5 h-3.5 ${syncStatus.status === 'syncing' ? 'animate-spin' : ''}`}
+                  <SmoothRefreshIcon
+                    isSyncing={syncStatus.status === 'syncing'}
+                    syncStatus={syncStatus.status}
+                    className="w-3.5 h-3.5 block"
                   />
                   <span>Save & Re-sync</span>
                 </>
@@ -215,13 +205,20 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               type="button"
               onClick={onForceRefresh}
               disabled={syncStatus.status === 'syncing'}
-              className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center cursor-pointer transition-all duration-150 active:scale-95 border disabled:opacity-60 ${
+              className={`py-2 px-3 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border disabled:opacity-60 ${
                 isDark
                   ? 'bg-[#262523] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#2F2E2B]'
                   : 'bg-white border-stone-300 text-stone-700 hover:bg-stone-50'
               }`}
             >
-              Force Sync
+              <SmoothRefreshIcon
+                isSyncing={syncStatus.status === 'syncing'}
+                syncStatus={syncStatus.status}
+                className="w-3.5 h-3.5 block"
+                showSuccessCheck
+                successClassName={isDark ? 'text-emerald-400' : 'text-emerald-600'}
+              />
+              <span>Force Sync</span>
             </button>
           </div>
         </form>
@@ -283,17 +280,6 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
         <span className={isDark ? 'text-stone-400' : 'text-stone-500'}>
           Saved locally on this device
         </span>
-        <button
-          type="button"
-          onClick={onClose}
-          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold cursor-pointer transition-all duration-150 active:scale-95 border ${
-            isDark
-              ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
-              : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
-          }`}
-        >
-          Done
-        </button>
       </div>
     </BottomSheetModal>
   );

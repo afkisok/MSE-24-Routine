@@ -138,7 +138,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       return Math.round(window.innerHeight * 1.05);
     }
     const cardHeight = sheetCardRef.current?.offsetHeight ?? 0;
-    return Math.max(cardHeight + 48, Math.round(window.innerHeight * 0.92));
+    return Math.max(cardHeight + 64, Math.round(window.innerHeight * 0.96));
   }, []);
 
   const [exitY, setExitY] = useState<number>(() => computeOffscreenY());
@@ -195,7 +195,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 select-none overscroll-y-contain pointer-events-auto"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 select-none overscroll-y-contain overflow-visible pointer-events-auto"
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
@@ -211,7 +211,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         className="fixed inset-0 z-0 pointer-events-auto"
       />
 
-      {/* Gesture-driven critically damped spring bottom sheet */}
+      {/* Gesture-driven critically damped spring bottom sheet anchored flush to bottom-0 on mobile */}
       <motion.div
         ref={sheetCardRef}
         initial={{ y: initialYRef.current }}
@@ -225,21 +225,14 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         onDragEnd={handleDragEnd}
         style={{ y: sheetY, overscrollBehaviorY: 'contain' }}
         onClick={(e) => e.stopPropagation()}
-        className="relative z-10 w-full max-w-lg will-change-transform transform-gpu pointer-events-auto"
+        className="fixed bottom-0 inset-x-0 mx-auto sm:relative sm:bottom-auto sm:inset-x-auto sm:mx-0 z-10 w-full max-w-lg overflow-visible will-change-transform transform-gpu pointer-events-auto"
       >
-        {/* Mobile bottom apron seals the bottom edge during upward rubber-banding */}
         <div
-          aria-hidden="true"
-          className={`sm:hidden pointer-events-none absolute inset-x-0 top-[calc(100%-2px)] h-20 ${
-            isDark ? 'bg-[#1E1D1C]' : 'bg-white'
-          }`}
-        />
-
-        <div
-          className={`relative w-full rounded-t-[28px] sm:rounded-[28px] shadow-2xl flex flex-col max-h-[90vh] border overscroll-y-contain no-scrollbar ${
+          data-modal-scrollable="true"
+          className={`relative z-10 w-full rounded-t-[28px] sm:rounded-[28px] flex flex-col max-h-[90vh] border border-b-0 sm:border-b overscroll-y-contain no-scrollbar ${
             isDark
-              ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-black/80'
-              : 'bg-white border-stone-200 text-stone-900 shadow-stone-900/20'
+              ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-[0_-12px_40px_-8px_rgba(0,0,0,0.75)] sm:shadow-2xl sm:shadow-black/80'
+              : 'bg-white border-stone-200 text-stone-900 shadow-[0_-10px_36px_-8px_rgba(28,25,23,0.18)] sm:shadow-2xl sm:shadow-stone-900/20'
           } ${sheetClassName}`}
         >
           <div
@@ -251,6 +244,16 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
           {children}
         </div>
+
+        {/* Dedicated solid bottom skirt anchored directly below the draggable sheet so upward overscroll never reveals background */}
+        <div
+          aria-hidden="true"
+          className={`sm:hidden pointer-events-none absolute top-full left-0 right-0 -mt-px h-40 z-20 border-x ${
+            isDark
+              ? 'bg-[#1E1D1C] border-transparent'
+              : 'bg-white border-stone-200'
+          }`}
+        />
       </motion.div>
     </motion.div>
   );

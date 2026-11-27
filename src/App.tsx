@@ -261,16 +261,74 @@ export default function App() {
     setIsExportModalOpen(false);
   };
 
-  // Centralized body scroll lock tied strictly to modal visibility (prevents races across overlapping modals)
+  // Bulletproof background scroll lock tied strictly to modal visibility (locks html + body + wheel + touchmove)
   useEffect(() => {
     if (!isAnyModalOpen) return;
-    const prevOverflow = document.body.style.overflow;
-    const prevTouchAction = document.body.style.touchAction;
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
+    const html = document.documentElement;
+    const body = document.body;
+
+    const prevHtmlOverflow = html.style.overflow;
+    const prevHtmlOverscroll = html.style.overscrollBehavior;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyOverscroll = body.style.overscrollBehavior;
+    const prevBodyTouchAction = body.style.touchAction;
+
+    html.style.overflow = 'hidden';
+    html.style.overscrollBehavior = 'none';
+    body.style.overflow = 'hidden';
+    body.style.overscrollBehavior = 'none';
+    body.style.touchAction = 'none';
+
+    const findScrollableModalAncestor = (target: EventTarget | null): HTMLElement | null => {
+      let node: Element | null = target instanceof Element ? target : null;
+      while (node) {
+        if (node instanceof HTMLElement && node.dataset.modalScrollable === 'true') {
+          const overflowY = window.getComputedStyle(node).overflowY;
+          if (
+            (overflowY === 'auto' || overflowY === 'scroll') &&
+            node.scrollHeight > node.clientHeight + 1
+          ) {
+            return node;
+          }
+        }
+        node = node.parentElement;
+      }
+      return null;
+    };
+
+    const handleWheel = (e: WheelEvent) => {
+      const scrollable = findScrollableModalAncestor(e.target);
+      if (!scrollable) {
+        e.preventDefault();
+        return;
+      }
+      const atTop = scrollable.scrollTop <= 0 && e.deltaY < 0;
+      const atBottom =
+        scrollable.scrollTop + scrollable.clientHeight >= scrollable.scrollHeight - 1 &&
+        e.deltaY > 0;
+      if (atTop || atBottom) {
+        e.preventDefault();
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      const scrollable = findScrollableModalAncestor(e.target);
+      if (!scrollable) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    window.addEventListener('touchmove', handleTouchMove, { passive: false });
+
     return () => {
-      document.body.style.overflow = prevOverflow;
-      document.body.style.touchAction = prevTouchAction;
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchmove', handleTouchMove);
+      html.style.overflow = prevHtmlOverflow;
+      html.style.overscrollBehavior = prevHtmlOverscroll;
+      body.style.overflow = prevBodyOverflow;
+      body.style.overscrollBehavior = prevBodyOverscroll;
+      body.style.touchAction = prevBodyTouchAction;
     };
   }, [isAnyModalOpen]);
 

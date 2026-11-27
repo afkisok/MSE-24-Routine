@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { X, Lock, KeyRound, AlertCircle } from 'lucide-react';
+import { KeyRound, AlertCircle } from 'lucide-react';
 
 interface AdminPinDialogProps {
   isOpen: boolean;
@@ -133,18 +133,6 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               </p>
             </div>
           </div>
-
-          <button
-            onClick={onClose}
-            type="button"
-            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-150 active:scale-95 cursor-pointer ${
-              isDark
-                ? 'text-stone-400 hover:text-stone-100 hover:bg-stone-800'
-                : 'text-stone-400 hover:text-stone-700 hover:bg-stone-100'
-            }`}
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
         {/* PIN Form */}
@@ -203,22 +191,11 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
             </div>
           )}
 
-          <div className="w-full flex items-center gap-2 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className={`flex-1 py-2 px-3 text-xs font-medium rounded-full cursor-pointer transition-all active:scale-95 border ${
-                isDark
-                  ? 'bg-[#262523] border-transparent text-stone-300 hover:bg-[#2F2E2B] hover:text-stone-100'
-                  : 'bg-[#EFEDE8] border-transparent text-[#1C1B1A] hover:bg-[#E5E2DB]'
-              }`}
-            >
-              Cancel
-            </button>
+          <div className="w-full flex items-center pt-2">
             <button
               type="submit"
               disabled={pin.length < 4}
-              className={`flex-1 py-2 px-3 text-xs font-semibold rounded-full cursor-pointer transition-all active:scale-95 border disabled:opacity-40 ${
+              className={`w-full py-2 px-3 text-xs font-semibold rounded-full cursor-pointer transition-all active:scale-95 border disabled:opacity-40 ${
                 isDark
                   ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
                   : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
