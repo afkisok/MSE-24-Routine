@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Sun, Moon } from 'lucide-react';
 import { SmoothRefreshIcon } from './SmoothRefreshIcon';
+import { MastheadInteractiveDot } from './MastheadInteractiveDot';
 import { startupPopTransition, startupTextTransition } from '../utils/springs';
 
 interface SyncStatus {
@@ -30,7 +31,6 @@ export const Header: React.FC<HeaderProps> = ({
   const isDark = theme === 'dark';
   const [refreshPulseId, setRefreshPulseId] = useState(0);
   const [isRefreshHovered, setIsRefreshHovered] = useState(false);
-  const [dotHopId, setDotHopId] = useState(0);
 
   // Timing and tap counter state for mobile touchscreens (850ms window)
   const tapCountRef = useRef(0);
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="select-none w-full">
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-0 flex flex-col">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4 pb-0 flex flex-col">
         {/* Top Row: Three Equal-Sized Circles (MSE '24 left, Refresh + Theme right) */}
         <div className="flex items-center justify-between gap-3">
           {/* MSE '24 Brand Mark Badge (Strict Triple-Tap Protected) */}
@@ -291,7 +291,8 @@ export const Header: React.FC<HeaderProps> = ({
           {(() => {
             const secondLine = mastheadLines[1];
             const crimsonTextClass = isDark ? 'text-[#E5484D]' : 'text-[#9E2C2C]';
-            if (secondLine.endsWith('.')) {
+            if (secondLine.endsWith('.') || secondLine.endsWith('?')) {
+              const variant = secondLine.endsWith('?') ? 'question' : 'period';
               return (
                 <>
                   <motion.span
@@ -302,79 +303,14 @@ export const Header: React.FC<HeaderProps> = ({
                   >
                     {secondLine.slice(0, -1)}
                   </motion.span>
-                  <motion.span
-                    key={`masthead-dot-${dotHopId}`}
-                    initial={dotHopId === 0 ? { y: -7, scale: 0.55, opacity: 0 } : { y: 0, scale: 1 }}
-                    animate={
-                      dotHopId === 0
-                        ? { y: 0, scale: 1, opacity: 1 }
-                        : { y: [0, -7, 0], scaleY: [1, 1.18, 0.88, 1], scaleX: [1, 0.9, 1.12, 1] }
-                    }
-                    transition={
-                      dotHopId === 0
-                        ? {
-                            opacity: { duration: 0.18, delay: 0.22, ease: [0.22, 1, 0.36, 1] },
-                            default: { type: 'spring', stiffness: 400, damping: 21, mass: 0.72, delay: 0.22 },
-                          }
-                        : { duration: 0.42, ease: [0.22, 1, 0.36, 1] }
-                    }
-                    onClick={() => setDotHopId((n) => n + 1)}
-                    onHoverStart={() => setDotHopId((n) => n + 1)}
-                    className={`inline-block origin-bottom cursor-pointer ${crimsonTextClass}`}
-                  >
-                    .
-                  </motion.span>
-                </>
-              );
-            }
-            if (secondLine.endsWith('?')) {
-              return (
-                <>
-                  <motion.span
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={startupTextTransition(0.1)}
-                    className="inline-block"
-                  >
-                    {secondLine.slice(0, -1)}
-                  </motion.span>
-                  <span
-                    onClick={() => setDotHopId((n) => n + 1)}
-                    onMouseEnter={() => setDotHopId((n) => n + 1)}
-                    className="relative inline-block leading-none cursor-pointer"
-                  >
-                    <motion.span
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={startupTextTransition(0.1)}
-                      className="inline-block leading-none"
-                      style={{ clipPath: 'inset(0 0 45% 0)' }}
-                    >
-                      ?
-                    </motion.span>
-                    <motion.span
-                      key={`masthead-qdot-${dotHopId}`}
-                      aria-hidden="true"
-                      initial={dotHopId === 0 ? { y: -6, scale: 0.58, opacity: 0 } : { y: 0, scale: 1 }}
-                      animate={
-                        dotHopId === 0
-                          ? { y: 0, scale: 1, opacity: 1 }
-                          : { y: [0, -5, 0], scaleY: [1, 1.16, 0.9, 1], scaleX: [1, 0.92, 1.1, 1] }
-                      }
-                      transition={
-                        dotHopId === 0
-                          ? {
-                              opacity: { duration: 0.18, delay: 0.22, ease: [0.22, 1, 0.36, 1] },
-                              default: { type: 'spring', stiffness: 400, damping: 21, mass: 0.72, delay: 0.22 },
-                            }
-                          : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
-                      }
-                      className={`pointer-events-none select-none absolute inset-0 inline-block leading-none origin-bottom ${crimsonTextClass}`}
-                      style={{ clipPath: 'inset(55% 0 0 0)' }}
-                    >
-                      ?
-                    </motion.span>
-                  </span>
+                  <MastheadInteractiveDot
+                    key={variant}
+                    variant={variant}
+                    crimsonTextClass={crimsonTextClass}
+                    isDark={isDark}
+                    startupDelay={0.22}
+                    textTransition={startupTextTransition(0.1)}
+                  />
                 </>
               );
             }

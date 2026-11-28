@@ -106,7 +106,7 @@ const GrabHandle: React.FC<GrabHandleProps> = ({ isDark, setterRef, onGrabPointe
           setIsGrabbed(true);
           onGrabPointerDown(e);
         }}
-        className="inline-flex items-center justify-center px-[0.45rem] py-2.5 rounded-full cursor-grab active:cursor-grabbing touch-none select-none"
+        className="inline-flex items-center justify-center px-2 py-2.5 rounded-full cursor-grab active:cursor-grabbing touch-none select-none"
       >
         <motion.div
           animate={{
@@ -375,7 +375,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       >
         <div
           data-modal-scrollable="true"
-          className={`relative z-10 w-full rounded-t-[28px] sm:rounded-[28px] flex flex-col max-h-[90vh] border border-b-0 sm:border-b overscroll-y-contain no-scrollbar ${
+          className={`relative z-10 w-full rounded-t-3xl sm:rounded-3xl flex flex-col max-h-[90vh] border border-b-0 sm:border-b overscroll-y-contain no-scrollbar ${
             isDark
               ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-[0_-12px_40px_-8px_rgba(0,0,0,0.75)] sm:shadow-2xl sm:shadow-black/80'
               : 'bg-white border-stone-200 text-stone-900 shadow-[0_-10px_36px_-8px_rgba(28,25,23,0.18)] sm:shadow-2xl sm:shadow-stone-900/20'

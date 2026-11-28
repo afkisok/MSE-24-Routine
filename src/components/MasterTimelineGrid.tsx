@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { animate, motion } from 'motion/react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { animate, AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
 import { startupPopTransition, startupTextTransition, UNIFIED_SPRING } from '../utils/springs';
@@ -23,9 +23,111 @@ interface MasterTimelineGridProps {
   theme?: 'light' | 'dark';
   selectedGroup?: 'All' | 'Group A' | 'Group B';
   highlightedEventKey?: string | null;
+  highlightPhase?: 'lifted' | 'settling' | null;
+  highlightSeq?: number;
   totalDayMinutes?: number;
   isInitialStartup?: boolean;
 }
+
+const COUNT_ROLL_SPRING = {
+  type: 'spring' as const,
+  stiffness: 460,
+  damping: 30,
+  mass: 0.7,
+};
+
+const COUNT_ROLL_VARIANTS: Variants = {
+  enter: (dir: number) => ({
+    y: dir * 9,
+    opacity: 0,
+    scale: 0.88,
+  }),
+  center: {
+    y: 0,
+    opacity: 1,
+    scale: 1,
+  },
+  exit: (dir: number) => ({
+    y: -dir * 9,
+    opacity: 0,
+    scale: 0.88,
+  }),
+};
+
+const DayEventCountLabel: React.FC<{ count: number }> = ({ count }) => {
+  const shouldReduceMotion = useReducedMotion();
+  const prevCountRef = useRef(count);
+  const lastDirRef = useRef(1);
+
+  if (count !== prevCountRef.current) {
+    lastDirRef.current = count > prevCountRef.current ? 1 : -1;
+  }
+
+  useEffect(() => {
+    prevCountRef.current = count;
+  }, [count]);
+
+  const direction = lastDirRef.current;
+  const phraseKey = count === 0 ? 'free' : count === 1 ? 'one' : 'many';
+
+  if (shouldReduceMotion) {
+    return (
+      <span className="opacity-85 tabular-nums">
+        {count === 0 ? 'Free day' : count === 1 ? 'Just 1 event' : `${count} events`}
+      </span>
+    );
+  }
+
+  return (
+    <span className="relative inline-flex items-center justify-center overflow-hidden py-[2px] -my-[2px] opacity-85">
+      <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+        {phraseKey === 'many' ? (
+          <motion.span
+            key="many"
+            custom={direction}
+            variants={COUNT_ROLL_VARIANTS}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={COUNT_ROLL_SPRING}
+            className="inline-flex items-center whitespace-nowrap will-change-transform"
+          >
+            <span className="relative inline-flex items-center justify-center min-w-[1ch] text-center overflow-hidden py-[2px] -my-[2px]">
+              <AnimatePresence mode="popLayout" initial={false} custom={direction}>
+                <motion.span
+                  key={count}
+                  custom={direction}
+                  variants={COUNT_ROLL_VARIANTS}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={COUNT_ROLL_SPRING}
+                  className="inline-block tabular-nums font-medium will-change-transform"
+                >
+                  {count}
+                </motion.span>
+              </AnimatePresence>
+            </span>
+            <span>&nbsp;events</span>
+          </motion.span>
+        ) : (
+          <motion.span
+            key={phraseKey}
+            custom={direction}
+            variants={COUNT_ROLL_VARIANTS}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={COUNT_ROLL_SPRING}
+            className="inline-block whitespace-nowrap will-change-transform"
+          >
+            {count === 0 ? 'Free day' : 'Just 1 event'}
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
+  );
+};
 
 export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   days,
@@ -37,6 +139,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   theme = 'light',
   selectedGroup = 'All',
   highlightedEventKey = null,
+  highlightPhase = null,
+  highlightSeq = 0,
   totalDayMinutes = TOTAL_DAY_MINUTES,
   isInitialStartup = true,
 }) => {
@@ -45,6 +149,38 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   const safeTotalMinutes = Math.max(TOTAL_DAY_MINUTES, totalDayMinutes);
   const periodMarkers: PeriodMarker[] = getAcademicPeriodMarkers(safeTotalMinutes);
   const isDark = theme === 'dark';
+
+  // Pre-group events by lowercase weekday and parse alternating lab metadata once per events change
+  const eventsByDay = useMemo(() => {
+    const grouped = new Map<
+      string,
+      Array<{
+        event: RoutineEvent;
+        isCancelled: boolean;
+        groupVariant: 'A' | 'B' | 'A/B' | null;
+      }>
+    >();
+
+    for (const evt of events) {
+      const dayKey = evt.day.toLowerCase();
+      const status = (evt.status || '').trim().toLowerCase();
+      const isCancelled = status === 'cancelled' || status === 'canceled';
+      const meta = parseAlternatingSchedule(evt.type, evt.subject, evt.syllabus);
+
+      let list = grouped.get(dayKey);
+      if (!list) {
+        list = [];
+        grouped.set(dayKey, list);
+      }
+      list.push({
+        event: evt,
+        isCancelled,
+        groupVariant: meta.groupVariant,
+      });
+    }
+
+    return grouped;
+  }, [events]);
 
   const minTrackWidthPx = Math.round((safeTotalMinutes / TOTAL_DAY_MINUTES) * 1145) + 48;
   const internalScrollRef = useRef<HTMLDivElement | null>(null);
@@ -179,7 +315,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
         initial={useStartupTiming ? { opacity: 0, y: 10, scale: 0.99 } : false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={startupTextTransition(baseDelay)}
-        className={`relative rounded-2xl overflow-hidden flex items-stretch select-none border transition-colors ${
+        className={`relative rounded-[20px] overflow-hidden flex items-stretch select-none border transition-colors ${
           isDark
             ? 'bg-[#100F0E] border-transparent'
             : 'bg-[#EAE8E2] border-transparent'
@@ -188,17 +324,17 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
       {/* Subtle recessed tray inner shadow overlay (rendered above opaque rail/track edges) */}
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 rounded-2xl z-30 ${
+        className={`pointer-events-none absolute inset-0 rounded-[20px] z-[25] ${
           isDark
             ? 'shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
             : 'shadow-[inset_0_3px_18px_rgba(24,23,22,0.028),inset_0_1px_6px_rgba(24,23,22,0.015)]'
         }`}
       />
 
-      {/* Unbroken full-width header divider rendered at z-30 strictly above the edge-fade fogs */}
+      {/* Unbroken full-width header divider rendered at z-[25] above edge-fade fogs, beneath lifted highlight tiles */}
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute top-11 left-0 right-0 h-px z-30 transition-colors ${
+        className={`pointer-events-none absolute top-11 left-0 right-0 h-px z-[25] transition-colors ${
           isDark ? 'bg-white/[0.06]' : 'bg-black/[0.06]'
         }`}
       />
@@ -251,18 +387,17 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           </motion.span>
         </div>
 
-        {/* Static Day Rows with Spring-Animated rounded-2xl Pill (h-24) */}
+        {/* Static Day Rows with Spring-Animated rounded-xl Pill (h-24) */}
         {days.map((day, dayIdx) => {
           const isToday = day.toLowerCase() === todayName.toLowerCase();
-          const dayEventsCount = events.filter((e) => {
-            if (e.day.toLowerCase() !== day.toLowerCase()) return false;
-            const status = (e.status || '').trim().toLowerCase();
-            if (status === 'cancelled' || status === 'canceled') return false;
-            const meta = parseAlternatingSchedule(e.type, e.subject, e.syllabus);
-            if (selectedGroup === 'Group A' && meta.groupVariant === 'B') return false;
-            if (selectedGroup === 'Group B' && meta.groupVariant === 'A') return false;
-            return true;
-          }).length;
+          const dayItems = eventsByDay.get(day.toLowerCase()) ?? [];
+          let dayEventsCount = 0;
+          for (const item of dayItems) {
+            if (item.isCancelled) continue;
+            if (selectedGroup === 'Group A' && item.groupVariant === 'B') continue;
+            if (selectedGroup === 'Group B' && item.groupVariant === 'A') continue;
+            dayEventsCount += 1;
+          }
 
           return (
             <div
@@ -297,7 +432,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       }
                     : undefined
                 }
-                className={`relative h-full rounded-2xl flex flex-col items-center justify-center text-center border overflow-hidden will-change-transform transform-gpu ${
+                className={`relative h-full rounded-xl flex flex-col items-center justify-center text-center border overflow-hidden will-change-transform transform-gpu ${
                   isScrolled ? 'cursor-pointer' : ''
                 } ${
                   isToday
@@ -331,13 +466,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                   }`}
                   aria-hidden={isScrolled || undefined}
                 >
-                  <span className="opacity-85">
-                    {dayEventsCount === 0
-                      ? 'Free day'
-                      : dayEventsCount === 1
-                      ? 'Just 1 event'
-                      : `${dayEventsCount} events`}
-                  </span>
+                  <DayEventCountLabel count={dayEventsCount} />
                 </div>
               </motion.div>
               </motion.div>
@@ -452,15 +581,21 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           {/* Synchronized Day Tracks with symmetric px-6 buffer */}
           {days.map((day, dayIdx) => {
             const isToday = day.toLowerCase() === todayName.toLowerCase();
-            const dayEvents = events.filter(
-              (e) => e.day.toLowerCase() === day.toLowerCase()
-            );
+            const dayItems = eventsByDay.get(day.toLowerCase()) ?? [];
+            const hasHighlightedSlot =
+              highlightedEventKey !== null &&
+              dayItems.some(
+                ({ event: evt }, idx) =>
+                  (evt.id || `${day}-${evt.startTime}-${idx}`) === highlightedEventKey
+              );
 
             return (
               <div
                 key={`track-${day}`}
                 data-day={day.toLowerCase()}
-                className="relative z-10 h-24 px-6 py-1 bg-transparent transition-colors"
+                className={`relative h-24 px-6 py-1 bg-transparent transition-colors ${
+                  hasHighlightedSlot ? 'z-[35]' : 'z-10'
+                }`}
               >
                 <div className="relative w-full h-full">
                   {/* Live Current Time Vertical Line for Today (always pinned above cards) */}
@@ -480,7 +615,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 
                   {/* Scheduled Flight / Class Slots */}
                   <div className="relative w-full h-full">
-                    {dayEvents.length === 0 ? (
+                    {dayItems.length === 0 ? (
                       <div
                         className={`h-full flex items-center justify-center text-xs font-sans ${
                           isDark ? 'text-stone-500' : 'text-stone-400'
@@ -489,11 +624,10 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                         No classes scheduled for {day}
                       </div>
                     ) : (
-                      dayEvents.map((evt, idx) => {
-                        const meta = parseAlternatingSchedule(evt.type, evt.subject, evt.syllabus);
+                      dayItems.map(({ event: evt, groupVariant }, idx) => {
                         const isDimmed =
-                          (selectedGroup === 'Group A' && meta.groupVariant === 'B') ||
-                          (selectedGroup === 'Group B' && meta.groupVariant === 'A');
+                          (selectedGroup === 'Group A' && groupVariant === 'B') ||
+                          (selectedGroup === 'Group B' && groupVariant === 'A');
                         const eventKey = evt.id || `${day}-${evt.startTime}-${idx}`;
                         const isHighlighted = highlightedEventKey === eventKey;
 
@@ -505,6 +639,8 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                             theme={theme}
                             isDimmed={isDimmed}
                             isHighlighted={isHighlighted}
+                            highlightPhase={isHighlighted ? highlightPhase : null}
+                            highlightSeq={highlightSeq}
                             totalDayMinutes={safeTotalMinutes}
                             startupDelay={
                               baseDelay + Math.min(0.23, 0.04 + dayIdx * 0.035 + idx * 0.024)

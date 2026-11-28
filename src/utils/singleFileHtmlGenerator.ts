@@ -518,7 +518,7 @@ export function generateSingleFileHtml(): string {
         if (!text) continue;
         const norm = text.toLowerCase();
         // Check Dual Group A/B first
-        if (/lab[-_\\s]?a\\/b|\\ba\\/b\\b|grp[-_\\s]?a\\/b|group[-_\\s]?a\\/b|\\[a\\/b\\]|\\(a\\/b\\)/i.test(norm)) {
+        if (/lab[-_\\s]?a\\s*[,\\/&]\\s*b\\b|grp[-_\\s]?a\\s*[,\\/&]\\s*b\\b|group[-_\\s]?a\\s*[,\\/&]\\s*b\\b|\\ba\\s*[,\\/&]\\s*b\\b|\\[a\\s*[,\\/&]\\s*b\\]|\\(a\\s*[,\\/&]\\s*b\\)/i.test(norm)) {
           groupTag = 'GRP A/B';
           groupVariant = 'A/B';
           break;

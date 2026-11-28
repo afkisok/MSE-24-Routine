@@ -242,12 +242,12 @@ export function parseRoutineCSVRows(rows: string[][]): {
 
     if (row.length < 3) continue;
 
-    const dayMatch =
-      validDays.find(
-        (d) =>
-          d.toLowerCase() === lowerDay ||
-          (lowerDay.length >= 3 && d.toLowerCase().startsWith(lowerDay.slice(0, 3)))
-      ) || 'Sunday';
+    const dayMatch = validDays.find(
+      (d) =>
+        d.toLowerCase() === lowerDay ||
+        (lowerDay.length >= 3 && d.toLowerCase().startsWith(lowerDay.slice(0, 3)))
+    );
+    if (!dayMatch) continue;
 
     const startTime = (startIdx >= 0 ? row[startIdx] : '')?.trim() || '08:00';
     const endTime = (endIdx >= 0 ? row[endIdx] : '')?.trim() || '08:50';

@@ -61,7 +61,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
               damping: 40,
               mass: 0.9,
             }}
-            className={`relative z-10 w-full max-w-2xl rounded-xs p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] border will-change-transform transform-gpu ${
+            className={`relative z-10 w-full max-w-2xl rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] border will-change-transform transform-gpu ${
               isDark
                 ? 'bg-[#1E1D1C] border-transparent text-stone-100'
                 : 'bg-white border-stone-200 text-stone-900'
@@ -69,13 +69,13 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
         <div
-          className={`flex items-center justify-between pb-3 mb-2 border-b transition-colors ${
+          className={`flex items-center justify-between pb-3 mb-3.5 border-b transition-colors ${
             isDark ? 'border-stone-800' : 'border-stone-200'
           }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <div
-              className={`w-7 h-7 rounded-2xs flex items-center justify-center font-mono transition-colors ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center font-mono transition-colors ${
                 isDark ? 'bg-stone-100 text-stone-900' : 'bg-stone-900 text-stone-50'
               }`}
             >
@@ -96,18 +96,18 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
           </div>
         </div>
 
-        <p className={`text-xs mb-3 leading-relaxed ${isDark ? 'text-stone-300' : 'text-stone-600'}`}>
+        <p className={`text-xs mb-3.5 leading-relaxed ${isDark ? 'text-stone-300' : 'text-stone-600'}`}>
           Contains the complete Aviation Flight Schedule Dashboard utility runtime: dynamic 08:00–17:00 timeline scaling, 1px hairlines matrix, live CSV spreadsheet sync engine, exam alert blocks, and modal manifests in a single runnable HTML file.
         </p>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="flex flex-wrap items-center gap-2 mb-3.5">
           <button
             onClick={handleCopy}
-            className={`text-xs py-1.5 px-3.5 rounded-xs cursor-pointer font-mono font-semibold transition-colors border ${
+            className={`h-9 px-3.5 text-xs rounded-xl cursor-pointer font-mono font-semibold inline-flex items-center gap-1.5 transition-colors border ${
               isDark
                 ? 'bg-stone-100 hover:bg-stone-200 text-stone-900 border-stone-100'
-                : 'aviation-btn-primary'
+                : 'bg-stone-900 hover:bg-stone-800 text-stone-50 border-stone-900'
             }`}
           >
             {copied ? (
@@ -125,10 +125,10 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
 
           <button
             onClick={handleDownload}
-            className={`text-xs py-1.5 px-3.5 rounded-xs cursor-pointer font-mono font-semibold transition-colors border ${
+            className={`h-9 px-3.5 text-xs rounded-xl cursor-pointer font-mono font-semibold inline-flex items-center gap-1.5 transition-colors border ${
               isDark
                 ? 'bg-[#262523] hover:bg-[#2F2E2B] text-stone-100 border-transparent'
-                : 'aviation-btn-secondary'
+                : 'bg-white hover:bg-stone-50 text-stone-700 border-stone-300'
             }`}
           >
             <Download className={`w-3.5 h-3.5 ${isDark ? 'text-stone-300' : 'text-stone-700'}`} />
@@ -138,7 +138,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
 
         {/* Code Preview */}
         <div
-          className={`flex-1 min-h-[200px] overflow-hidden rounded-2xs p-3 font-mono text-[11px] border transition-colors ${
+          className={`flex-1 min-h-[200px] overflow-hidden rounded-xl p-3.5 font-mono text-[11px] border transition-colors ${
             isDark
               ? 'border-transparent bg-[#262523] text-stone-300'
               : 'border-stone-200 bg-stone-50 text-stone-700'
@@ -154,7 +154,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
         </div>
 
         <div
-          className={`mt-3 pt-2.5 flex items-center justify-between text-[11px] font-mono border-t transition-colors ${
+          className={`mt-3.5 pt-3 flex items-center justify-between text-[11px] font-mono border-t transition-colors ${
             isDark ? 'border-stone-800 text-stone-400' : 'border-stone-200 text-stone-500'
           }`}
         >

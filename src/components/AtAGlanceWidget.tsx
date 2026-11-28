@@ -187,7 +187,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         initial={isColdStartup ? { opacity: 0, scale: 0.95, y: 5 } : false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={startupPopTransition(0.24)}
-        className="shrink-0 text-right mt-[2px]"
+        className="shrink-0 text-right mt-0.5"
       >
         <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
           {isMultiRoom ? 'ROOMS' : 'ROOM'}
@@ -275,7 +275,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       onSelectTermFinal?.(heroExam);
                     }
                   }}
-                  className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-[background-color,box-shadow] duration-200 border will-change-transform ${
+                  className={`relative overflow-hidden rounded-[20px] p-4 sm:p-5 cursor-pointer transition-[background-color,box-shadow] duration-200 border will-change-transform ${
                     isDark
                       ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-[0_2px_6px_rgba(0,0,0,0.28),0_10px_24px_-6px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-[#242321] hover:shadow-[0_3px_8px_rgba(0,0,0,0.34),0_14px_28px_-6px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]'
                       : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_rgba(28,25,23,0.04),0_6px_18px_-4px_rgba(28,25,23,0.08)] hover:bg-stone-50/70 hover:shadow-[0_2px_4px_rgba(28,25,23,0.05),0_10px_24px_-6px_rgba(28,25,23,0.11)]'
@@ -322,7 +322,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     initial={isColdStartup ? { opacity: 0, y: 4 } : false}
                     animate={{ opacity: 1, y: 0 }}
                     transition={startupTextTransition(0.26)}
-                    className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
+                    className={`mt-3 pt-3 border-t flex items-center justify-between gap-2 ${
                       isDark ? 'border-white/[0.06]' : 'border-black/5'
                     }`}
                   >
@@ -445,7 +445,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                             onSelectTermFinal?.(exam);
                           }
                         }}
-                        className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
+                        className={`py-2.5 px-2.5 flex items-center justify-between gap-3 cursor-pointer rounded-xl transition-colors duration-150 ease-out ${
                           isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
                         }`}
                       >
@@ -672,7 +672,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     onSelectEvent(event);
                   }
                 }}
-                className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-[background-color,box-shadow] duration-200 border will-change-transform ${
+                className={`relative overflow-hidden rounded-[20px] p-4 sm:p-5 cursor-pointer transition-[background-color,box-shadow] duration-200 border will-change-transform ${
                   isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-[0_2px_6px_rgba(0,0,0,0.28),0_10px_24px_-6px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-[#242321] hover:shadow-[0_3px_8px_rgba(0,0,0,0.34),0_14px_28px_-6px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]'
                     : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_rgba(28,25,23,0.04),0_6px_18px_-4px_rgba(28,25,23,0.08)] hover:bg-stone-50/70 hover:shadow-[0_2px_4px_rgba(28,25,23,0.05),0_10px_24px_-6px_rgba(28,25,23,0.11)]'
@@ -721,7 +721,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   initial={isColdStartup ? { opacity: 0, y: 4 } : false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={startupTextTransition(0.26)}
-                  className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
+                  className={`mt-3 pt-3 border-t flex items-center justify-between gap-2 ${
                     isDark ? 'border-white/[0.06]' : 'border-black/5'
                   }`}
                 >
@@ -869,7 +869,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                           onSelectEvent(event);
                         }
                       }}
-                      className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
+                      className={`py-2.5 px-2.5 flex items-center justify-between gap-3 cursor-pointer rounded-xl transition-colors duration-150 ease-out ${
                         isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
                       }`}
                     >

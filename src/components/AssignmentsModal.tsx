@@ -34,7 +34,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
 
           {/* Flat Uppercase Eyebrow */}
           <div
-            className={`flex items-center justify-between pb-3 mb-2 border-b transition-colors ${
+            className={`flex items-center justify-between pb-3 mb-3.5 border-b transition-colors ${
               isDark ? 'border-stone-800' : 'border-stone-200'
             }`}
           >
@@ -52,7 +52,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
       {/* Scrollable Assignments List */}
       <div
         data-modal-scrollable="true"
-        className="overflow-y-auto no-scrollbar overscroll-y-contain pb-[env(safe-area-inset-bottom)] sm:pb-0 pr-0.5"
+        className="overflow-y-auto no-scrollbar overscroll-y-contain pb-[env(safe-area-inset-bottom)] sm:pb-0"
         onPointerDown={(e) => {
           if (e.currentTarget.scrollTop > 0) {
             e.stopPropagation();
@@ -96,7 +96,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
                     delay: Math.min(idx * 0.045, 0.2),
                     ease: [0.22, 1, 0.36, 1],
                   }}
-                  className="py-3.5 first:pt-2 last:pb-2"
+                  className="py-3.5 first:pt-1 last:pb-1"
                 >
                   <h3
                     className={`text-sm sm:text-base font-bold tracking-tight leading-snug ${

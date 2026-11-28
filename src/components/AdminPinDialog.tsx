@@ -102,7 +102,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               damping: 40,
               mass: 0.9,
             }}
-            className={`relative z-10 w-full max-w-sm rounded-2xl shadow-2xl border p-6 flex flex-col will-change-transform transform-gpu ${
+            className={`relative z-10 w-full max-w-sm rounded-3xl shadow-2xl border p-5 sm:p-6 flex flex-col will-change-transform transform-gpu ${
               shake ? 'animate-shake' : ''
             } ${
               isDark
@@ -116,7 +116,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
           >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             <motion.div
               initial={{ rotate: -22, scale: 0.8 }}
               animate={{ rotate: shake ? [-10, 12, -8, 6, 0] : 0, scale: 1 }}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { TermFinalExam } from '../types/routine';
 import { formatTo12Hour } from '../utils/timeCalculations';
@@ -8,6 +8,13 @@ import {
   isTermFinalUpcoming,
   sortTermFinalsChronologically,
 } from '../utils/termFinalUtils';
+
+const TERM_FINAL_TILE_SPRING = {
+  type: 'spring' as const,
+  stiffness: 460,
+  damping: 28,
+  mass: 0.78,
+};
 
 interface TermFinalsListProps {
   termFinals: TermFinalExam[];
@@ -32,9 +39,19 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
   isInitialStartup = true,
 }) => {
   const [useStartupTiming] = useState(isInitialStartup);
+  const [hasEntered, setHasEntered] = useState(!isInitialStartup);
+  const [hoveredDateISO, setHoveredDateISO] = useState<string | null>(null);
   const baseDelay = useStartupTiming ? 0.35 : 0;
   const isDark = theme === 'dark';
   const sorted = sortTermFinalsChronologically(termFinals);
+
+  useEffect(() => {
+    if (hasEntered) return;
+    const timer = window.setTimeout(() => {
+      setHasEntered(true);
+    }, 680);
+    return () => window.clearTimeout(timer);
+  }, [hasEntered]);
 
   // Identify the date of the next chronological upcoming active exam
   const nextUpcomingExam = sorted.find((exam) => isTermFinalUpcoming(exam, nowMs)) || null;
@@ -64,7 +81,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
       initial={useStartupTiming ? { opacity: 0, y: 10, scale: 0.99 } : false}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={startupTextTransition(baseDelay)}
-      className={`rounded-2xl p-2 border select-none transition-colors ${
+      className={`rounded-[20px] p-2 border select-none transition-colors ${
         isDark
           ? 'bg-[#100F0E] border-transparent shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
           : 'bg-[#EAE8E2] border-transparent shadow-[inset_0_3px_18px_rgba(24,23,22,0.028),inset_0_1px_6px_rgba(24,23,22,0.015)]'
@@ -76,26 +93,39 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
           const isEntireDatePast = group.exams.every(
             (exam) => exam.status !== 'Cancelled' && isTermFinalPast(exam, nowMs)
           );
+          const isRowHovered = hoveredDateISO === group.dateISO;
           const rowDelay = baseDelay + 0.02 + Math.min(groupIdx * 0.035, 0.18);
 
           return (
             <div
               key={group.dateISO}
-              className="flex items-stretch gap-2 w-full min-w-0"
+              className="group/row flex items-stretch gap-2 w-full min-w-0"
             >
               {/* Left Date Badge Tile (Fixed compact w-20, centered vertically) */}
               <motion.div
                 initial={{ opacity: 0, x: -6, scale: 0.95 }}
-                animate={{ opacity: isEntireDatePast ? 0.45 : 1, x: 0, scale: 1 }}
-                transition={startupPopTransition(rowDelay)}
-                className={`w-20 shrink-0 rounded-xl px-2 py-2.5 flex flex-col items-center justify-center text-center transition-colors border ${
+                animate={{
+                  opacity: isEntireDatePast ? (isRowHovered ? 0.8 : 0.45) : 1,
+                  x: 0,
+                  scale: 1,
+                }}
+                whileHover={{ scale: 1.015 }}
+                transition={hasEntered ? TERM_FINAL_TILE_SPRING : startupPopTransition(rowDelay)}
+                onHoverStart={() => {
+                  if (!hasEntered) setHasEntered(true);
+                  setHoveredDateISO(group.dateISO);
+                }}
+                onHoverEnd={() => {
+                  setHoveredDateISO((prev) => (prev === group.dateISO ? null : prev));
+                }}
+                className={`w-20 shrink-0 rounded-xl px-2 py-2.5 flex flex-col items-center justify-center text-center transition-[background-color,box-shadow] duration-150 ease-out border will-change-transform ${
                   isNextDate
                     ? isDark
-                      ? 'bg-stone-100 border-transparent text-stone-900'
-                      : 'bg-stone-900 border-transparent text-stone-50'
+                      ? 'bg-stone-100 border-transparent text-stone-900 group-hover/row:bg-stone-200 hover:bg-stone-200 hover:shadow-[0_3px_10px_-3px_rgba(0,0,0,0.45)]'
+                      : 'bg-stone-900 border-transparent text-stone-50 group-hover/row:bg-stone-800 hover:bg-stone-800 hover:shadow-[0_3px_10px_-3px_rgba(28,25,23,0.2)]'
                     : isDark
-                    ? 'bg-[#1E1D1C] border-transparent text-stone-100'
-                    : 'bg-white border-transparent text-stone-900'
+                    ? 'bg-[#1E1D1C] border-transparent text-stone-100 group-hover/row:bg-[#252422] hover:bg-[#262523] hover:shadow-[0_3px_10px_-3px_rgba(0,0,0,0.42)]'
+                    : 'bg-white border-transparent text-stone-900 group-hover/row:bg-[#FAF9F7] hover:bg-[#FAF9F7] hover:shadow-[0_3px_10px_-3px_rgba(28,25,23,0.09)]'
                 }`}
               >
                 <span className="text-sm font-bold tracking-tight leading-none whitespace-nowrap">
@@ -112,13 +142,32 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                   const isCancelled = exam.status === 'Cancelled';
                   const isPast = !isCancelled && isTermFinalPast(exam, nowMs);
                   const timeWindow = `${formatTo12Hour(exam.startTime)} – ${formatTo12Hour(exam.endTime)}`;
+                  const tileTransition = hasEntered
+                    ? TERM_FINAL_TILE_SPRING
+                    : startupTextTransition(rowDelay + 0.025 + examIdx * 0.025);
 
                   return (
                     <motion.div
                       key={exam.id}
                       initial={{ opacity: 0, y: 7, scale: 0.985 }}
                       animate={{ opacity: isPast ? 0.45 : 1, y: 0, scale: 1 }}
-                      transition={startupTextTransition(rowDelay + 0.025 + examIdx * 0.025)}
+                      whileHover={
+                        isCancelled
+                          ? { y: -1, scale: 1.004, opacity: 0.9 }
+                          : { y: -1.5, scale: 1.007, opacity: isPast ? 0.85 : 1 }
+                      }
+                      whileTap={{ scale: 0.988 }}
+                      transition={tileTransition}
+                      onHoverStart={() => {
+                        if (!hasEntered) setHasEntered(true);
+                        setHoveredDateISO(group.dateISO);
+                      }}
+                      onHoverEnd={() => {
+                        setHoveredDateISO((prev) => (prev === group.dateISO ? null : prev));
+                      }}
+                      onAnimationComplete={() => {
+                        if (!hasEntered) setHasEntered(true);
+                      }}
                       onClick={() => onSelectExam(exam)}
                       role="button"
                       tabIndex={0}
@@ -128,29 +177,29 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                           onSelectExam(exam);
                         }
                       }}
-                      className={`w-full rounded-xl px-3.5 py-3 sm:px-4 sm:py-3.5 border transition-colors duration-150 ease-out active:scale-[0.99] cursor-pointer focus-visible:outline-none focus-visible:ring-1 ${
+                      className={`group/exam w-full rounded-xl p-4 sm:px-5 sm:py-3.5 border transition-[background-color,border-color,box-shadow,color] duration-150 ease-out cursor-pointer will-change-transform focus-visible:outline-none focus-visible:ring-1 ${
                         isDark ? 'focus-visible:ring-stone-100' : 'focus-visible:ring-stone-900'
                       } ${
                         isCancelled
                           ? isDark
-                            ? 'bg-transparent border-dashed border-stone-700 text-stone-500'
-                            : 'bg-transparent border-dashed border-stone-300 text-stone-400'
+                            ? 'bg-transparent border-dashed border-stone-700 text-stone-500 hover:bg-white/[0.035] hover:border-stone-500 hover:text-stone-400'
+                            : 'bg-transparent border-dashed border-stone-300 text-stone-400 hover:bg-black/[0.03] hover:border-stone-400 hover:text-stone-500'
                           : isDark
-                          ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                          : 'bg-white border-transparent text-stone-900 hover:bg-stone-50'
+                          ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#262523] hover:shadow-[0_4px_14px_-4px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.05)]'
+                          : 'bg-white border-transparent text-stone-900 hover:bg-[#FAF9F7] hover:shadow-[0_3px_10px_-3px_rgba(28,25,23,0.1),0_1px_2px_rgba(28,25,23,0.04)]'
                       }`}
                     >
                       {/* 1. Top Metadata Line: Time Window */}
                       <div className="flex items-center justify-between gap-2">
                         <span
-                          className={`text-xs font-medium font-sans tabular-nums ${
+                          className={`text-xs font-medium font-sans tabular-nums transition-colors duration-150 ${
                             isCancelled
                               ? isDark
-                                ? 'text-stone-500'
-                                : 'text-stone-400'
+                                ? 'text-stone-500 group-hover/exam:text-stone-400'
+                                : 'text-stone-400 group-hover/exam:text-stone-500'
                               : isDark
-                              ? 'text-stone-400'
-                              : 'text-stone-500'
+                              ? 'text-stone-400 group-hover/exam:text-stone-300'
+                              : 'text-stone-500 group-hover/exam:text-stone-600'
                           }`}
                         >
                           {timeWindow}
@@ -182,12 +231,12 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                         </div>
                         {exam.courseTitle && (
                           <div
-                            className={`mt-0.5 text-sm font-medium leading-snug ${
+                            className={`mt-0.5 text-sm font-medium leading-snug transition-colors duration-150 ${
                               isCancelled
                                 ? 'line-through opacity-80'
                                 : isDark
-                                ? 'text-stone-300'
-                                : 'text-stone-600'
+                                ? 'text-stone-300 group-hover/exam:text-stone-200'
+                                : 'text-stone-600 group-hover/exam:text-stone-700'
                             }`}
                           >
                             {exam.courseTitle}
@@ -198,10 +247,10 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                       {/* 3. Bottom Location Line: Room Assignment */}
                       {!isCancelled && (
                         <div
-                          className={`mt-2.5 pt-2 border-t text-xs font-medium font-sans tabular-nums ${
+                          className={`mt-3 pt-2.5 border-t text-xs font-medium font-sans tabular-nums transition-colors duration-150 ${
                             isDark
-                              ? 'border-white/[0.06] text-stone-400'
-                              : 'border-stone-200 text-stone-600'
+                              ? 'border-white/[0.06] text-stone-400 group-hover/exam:border-white/[0.1] group-hover/exam:text-stone-300'
+                              : 'border-stone-200 text-stone-600 group-hover/exam:border-stone-300/80 group-hover/exam:text-stone-700'
                           }`}
                         >
                           {exam.room ? `Room ${exam.room}` : 'Room TBA'}

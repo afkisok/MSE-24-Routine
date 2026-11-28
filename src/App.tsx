@@ -37,9 +37,9 @@ import { startupPopTransition, startupTextTransition } from './utils/springs';
 import { Clock, ArrowRight } from 'lucide-react';
 
 const GROUP_PILL_SPRING = {
-  stiffness: 460,
-  damping: 38,
-  mass: 0.85,
+  stiffness: 420,
+  damping: 27,
+  mass: 0.8,
 };
 
 const CACHED_ROUTINE_SNAPSHOT_KEY = 'mse24_routine_snapshot_v1';
@@ -48,12 +48,25 @@ const CACHED_ASSIGNMENTS_KEY = 'mse24_cached_routine_assignments';
 const CACHED_TERM_FINALS_KEY = 'mse24_cached_routine_term_finals';
 const CACHED_SYNC_TIME_KEY = 'mse24_cached_sync_time';
 const ADMIN_CSV_URL_KEY = 'admin_routine_csv_url';
+const ROUTINE_SNAPSHOT_PARSER_VERSION = 2;
+const SYNC_FETCH_TIMEOUT_MS = 15000;
 
 interface CachedRoutineSnapshot {
   events: RoutineEvent[];
   assignments: RoutineAssignment[];
   termFinals: TermFinalExam[];
   lastFetchedAt: number;
+  csvHash?: string;
+  parserVersion?: number;
+}
+
+function hashCsvContent(csvText: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < csvText.length; i++) {
+    hash ^= csvText.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return `${csvText.length}:${(hash >>> 0).toString(36)}`;
 }
 
 function readCachedRoutineSnapshot(): CachedRoutineSnapshot | null {
@@ -67,6 +80,8 @@ function readCachedRoutineSnapshot(): CachedRoutineSnapshot | null {
           assignments: Array.isArray(parsed.assignments) ? parsed.assignments : [],
           termFinals: Array.isArray(parsed.termFinals) ? parsed.termFinals : [],
           lastFetchedAt: typeof parsed.lastFetchedAt === 'number' ? parsed.lastFetchedAt : 0,
+          csvHash: typeof parsed.csvHash === 'string' ? parsed.csvHash : undefined,
+          parserVersion: typeof parsed.parserVersion === 'number' ? parsed.parserVersion : undefined,
         };
       }
     }
@@ -674,6 +689,7 @@ export default function App() {
   }, [selectedGroup]);
 
   const handleSelectGroup = (group: 'All' | 'Group A' | 'Group B') => {
+    setPressedGroup(null);
     setSelectedGroup(group);
     try {
       localStorage.setItem('mse_routine_selected_group', group);
@@ -696,8 +712,14 @@ export default function App() {
   const [currentMinuteOffset, setCurrentMinuteOffset] = useState<number | null>(null);
   const [todayName, setTodayName] = useState<string>('');
   const [nowMs, setNowMs] = useState<number>(() => Date.now());
-  const [highlightedEventKey, setHighlightedEventKey] = useState<string | null>(null);
+  const [highlightedSlot, setHighlightedSlot] = useState<{
+    key: string;
+    seq: number;
+    phase: 'lifted' | 'settling';
+  } | null>(null);
+  const highlightSeqRef = useRef<number>(0);
   const highlightTimerRef = useRef<number | null>(null);
+  const highlightClearTimerRef = useRef<number | null>(null);
 
   const hasUpcomingFinals = hasUpcomingTermFinals(termFinals, nowMs);
   const isAutoTermFinalWindow = isWithinTermFinalWindow(termFinals, nowMs);
@@ -724,8 +746,11 @@ export default function App() {
     'Group A': null,
     'Group B': null,
   });
+  const [hoveredGroup, setHoveredGroup] = useState<'All' | 'Group A' | 'Group B' | null>(null);
+  const [pressedGroup, setPressedGroup] = useState<'All' | 'Group A' | 'Group B' | null>(null);
   const hasInitializedGroupPillRef = useRef(false);
   const prevSelectedGroupRef = useRef<'All' | 'Group A' | 'Group B'>(selectedGroup);
+  const prevPreviewGroupRef = useRef<'All' | 'Group A' | 'Group B' | null>(null);
   const lastGroupPillBoundsRef = useRef<{ trackWidth: number; left: number; right: number }>({
     trackWidth: 0,
     left: -1,
@@ -757,11 +782,42 @@ export default function App() {
     }
   );
 
+  useEffect(() => {
+    if (!pressedGroup) return;
+    let releaseTimerId: number | null = null;
+    const clearPressed = () => {
+      // Defer one tick so onClick transitions directly from stretched press state to full glide
+      releaseTimerId = window.setTimeout(() => {
+        setPressedGroup(null);
+      }, 0);
+    };
+    const clearImmediate = () => {
+      if (releaseTimerId !== null) window.clearTimeout(releaseTimerId);
+      setPressedGroup(null);
+    };
+    window.addEventListener('pointerup', clearPressed, { passive: true });
+    window.addEventListener('pointercancel', clearImmediate, { passive: true });
+    return () => {
+      if (releaseTimerId !== null) window.clearTimeout(releaseTimerId);
+      window.removeEventListener('pointerup', clearPressed);
+      window.removeEventListener('pointercancel', clearImmediate);
+    };
+  }, [pressedGroup]);
+
   useLayoutEffect(() => {
     if (isTermFinalView) {
       hasInitializedGroupPillRef.current = false;
+      setHoveredGroup(null);
+      setPressedGroup(null);
       return;
     }
+
+    const previewGroup =
+      pressedGroup && pressedGroup !== selectedGroup
+        ? pressedGroup
+        : hoveredGroup && hoveredGroup !== selectedGroup
+        ? hoveredGroup
+        : null;
 
     const syncPillToActiveTab = (shouldAnimate: boolean, onlyIfLayoutChanged = false) => {
       const trackEl = groupTrackRef.current;
@@ -771,8 +827,28 @@ export default function App() {
       const trackWidth = trackEl.offsetWidth;
       if (trackWidth <= 0) return;
 
-      const targetLeft = Math.max(0, activeEl.offsetLeft);
-      const targetRight = Math.min(trackWidth, targetLeft + activeEl.offsetWidth);
+      const activeLeft = Math.max(0, activeEl.offsetLeft);
+      const activeRight = Math.min(trackWidth, activeLeft + activeEl.offsetWidth);
+      let targetLeft = activeLeft;
+      let targetRight = activeRight;
+
+      if (previewGroup) {
+        const previewEl = groupTabRefs.current[previewGroup];
+        if (previewEl) {
+          const activeCenter = activeLeft + activeEl.offsetWidth / 2;
+          const previewLeft = Math.max(0, previewEl.offsetLeft);
+          const previewCenter = previewLeft + previewEl.offsetWidth / 2;
+          const centerDistance = Math.abs(previewCenter - activeCenter);
+          // Subtle anticipatory stretch scaling with distance before full glide
+          const stretchPx = Math.min(7.5, centerDistance * 0.052);
+
+          if (previewCenter > activeCenter) {
+            targetRight = Math.min(trackWidth, activeRight + stretchPx);
+          } else {
+            targetLeft = Math.max(0, activeLeft - stretchPx);
+          }
+        }
+      }
 
       const prevBounds = lastGroupPillBoundsRef.current;
       if (
@@ -804,9 +880,11 @@ export default function App() {
     };
 
     const groupChanged = prevSelectedGroupRef.current !== selectedGroup;
+    const previewChanged = prevPreviewGroupRef.current !== previewGroup;
     prevSelectedGroupRef.current = selectedGroup;
+    prevPreviewGroupRef.current = previewGroup;
 
-    syncPillToActiveTab(groupChanged);
+    syncPillToActiveTab(groupChanged || previewChanged);
 
     const handleResize = () => syncPillToActiveTab(false, true);
     window.addEventListener('resize', handleResize);
@@ -829,7 +907,7 @@ export default function App() {
       window.removeEventListener('resize', handleResize);
       observer?.disconnect();
     };
-  }, [selectedGroup, isTermFinalView, shouldReduceMotion, groupPillLeft, groupPillRight, groupTrackWidthMV]);
+  }, [selectedGroup, hoveredGroup, pressedGroup, isTermFinalView, shouldReduceMotion, groupPillLeft, groupPillRight, groupTrackWidthMV]);
 
   const [hasCompletedInitialMount, setHasCompletedInitialMount] = useState(false);
   const initialTermFinalViewRef = useRef(isTermFinalView);
@@ -850,7 +928,11 @@ export default function App() {
   const scrollAnimationRef = useRef<{ stop: () => void } | null>(null);
   const scrollCleanupRef = useRef<(() => void) | null>(null);
 
-  const springScrollTimeline = (container: HTMLElement, targetScroll: number) => {
+  const springScrollTimeline = (
+    container: HTMLElement,
+    targetScroll: number,
+    onArrived?: () => void
+  ) => {
     if (scrollAnimationRef.current) {
       scrollAnimationRef.current.stop();
       scrollAnimationRef.current = null;
@@ -866,6 +948,7 @@ export default function App() {
 
     if (Math.abs(clampedTarget - startScroll) < 1) {
       container.scrollLeft = clampedTarget;
+      onArrived?.();
       return;
     }
 
@@ -875,8 +958,16 @@ export default function App() {
       window.matchMedia('(prefers-reduced-motion: reduce)').matches
     ) {
       container.scrollLeft = clampedTarget;
+      onArrived?.();
       return;
     }
+
+    let hasReportedArrival = false;
+    const notifyArrived = () => {
+      if (hasReportedArrival) return;
+      hasReportedArrival = true;
+      onArrived?.();
+    };
 
     const cancelOnUserInteract = () => {
       if (scrollAnimationRef.current) {
@@ -887,6 +978,7 @@ export default function App() {
         scrollCleanupRef.current();
         scrollCleanupRef.current = null;
       }
+      notifyArrived();
     };
 
     const cleanupListeners = () => {
@@ -916,6 +1008,7 @@ export default function App() {
         if (scrollAnimationRef.current === controls) {
           scrollAnimationRef.current = null;
         }
+        notifyArrived();
       },
     });
 
@@ -926,6 +1019,9 @@ export default function App() {
     return () => {
       if (highlightTimerRef.current !== null) {
         window.clearTimeout(highlightTimerRef.current);
+      }
+      if (highlightClearTimerRef.current !== null) {
+        window.clearTimeout(highlightClearTimerRef.current);
       }
       if (scrollAnimationRef.current) {
         scrollAnimationRef.current.stop();
@@ -939,9 +1035,9 @@ export default function App() {
   }, []);
 
   /**
-   * Resolve active CSV URL from localStorage with hardcoded official fallback
+   * Active CSV URL cached in React state (avoiding per-render localStorage reads)
    */
-  const getActiveCsvUrl = (): string => {
+  const [activeCsvUrl, setActiveCsvUrl] = useState<string>(() => {
     try {
       const custom = localStorage.getItem(ADMIN_CSV_URL_KEY);
       if (custom && custom.trim().length > 0) {
@@ -951,13 +1047,28 @@ export default function App() {
       console.warn('Failed to read admin CSV url from localStorage:', e);
     }
     return DEFAULT_ROUTINE_CSV_URL;
-  };
+  });
+
+  const activeCsvUrlRef = useRef<string>(activeCsvUrl);
+  activeCsvUrlRef.current = activeCsvUrl;
 
   const isSyncInFlightRef = useRef(false);
   const syncGenerationRef = useRef(0);
   const activeAbortControllerRef = useRef<AbortController | null>(null);
   const eventsRef = useRef<RoutineEvent[]>(events);
   eventsRef.current = events;
+  const assignmentsRef = useRef<RoutineAssignment[]>(assignments);
+  assignmentsRef.current = assignments;
+  const termFinalsRef = useRef<TermFinalExam[]>(termFinals);
+  termFinalsRef.current = termFinals;
+
+  const lastCsvHashRef = useRef<string | null>(
+    initialSnapshot &&
+      initialSnapshot.parserVersion === ROUTINE_SNAPSHOT_PARSER_VERSION &&
+      initialSnapshot.csvHash
+      ? initialSnapshot.csvHash
+      : null
+  );
 
   const lastSyncAtRef = useRef<number>((() => {
     if (initialSnapshot && initialSnapshot.lastFetchedAt > 0) {
@@ -977,12 +1088,12 @@ export default function App() {
 
   /**
    * Race-Safe Single-Table Sync & Atomic Snapshot Engine
-   * - Appends unique `_cb` timestamp and uses `{ cache: 'no-store' }`
+   * - Appends unique `_cb` timestamp, enforces 15s timeout, and uses `{ cache: 'no-store' }`
    * - Guards against out-of-order responses via monotonic syncGenerationRef + AbortController
-   * - Commits atomically to localStorage (`lastFetchedAt`) and React state only on valid `res.ok` payload
+   * - Skips CSV parsing, differential logging, and React re-renders when payload hash is unchanged
    */
   const fetchAndSync = async (targetUrl?: string, isSilent = false): Promise<void> => {
-    const url = (targetUrl !== undefined ? targetUrl : getActiveCsvUrl()).trim();
+    const url = (targetUrl !== undefined ? targetUrl : activeCsvUrlRef.current).trim();
     if (!url) {
       if (!isSilent) setSyncStatus({ status: 'error', message: 'ERROR: EMPTY_ENDPOINT_URL' });
       return;
@@ -1000,6 +1111,14 @@ export default function App() {
 
     const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     activeAbortControllerRef.current = controller;
+    let didTimeout = false;
+    const timeoutId =
+      controller !== null
+        ? window.setTimeout(() => {
+            didTimeout = true;
+            controller.abort();
+          }, SYNC_FETCH_TIMEOUT_MS)
+        : null;
 
     const reqId = ++syncGenerationRef.current;
     isSyncInFlightRef.current = true;
@@ -1020,6 +1139,36 @@ export default function App() {
       const csvText = await res.text();
       if (reqId !== syncGenerationRef.current) return;
 
+      const csvHash = hashCsvContent(csvText);
+      const syncCompletedMs = Date.now();
+      const nowISO = new Date(syncCompletedMs).toISOString();
+
+      // Fast no-op path: payload is byte-for-byte identical to our current parsed snapshot
+      if (lastCsvHashRef.current !== null && csvHash === lastCsvHashRef.current) {
+        lastSyncAtRef.current = syncCompletedMs;
+        setLastSyncTime(nowISO);
+        try {
+          const unchangedSnapshot: CachedRoutineSnapshot = {
+            events: eventsRef.current,
+            assignments: assignmentsRef.current,
+            termFinals: termFinalsRef.current,
+            lastFetchedAt: syncCompletedMs,
+            csvHash,
+            parserVersion: ROUTINE_SNAPSHOT_PARSER_VERSION,
+          };
+          localStorage.setItem(CACHED_ROUTINE_SNAPSHOT_KEY, JSON.stringify(unchangedSnapshot));
+        } catch (e) {
+          console.warn('Failed to update sync timestamp in localStorage:', e);
+        }
+        if (!isSilent) {
+          setSyncStatus({
+            status: 'success',
+            message: `SYNC_OK: ${eventsRef.current.length}_CLASSES · UP_TO_DATE`,
+          });
+        }
+        return;
+      }
+
       const rawRows = parseCSV(csvText);
       const {
         events: parsed,
@@ -1033,27 +1182,28 @@ export default function App() {
       if (reqId !== syncGenerationRef.current) return;
 
       const nextEvents = parsed.length > 0 ? parsed : eventsRef.current;
-      const syncCompletedMs = Date.now();
-      const nowISO = new Date(syncCompletedMs).toISOString();
 
-      // Atomic localStorage write with lastFetchedAt before committing React state
+      // Single atomic localStorage snapshot write (and clean up redundant legacy keys)
       const atomicSnapshot: CachedRoutineSnapshot = {
         events: nextEvents,
         assignments: parsedAssignments,
         termFinals: parsedTermFinals,
         lastFetchedAt: syncCompletedMs,
+        csvHash,
+        parserVersion: ROUTINE_SNAPSHOT_PARSER_VERSION,
       };
 
       try {
         localStorage.setItem(CACHED_ROUTINE_SNAPSHOT_KEY, JSON.stringify(atomicSnapshot));
-        localStorage.setItem(CACHED_EVENTS_KEY, JSON.stringify(nextEvents));
-        localStorage.setItem(CACHED_ASSIGNMENTS_KEY, JSON.stringify(parsedAssignments));
-        localStorage.setItem(CACHED_TERM_FINALS_KEY, JSON.stringify(parsedTermFinals));
-        localStorage.setItem(CACHED_SYNC_TIME_KEY, nowISO);
+        localStorage.removeItem(CACHED_EVENTS_KEY);
+        localStorage.removeItem(CACHED_ASSIGNMENTS_KEY);
+        localStorage.removeItem(CACHED_TERM_FINALS_KEY);
+        localStorage.removeItem(CACHED_SYNC_TIME_KEY);
       } catch (e) {
         console.warn('Failed to cache routine snapshot to localStorage:', e);
       }
 
+      lastCsvHashRef.current = csvHash;
       lastSyncAtRef.current = syncCompletedMs;
       setEvents(nextEvents);
       setAssignments(parsedAssignments);
@@ -1068,17 +1218,24 @@ export default function App() {
         message: `SYNC_OK: ${nextEvents.length}_CLASSES · ${newLogsCount}_DIFFS_RECORDED`,
       });
     } catch (err: any) {
-      if (err?.name === 'AbortError' || reqId !== syncGenerationRef.current) {
+      if (reqId !== syncGenerationRef.current) {
         return;
       }
-      console.warn('[fetchAndSync] Execution failed:', err);
+      if (err?.name === 'AbortError' && !didTimeout) {
+        return;
+      }
+      const errMessage = didTimeout ? 'REQUEST_TIMEOUT' : err?.message || 'NETWORK_OR_CORS_ERROR';
+      console.warn('[fetchAndSync] Execution failed:', errMessage, err);
       if (!isSilent) {
         setSyncStatus({
           status: 'error',
-          message: `FAILED: ${err?.message || 'NETWORK_OR_CORS_ERROR'}`,
+          message: `FAILED: ${errMessage}`,
         });
       }
     } finally {
+      if (timeoutId !== null) {
+        window.clearTimeout(timeoutId);
+      }
       if (reqId === syncGenerationRef.current) {
         isSyncInFlightRef.current = false;
         if (activeAbortControllerRef.current === controller) {
@@ -1093,11 +1250,10 @@ export default function App() {
 
   // Smart silent background auto-refresh:
   // - Initial silent sync on mount
-  // - Stale check (> 3 min) on visibilitychange (visible) & window focus
+  // - Stale check (> 3 min) on visibilitychange (visible), window focus, & network reconnect
   // - 10-minute interval active strictly while tab/app is visible
   useEffect(() => {
-    const activeUrl = getActiveCsvUrl();
-    fetchAndSyncRef.current(activeUrl, true);
+    fetchAndSyncRef.current(activeCsvUrlRef.current, true);
 
     let pollIntervalId: number | null = null;
 
@@ -1141,21 +1297,28 @@ export default function App() {
       }
     };
 
+    const handleOnline = () => {
+      triggerSilentSyncIfStale();
+    };
+
     if (document.visibilityState === 'visible') {
       startVisiblePolling();
     }
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('online', handleOnline);
 
     return () => {
       stopVisiblePolling();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('online', handleOnline);
     };
   }, []);
 
   const handleSaveAdminUrl = (newUrl: string) => {
+    const resolvedUrl = newUrl || DEFAULT_ROUTINE_CSV_URL;
     try {
       if (!newUrl || newUrl === DEFAULT_ROUTINE_CSV_URL) {
         localStorage.removeItem(ADMIN_CSV_URL_KEY);
@@ -1165,7 +1328,9 @@ export default function App() {
     } catch (e) {
       console.warn('Failed to save admin CSV URL:', e);
     }
-    fetchAndSync(newUrl || DEFAULT_ROUTINE_CSV_URL);
+    lastCsvHashRef.current = null;
+    setActiveCsvUrl(resolvedUrl);
+    fetchAndSync(resolvedUrl);
   };
 
   const handleResetToOfficialDefault = () => {
@@ -1174,6 +1339,8 @@ export default function App() {
     } catch (e) {
       console.warn('Failed to remove custom admin CSV URL:', e);
     }
+    lastCsvHashRef.current = null;
+    setActiveCsvUrl(DEFAULT_ROUTINE_CSV_URL);
     fetchAndSync(DEFAULT_ROUTINE_CSV_URL);
   };
 
@@ -1187,6 +1354,7 @@ export default function App() {
     } catch (e) {
       console.warn('Failed to clear cached events:', e);
     }
+    lastCsvHashRef.current = null;
     lastSyncAtRef.current = 0;
     setLastSyncTime(null);
     setEvents(baselineTestData);
@@ -1197,20 +1365,19 @@ export default function App() {
     setSyncStatus({ status: 'idle', message: 'BASELINE_DEFAULT_RESTORED' });
   };
 
-  // Dynamic Saturday row & dynamic right-edge end time (extends past 5:00 PM when needed)
-  const hasActiveSaturdayEvents = events.some((evt) => {
-    if (evt.day.toLowerCase() !== 'saturday') return false;
-    const status = (evt.status || '').trim().toLowerCase();
-    return status !== 'cancelled' && status !== 'canceled' && Boolean((evt.subject || '').trim());
-  });
+  // Dynamic Saturday row & dynamic right-edge end time (memoized across clock ticks)
+  const operationalDays = useMemo<
+    Array<'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Saturday'>
+  >(() => {
+    const hasActiveSaturdayEvents = events.some((evt) => {
+      if (evt.day.toLowerCase() !== 'saturday') return false;
+      const status = (evt.status || '').trim().toLowerCase();
+      return status !== 'cancelled' && status !== 'canceled' && Boolean((evt.subject || '').trim());
+    });
+    return hasActiveSaturdayEvents ? [...BASE_OPERATIONAL_DAYS, 'Saturday'] : BASE_OPERATIONAL_DAYS;
+  }, [events]);
 
-  const operationalDays: Array<
-    'Sunday' | 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Saturday'
-  > = hasActiveSaturdayEvents
-    ? [...BASE_OPERATIONAL_DAYS, 'Saturday']
-    : BASE_OPERATIONAL_DAYS;
-
-  const dynamicDayEndMinutes = computeDynamicDayEndMinutes(events);
+  const dynamicDayEndMinutes = useMemo(() => computeDynamicDayEndMinutes(events), [events]);
   const dynamicTotalDayMinutes = Math.max(
     TOTAL_DAY_MINUTES,
     dynamicDayEndMinutes - DAY_START_MINUTES
@@ -1405,6 +1572,60 @@ export default function App() {
     };
   })();
 
+  const MAX_HIGHLIGHT_DWELL_MS = 800;
+  const MIN_HIGHLIGHT_DWELL_MS = 160;
+
+  const computeHighlightDwellMs = (distancePx: number, referenceSpanPx: number): number => {
+    if (!Number.isFinite(distancePx) || distancePx <= 1) {
+      return MAX_HIGHLIGHT_DWELL_MS;
+    }
+    const safeSpan = Math.max(1, referenceSpanPx);
+    const normalizedDistance = Math.max(0, Math.min(1, distancePx / safeSpan));
+    return Math.round(
+      MAX_HIGHLIGHT_DWELL_MS -
+        normalizedDistance * (MAX_HIGHLIGHT_DWELL_MS - MIN_HIGHLIGHT_DWELL_MS)
+    );
+  };
+
+  const beginSlotHighlight = (
+    eventKey: string,
+    dwellMs: number = MAX_HIGHLIGHT_DWELL_MS
+  ): (() => void) => {
+    if (highlightTimerRef.current !== null) {
+      window.clearTimeout(highlightTimerRef.current);
+      highlightTimerRef.current = null;
+    }
+    if (highlightClearTimerRef.current !== null) {
+      window.clearTimeout(highlightClearTimerRef.current);
+      highlightClearTimerRef.current = null;
+    }
+
+    const seq = ++highlightSeqRef.current;
+    setHighlightedSlot({ key: eventKey, seq, phase: 'lifted' });
+
+    const clampedDwellMs = Math.max(0, Math.min(MAX_HIGHLIGHT_DWELL_MS, dwellMs));
+    let arrived = false;
+    return () => {
+      if (arrived || highlightSeqRef.current !== seq) return;
+      arrived = true;
+
+      highlightTimerRef.current = window.setTimeout(() => {
+        highlightTimerRef.current = null;
+        if (highlightSeqRef.current !== seq) return;
+
+        setHighlightedSlot((prev) =>
+          prev && prev.seq === seq ? { ...prev, phase: 'settling' } : prev
+        );
+
+        highlightClearTimerRef.current = window.setTimeout(() => {
+          highlightClearTimerRef.current = null;
+          if (highlightSeqRef.current !== seq) return;
+          setHighlightedSlot((prev) => (prev && prev.seq === seq ? null : prev));
+        }, 1050);
+      }, clampedDwellMs);
+    };
+  };
+
   const handleScrollToOffRoutineSlot = (target: { evt: RoutineEvent; key: string }) => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
@@ -1418,31 +1639,64 @@ export default function App() {
       );
       const focusX = (centerOffset / dynamicTotalDayMinutes) * container.scrollWidth;
       const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 2));
-      springScrollTimeline(container, targetScroll);
+      const deltaX = Math.abs(targetScroll - container.scrollLeft);
 
       const rowEl = container.querySelector<HTMLElement>(
         `[data-day="${target.evt.day.toLowerCase()}"]`
       );
-      if (rowEl) {
-        const rect = rowEl.getBoundingClientRect();
-        if (rect.top < 0 || rect.bottom > window.innerHeight) {
-          rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        }
-      }
-    }
+      const rect = rowEl?.getBoundingClientRect();
+      const deltaY = rect
+        ? rect.top < 0
+          ? -rect.top
+          : rect.bottom > window.innerHeight
+          ? rect.bottom - window.innerHeight
+          : 0
+        : 0;
+      const needsVerticalScroll = deltaY > 0;
 
-    if (highlightTimerRef.current !== null) {
-      window.clearTimeout(highlightTimerRef.current);
+      const viewportDistancePx = Math.hypot(deltaX, deltaY);
+      const referenceSpanPx = Math.max(maxScroll, container.clientWidth * 0.85, 360);
+      const dwellMs = computeHighlightDwellMs(viewportDistancePx, referenceSpanPx);
+      const markViewportArrived = beginSlotHighlight(target.key, dwellMs);
+
+      let horizontalDone = false;
+      let verticalDone = !needsVerticalScroll;
+      const checkBothArrived = () => {
+        if (horizontalDone && verticalDone) {
+          markViewportArrived();
+        }
+      };
+
+      if (needsVerticalScroll && rowEl) {
+        rowEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+        let verticalDebounceId: number | null = null;
+        let verticalCapId: number | null = null;
+        const finishVertical = () => {
+          if (verticalDone) return;
+          verticalDone = true;
+          window.removeEventListener('scroll', onWindowScroll);
+          if (verticalDebounceId !== null) window.clearTimeout(verticalDebounceId);
+          if (verticalCapId !== null) window.clearTimeout(verticalCapId);
+          checkBothArrived();
+        };
+        const onWindowScroll = () => {
+          if (verticalDebounceId !== null) window.clearTimeout(verticalDebounceId);
+          verticalDebounceId = window.setTimeout(finishVertical, 120);
+        };
+        window.addEventListener('scroll', onWindowScroll, { passive: true });
+        verticalDebounceId = window.setTimeout(finishVertical, 200);
+        verticalCapId = window.setTimeout(finishVertical, 480);
+      }
+
+      springScrollTimeline(container, targetScroll, () => {
+        horizontalDone = true;
+        checkBothArrived();
+      });
+    } else {
+      const markViewportArrived = beginSlotHighlight(target.key, MAX_HIGHLIGHT_DWELL_MS);
+      markViewportArrived();
     }
-    const nextKey = target.key;
-    setHighlightedEventKey(null);
-    window.requestAnimationFrame(() => {
-      setHighlightedEventKey(nextKey);
-    });
-    highlightTimerRef.current = window.setTimeout(() => {
-      setHighlightedEventKey(null);
-      highlightTimerRef.current = null;
-    }, 1400);
   };
 
   const handleScrollToNow = () => {
@@ -1517,10 +1771,17 @@ export default function App() {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
       const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+      const referenceSpanPx = Math.max(maxScroll, container.clientWidth * 0.85, 360);
+
       if (hasActiveOrRemainingSlotToday && currentMinuteOffset !== null) {
         const focusX = (currentMinuteOffset / dynamicTotalDayMinutes) * container.scrollWidth;
         const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 2));
-        springScrollTimeline(container, targetScroll);
+        const deltaX = Math.abs(targetScroll - container.scrollLeft);
+        const dwellMs = computeHighlightDwellMs(deltaX, referenceSpanPx);
+        const markViewportArrived = targetSlot
+          ? beginSlotHighlight(targetSlot.key, dwellMs)
+          : undefined;
+        springScrollTimeline(container, targetScroll, markViewportArrived);
       } else if (targetSlot) {
         const slotStartOffset = Math.max(
           0,
@@ -1531,35 +1792,30 @@ export default function App() {
         );
         const focusX = (slotStartOffset / dynamicTotalDayMinutes) * container.scrollWidth;
         const targetScroll = Math.max(0, Math.min(maxScroll, focusX - container.clientWidth / 3));
-        springScrollTimeline(container, targetScroll);
+        const deltaX = Math.abs(targetScroll - container.scrollLeft);
+        const dwellMs = computeHighlightDwellMs(deltaX, referenceSpanPx);
+        const markViewportArrived = beginSlotHighlight(targetSlot.key, dwellMs);
+        springScrollTimeline(container, targetScroll, markViewportArrived);
       } else {
         springScrollTimeline(container, Math.min(240, maxScroll));
       }
-    }
-
-    if (targetSlot) {
-      if (highlightTimerRef.current !== null) {
-        window.clearTimeout(highlightTimerRef.current);
-      }
-      const nextKey = targetSlot.key;
-      setHighlightedEventKey(null);
-      window.requestAnimationFrame(() => {
-        setHighlightedEventKey(nextKey);
-      });
-      highlightTimerRef.current = window.setTimeout(() => {
-        setHighlightedEventKey(null);
-        highlightTimerRef.current = null;
-      }, 1400);
+    } else if (targetSlot) {
+      const markViewportArrived = beginSlotHighlight(targetSlot.key, MAX_HIGHLIGHT_DWELL_MS);
+      markViewportArrived();
     }
   };
 
-  const mastheadLines = getScheduleMastheadLines({
-    events,
-    termFinals,
-    selectedGroup,
-    nowMs,
-    roll: mastheadRoll,
-  });
+  const mastheadLines = useMemo(
+    () =>
+      getScheduleMastheadLines({
+        events,
+        termFinals,
+        selectedGroup,
+        nowMs,
+        roll: mastheadRoll,
+      }),
+    [events, termFinals, selectedGroup, nowMs, mastheadRoll]
+  );
 
   return (
     <MotionConfig reducedMotion="user">
@@ -1568,14 +1824,6 @@ export default function App() {
         isDark ? 'bg-[#161514]' : 'bg-[#F4F3EF]'
       }`}
     >
-      {/* Tactile warm paper grain overlay pinned to viewport outside the scaled layer */}
-      <div
-        aria-hidden="true"
-        className={`paper-grain-overlay fixed inset-0 pointer-events-none z-40 ${
-          isDark ? 'opacity-[0.03]' : 'opacity-[0.025]'
-        }`}
-      />
-
       {/* Unified background dashboard layer: scales & rounds 1:1 with live sheetY motion value (zero CSS transition lag) */}
       <motion.div
         style={{
@@ -1605,7 +1853,7 @@ export default function App() {
           mastheadLines={mastheadLines}
         />
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-0 pb-7 flex flex-col overflow-x-hidden">
+        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 pt-0 pb-6 flex flex-col overflow-x-hidden">
         {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
         <AtAGlanceWidget
           events={events}
@@ -1631,7 +1879,7 @@ export default function App() {
             >
               {hasUpcomingFinals ? (
                 <div
-                  className="flex items-center gap-[14px]"
+                  className="flex items-center gap-3.5"
                   role="tablist"
                   aria-label="Schedule view switcher"
                 >
@@ -1643,14 +1891,14 @@ export default function App() {
                     initial={false}
                     animate={{ opacity: !isTermFinalView ? 1 : 0.4 }}
                     whileHover={{
-                      y: -1,
-                      scale: !isTermFinalView ? 1.01 : 1.025,
-                      opacity: !isTermFinalView ? 1 : 0.82,
+                      opacity: !isTermFinalView ? 1 : 0.68,
                     }}
-                    whileTap={{ scale: 0.96 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 26, mass: 0.65 }}
-                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none ${
-                      isDark ? 'text-stone-100' : 'text-stone-900'
+                    whileTap={{ scale: 0.985 }}
+                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 rounded-md ${
+                      isDark
+                        ? 'text-stone-100 hover:text-stone-300 focus-visible:ring-stone-100'
+                        : 'text-stone-900 hover:text-black focus-visible:ring-stone-900'
                     }`}
                   >
                     Weekly Routine
@@ -1663,14 +1911,14 @@ export default function App() {
                     initial={false}
                     animate={{ opacity: isTermFinalView ? 1 : 0.4 }}
                     whileHover={{
-                      y: -1,
-                      scale: isTermFinalView ? 1.01 : 1.025,
-                      opacity: isTermFinalView ? 1 : 0.82,
+                      opacity: isTermFinalView ? 1 : 0.68,
                     }}
-                    whileTap={{ scale: 0.96 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 26, mass: 0.65 }}
-                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none ${
-                      isDark ? 'text-stone-100' : 'text-stone-900'
+                    whileTap={{ scale: 0.985 }}
+                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 rounded-md ${
+                      isDark
+                        ? 'text-stone-100 hover:text-stone-300 focus-visible:ring-stone-100'
+                        : 'text-stone-900 hover:text-black focus-visible:ring-stone-900'
                     }`}
                   >
                     Term Finals
@@ -1703,7 +1951,7 @@ export default function App() {
                   initial={isColdScheduleStartup ? { opacity: 0, y: 5 } : false}
                   animate={{ opacity: 1, y: 0 }}
                   transition={startupTextTransition(0.28)}
-                  className="mt-1.5 mb-2.5 flex flex-col gap-0.5 min-w-0"
+                  className="mt-1.5 mb-3 flex flex-col gap-0.5 min-w-0"
                 >
                   {!outOfOrdinaryNotice ? (
                     <p
@@ -1749,6 +1997,7 @@ export default function App() {
                 >
                   <div
                     ref={groupTrackRef}
+                    onPointerLeave={() => setHoveredGroup(null)}
                     className="relative h-full inline-flex items-center rounded-full overflow-hidden"
                   >
                     {/* Sliding Active Indicator Pill (concentric & clipped inside uniform p-1 outer track) */}
@@ -1775,7 +2024,26 @@ export default function App() {
                           role="tab"
                           aria-selected={isSelected}
                           onClick={() => handleSelectGroup(groupOption)}
-                          whileHover={!isSelected ? { scale: 1.03 } : undefined}
+                          onPointerEnter={(e) => {
+                            if (e.pointerType !== 'touch') {
+                              setHoveredGroup(groupOption);
+                            }
+                          }}
+                          onPointerDown={() => {
+                            if (!isSelected) {
+                              setPressedGroup(groupOption);
+                            }
+                          }}
+                          onPointerLeave={() => {
+                            if (pressedGroup === groupOption) {
+                              setPressedGroup(null);
+                            }
+                          }}
+                          onPointerCancel={() => {
+                            if (pressedGroup === groupOption) {
+                              setPressedGroup(null);
+                            }
+                          }}
                           whileTap={{ scale: 0.96 }}
                           transition={{ type: 'spring', stiffness: 520, damping: 28, mass: 0.65 }}
                           className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center whitespace-nowrap ${
@@ -1784,8 +2052,8 @@ export default function App() {
                                 ? 'text-stone-900'
                                 : 'text-stone-50'
                               : isDark
-                              ? 'text-stone-400 hover:text-stone-100 hover:bg-white/[0.06]'
-                              : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.045]'
+                              ? 'text-stone-400 hover:text-stone-100'
+                              : 'text-stone-600 hover:text-stone-900'
                           }`}
                         >
                           <motion.span
@@ -1900,7 +2168,9 @@ export default function App() {
                   scrollRef={scrollContainerRef}
                   theme={theme}
                   selectedGroup={selectedGroup}
-                  highlightedEventKey={highlightedEventKey}
+                  highlightedEventKey={highlightedSlot?.key ?? null}
+                  highlightPhase={highlightedSlot?.phase ?? null}
+                  highlightSeq={highlightedSlot?.seq ?? 0}
                   totalDayMinutes={dynamicTotalDayMinutes}
                   isInitialStartup={isColdScheduleStartup}
                 />
@@ -1957,7 +2227,7 @@ export default function App() {
             <AdminConfigModal
               key="admin-config-modal"
               onClose={() => setIsAdminModalOpen(false)}
-              currentUrl={getActiveCsvUrl()}
+              currentUrl={activeCsvUrl}
               onSaveUrl={handleSaveAdminUrl}
               onResetToOfficialDefault={handleResetToOfficialDefault}
               onForceRefresh={() => fetchAndSync()}

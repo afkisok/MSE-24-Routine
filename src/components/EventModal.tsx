@@ -118,7 +118,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.24, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            className="py-3 first:pt-1"
+            className="py-3.5 first:pt-1 last:pb-1"
           >
             <div
               className={`text-[11px] font-semibold uppercase tracking-wider ${
@@ -144,7 +144,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.24, delay: syllabusLines.length > 0 ? 0.12 : 0.08, ease: [0.22, 1, 0.36, 1] }}
-          className="py-3 first:pt-1 grid grid-cols-2 gap-4"
+          className="py-3.5 first:pt-1 last:pb-1 grid grid-cols-2 gap-4"
         >
           <div className="min-w-0">
             <div
@@ -187,7 +187,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.24, delay: syllabusLines.length > 0 ? 0.16 : 0.12, ease: [0.22, 1, 0.36, 1] }}
-            className="py-3"
+            className="py-3.5 last:pb-1"
           >
             <div
               className={`text-[11px] font-semibold uppercase tracking-wider ${
