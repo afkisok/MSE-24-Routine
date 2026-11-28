@@ -4,6 +4,7 @@ import { RoutineEvent } from '../types/routine';
 import { formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
 import { BottomSheetModal } from './BottomSheetModal';
+import { VIEW_TRANSITION } from '../utils/springs';
 
 interface EventModalProps {
   event: RoutineEvent | null;
@@ -94,7 +95,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
       <motion.h2
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ ...VIEW_TRANSITION, delay: 0.04 }}
         className={`text-lg sm:text-xl font-bold tracking-tight leading-snug mb-3 ${
           isCancelled
             ? 'line-through text-stone-500'
@@ -117,7 +118,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ ...VIEW_TRANSITION, delay: 0.08 }}
             className="py-3.5 first:pt-1 last:pb-1"
           >
             <div
@@ -143,7 +144,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: syllabusLines.length > 0 ? 0.12 : 0.08, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ ...VIEW_TRANSITION, delay: syllabusLines.length > 0 ? 0.12 : 0.08 }}
           className="py-3.5 first:pt-1 last:pb-1 grid grid-cols-2 gap-4"
         >
           <div className="min-w-0">
@@ -186,7 +187,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24, delay: syllabusLines.length > 0 ? 0.16 : 0.12, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ ...VIEW_TRANSITION, delay: syllabusLines.length > 0 ? 0.16 : 0.12 }}
             className="py-3.5 last:pb-1"
           >
             <div

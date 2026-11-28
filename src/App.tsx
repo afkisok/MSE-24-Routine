@@ -33,12 +33,21 @@ import {
   BOTTOM_SHEET_SPRING,
   BottomSheetMotionContext,
 } from './components/BottomSheetModal';
-import { startupPopTransition, startupTextTransition } from './utils/springs';
+import {
+  CARD_INTERACTION_SPRING,
+  EASE_OUT_EXPO,
+  MICRO_FADE_TRANSITION,
+  startupPopTransition,
+  startupTextTransition,
+  TACTILE_SPRING,
+  TIMELINE_SCROLL_SPRING,
+  VIEW_TRANSITION,
+} from './utils/springs';
 import { Clock, ArrowRight } from 'lucide-react';
 
 const GROUP_PILL_SPRING = {
-  stiffness: 420,
-  damping: 27,
+  stiffness: 178,
+  damping: 17.6,
   mass: 0.8,
 };
 
@@ -993,10 +1002,7 @@ export default function App() {
     container.addEventListener('pointerdown', cancelOnUserInteract, { passive: true, once: true });
 
     const controls = animate(startScroll, clampedTarget, {
-      type: 'spring',
-      stiffness: 180,
-      damping: 26,
-      mass: 0.9,
+      ...TIMELINE_SCROLL_SPRING,
       onUpdate: (latest) => {
         container.scrollLeft = latest;
       },
@@ -1894,7 +1900,7 @@ export default function App() {
                       opacity: !isTermFinalView ? 1 : 0.68,
                     }}
                     whileTap={{ scale: 0.985 }}
-                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                    transition={MICRO_FADE_TRANSITION}
                     className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 rounded-md ${
                       isDark
                         ? 'text-stone-100 hover:text-stone-300 focus-visible:ring-stone-100'
@@ -1914,7 +1920,7 @@ export default function App() {
                       opacity: isTermFinalView ? 1 : 0.68,
                     }}
                     whileTap={{ scale: 0.985 }}
-                    transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                    transition={MICRO_FADE_TRANSITION}
                     className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight transition-colors duration-150 cursor-pointer select-none focus-visible:outline-none focus-visible:ring-1 rounded-md ${
                       isDark
                         ? 'text-stone-100 hover:text-stone-300 focus-visible:ring-stone-100'
@@ -1942,7 +1948,7 @@ export default function App() {
                   initial={hasCompletedInitialMount ? { height: 0, opacity: 0, y: -4 } : false}
                   animate={{ height: 'auto', opacity: 1, y: 0 }}
                   exit={{ height: 0, opacity: 0, y: -4 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                  transition={VIEW_TRANSITION}
                   className="overflow-hidden -mx-1 px-1"
                 >
                   <div className="pb-0.5">
@@ -1966,7 +1972,7 @@ export default function App() {
                       type="button"
                       whileHover={{ x: 2.5 }}
                       whileTap={{ scale: 0.98 }}
-                      transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
+                      transition={CARD_INTERACTION_SPRING}
                       onClick={() => handleScrollToOffRoutineSlot(outOfOrdinaryNotice.primaryTarget)}
                       title={`Jump to ${outOfOrdinaryNotice.label}`}
                       className={`p-0 m-0 border-0 bg-transparent text-left text-sm leading-5 font-sans font-normal tabular-nums cursor-pointer select-none transition-colors duration-150 self-start max-w-full ${
@@ -2045,7 +2051,7 @@ export default function App() {
                             }
                           }}
                           whileTap={{ scale: 0.96 }}
-                          transition={{ type: 'spring', stiffness: 520, damping: 28, mass: 0.65 }}
+                          transition={TACTILE_SPRING}
                           className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center whitespace-nowrap ${
                             isSelected
                               ? isDark
@@ -2086,7 +2092,7 @@ export default function App() {
                   onHoverStart={() => setJumpIconAnimId((id) => id + 1)}
                   whileHover={{ y: -1.5, scale: 1.03 }}
                   whileTap={{ scale: 0.93 }}
-                  transition={{ type: 'spring', stiffness: 480, damping: 20, mass: 0.7 }}
+                  transition={TACTILE_SPRING}
                   title={
                     hasActiveOrRemainingSlotToday
                       ? 'Jump view to current operating hour'
@@ -2104,7 +2110,7 @@ export default function App() {
                         key={`jump-clock-${jumpIconAnimId}`}
                         initial={{ rotate: 0 }}
                         animate={jumpIconAnimId > 0 ? { rotate: [0, -18, 14, -6, 0] } : { rotate: 0 }}
-                        transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.44, ease: EASE_OUT_EXPO }}
                         className="inline-flex items-center justify-center shrink-0"
                       >
                         <Clock className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
@@ -2117,7 +2123,7 @@ export default function App() {
                         key={`jump-arrow-${jumpIconAnimId}`}
                         initial={{ x: 0 }}
                         animate={jumpIconAnimId > 0 ? { x: [0, 3.5, 0] } : { x: 0 }}
-                        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.38, ease: EASE_OUT_EXPO }}
                         className="inline-flex items-center justify-center shrink-0"
                       >
                         <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
@@ -2141,7 +2147,7 @@ export default function App() {
                 initial={hasCompletedInitialMount ? { opacity: 0, y: 10 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                transition={VIEW_TRANSITION}
               >
                 <TermFinalsList
                   termFinals={termFinals}
@@ -2157,7 +2163,7 @@ export default function App() {
                 initial={hasCompletedInitialMount ? { opacity: 0, y: 10 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                transition={VIEW_TRANSITION}
               >
                 <MasterTimelineGrid
                   days={operationalDays}

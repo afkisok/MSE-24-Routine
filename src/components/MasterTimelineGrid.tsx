@@ -2,7 +2,13 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { animate, AnimatePresence, motion, useReducedMotion, type Variants } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
-import { startupPopTransition, startupTextTransition, UNIFIED_SPRING } from '../utils/springs';
+import {
+  EASE_OUT_EXPO,
+  startupPopTransition,
+  startupTextTransition,
+  TIMELINE_SCROLL_SPRING,
+  UNIFIED_SPRING,
+} from '../utils/springs';
 import {
   DAY_START_MINUTES,
   TOTAL_DAY_MINUTES,
@@ -232,10 +238,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
     container.addEventListener('pointerdown', cancelOnUserInteract, { passive: true, once: true });
 
     const controls = animate(container.scrollLeft, 0, {
-      type: 'spring',
-      stiffness: 180,
-      damping: 26,
-      mass: 0.9,
+      ...TIMELINE_SCROLL_SPRING,
       onUpdate: (latest) => {
         container.scrollLeft = latest;
       },
@@ -370,7 +373,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               opacity: isScrolled ? 0 : 1,
               scale: isScrolled ? 0.88 : 1,
             }}
-            transition={{ type: 'spring', stiffness: 400, damping: 28, mass: 0.8 }}
+            transition={UNIFIED_SPRING}
             aria-hidden={isScrolled || undefined}
             className={`will-change-transform transform-gpu ${
               isScrolled ? 'pointer-events-none' : ''
@@ -606,7 +609,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       transition={{
                         duration: 0.36,
                         delay: baseDelay + 0.1,
-                        ease: [0.22, 1, 0.36, 1],
+                        ease: EASE_OUT_EXPO,
                       }}
                       style={{ left: `${nowLeftPercent}%`, transformOrigin: 'top center' }}
                       className="absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none bg-[#9E2C2C]"

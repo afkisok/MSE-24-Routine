@@ -4,13 +4,7 @@ import { RotateCcw, Check, FileCode } from 'lucide-react';
 import { DEFAULT_ROUTINE_CSV_URL } from '../types/routine';
 import { BottomSheetModal } from './BottomSheetModal';
 import { SmoothRefreshIcon } from './SmoothRefreshIcon';
-
-const ACTION_BUTTON_SPRING = {
-  type: 'spring' as const,
-  stiffness: 480,
-  damping: 26,
-  mass: 0.72,
-};
+import { TACTILE_SPRING, VIEW_TRANSITION } from '../utils/springs';
 
 interface AdminConfigModalProps {
   onClose: () => void;
@@ -152,7 +146,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
         id="admin-modal-title"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.24, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ ...VIEW_TRANSITION, delay: 0.04 }}
         className={`text-lg sm:text-xl font-bold tracking-tight leading-snug mb-3 ${
           isDark ? 'text-stone-100' : 'text-stone-900'
         }`}
@@ -177,7 +171,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
           onSubmit={handleSave}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ ...VIEW_TRANSITION, delay: 0.08 }}
           className="py-3.5 first:pt-1"
         >
           <label
@@ -209,7 +203,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               disabled={syncStatus.status === 'syncing'}
               whileHover={{ y: -1, scale: 1.01 }}
               whileTap={{ scale: 0.97 }}
-              transition={ACTION_BUTTON_SPRING}
+              transition={TACTILE_SPRING}
               className={`h-9 px-3.5 rounded-xl font-semibold text-xs inline-flex items-center justify-center gap-1.5 cursor-pointer select-none transition-colors duration-150 disabled:opacity-55 ${
                 isDark
                   ? 'bg-stone-100 text-stone-900 hover:bg-stone-200'
@@ -239,7 +233,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               disabled={syncStatus.status === 'syncing'}
               whileHover={{ y: -1, scale: 1.01 }}
               whileTap={{ scale: 0.97 }}
-              transition={ACTION_BUTTON_SPRING}
+              transition={TACTILE_SPRING}
               className={secondaryBtnClass}
             >
               <SmoothRefreshIcon
@@ -257,7 +251,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               onClick={handleResetToDefault}
               whileHover={{ y: -1, scale: 1.01 }}
               whileTap={{ scale: 0.97 }}
-              transition={ACTION_BUTTON_SPRING}
+              transition={TACTILE_SPRING}
               className={secondaryBtnClass}
             >
               Restore Default
@@ -269,7 +263,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.24, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ ...VIEW_TRANSITION, delay: 0.12 }}
           className="py-3.5 last:pb-1"
         >
           <span
@@ -290,7 +284,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
               onClick={onResetBaseline}
               whileHover={{ y: -1, scale: 1.01 }}
               whileTap={{ scale: 0.97 }}
-              transition={ACTION_BUTTON_SPRING}
+              transition={TACTILE_SPRING}
               className={secondaryBtnClass}
             >
               <RotateCcw className="w-3.5 h-3.5" />
@@ -306,7 +300,7 @@ export const AdminConfigModal: React.FC<AdminConfigModalProps> = ({
                 }}
                 whileHover={{ y: -1, scale: 1.01 }}
                 whileTap={{ scale: 0.97 }}
-                transition={ACTION_BUTTON_SPRING}
+                transition={TACTILE_SPRING}
                 className={secondaryBtnClass}
               >
                 <FileCode className="w-3.5 h-3.5" />

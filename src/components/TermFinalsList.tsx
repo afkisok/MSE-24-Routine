@@ -2,19 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { TermFinalExam } from '../types/routine';
 import { formatTo12Hour } from '../utils/timeCalculations';
-import { startupPopTransition, startupTextTransition } from '../utils/springs';
+import {
+  CARD_INTERACTION_SPRING,
+  startupPopTransition,
+  startupTextTransition,
+} from '../utils/springs';
 import {
   isTermFinalPast,
   isTermFinalUpcoming,
   sortTermFinalsChronologically,
 } from '../utils/termFinalUtils';
-
-const TERM_FINAL_TILE_SPRING = {
-  type: 'spring' as const,
-  stiffness: 460,
-  damping: 28,
-  mass: 0.78,
-};
 
 interface TermFinalsListProps {
   termFinals: TermFinalExam[];
@@ -110,7 +107,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                   scale: 1,
                 }}
                 whileHover={{ scale: 1.015 }}
-                transition={hasEntered ? TERM_FINAL_TILE_SPRING : startupPopTransition(rowDelay)}
+                transition={hasEntered ? CARD_INTERACTION_SPRING : startupPopTransition(rowDelay)}
                 onHoverStart={() => {
                   if (!hasEntered) setHasEntered(true);
                   setHoveredDateISO(group.dateISO);
@@ -143,7 +140,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                   const isPast = !isCancelled && isTermFinalPast(exam, nowMs);
                   const timeWindow = `${formatTo12Hour(exam.startTime)} – ${formatTo12Hour(exam.endTime)}`;
                   const tileTransition = hasEntered
-                    ? TERM_FINAL_TILE_SPRING
+                    ? CARD_INTERACTION_SPRING
                     : startupTextTransition(rowDelay + 0.025 + examIdx * 0.025);
 
                   return (

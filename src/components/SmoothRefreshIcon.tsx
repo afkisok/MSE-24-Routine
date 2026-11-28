@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, animate, motion, useMotionValue } from 'motion/react';
 import { Check, RefreshCw } from 'lucide-react';
+import { CARD_INTERACTION_SPRING } from '../utils/springs';
 
 interface SmoothRefreshIconProps {
   isSyncing: boolean;
@@ -9,13 +10,6 @@ interface SmoothRefreshIconProps {
   showSuccessCheck?: boolean;
   successClassName?: string;
 }
-
-const ICON_MORPH_SPRING = {
-  type: 'spring' as const,
-  stiffness: 420,
-  damping: 28,
-  mass: 0.7,
-};
 
 /**
  * Momentum-preserving refresh icon that smoothly spins during sync,
@@ -128,7 +122,7 @@ export const SmoothRefreshIcon: React.FC<SmoothRefreshIconProps> = ({
           initial={{ scale: 0.55, rotate: -30, opacity: 0 }}
           animate={{ scale: 1, rotate: 0, opacity: 1 }}
           exit={{ scale: 0.65, rotate: 20, opacity: 0 }}
-          transition={ICON_MORPH_SPRING}
+          transition={CARD_INTERACTION_SPRING}
           className={`inline-flex items-center justify-center leading-none ${successClassName}`}
         >
           <Check className={className} strokeWidth={2.4} />
@@ -139,7 +133,7 @@ export const SmoothRefreshIcon: React.FC<SmoothRefreshIconProps> = ({
           initial={{ scale: 0.75, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.65, opacity: 0 }}
-          transition={ICON_MORPH_SPRING}
+          transition={CARD_INTERACTION_SPRING}
           style={{ rotate }}
           className="inline-flex items-center justify-center leading-none will-change-transform"
         >

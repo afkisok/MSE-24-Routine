@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { RoutineAssignment } from '../types/routine';
 import { BottomSheetModal } from './BottomSheetModal';
+import { VIEW_TRANSITION } from '../utils/springs';
 
 interface AssignmentsModalProps {
   assignments: RoutineAssignment[];
@@ -92,9 +93,8 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{
-                    duration: 0.24,
+                    ...VIEW_TRANSITION,
                     delay: Math.min(idx * 0.045, 0.2),
-                    ease: [0.22, 1, 0.36, 1],
                   }}
                   className="py-3.5 first:pt-1 last:pb-1"
                 >

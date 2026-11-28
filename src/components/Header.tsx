@@ -3,7 +3,13 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Sun, Moon } from 'lucide-react';
 import { SmoothRefreshIcon } from './SmoothRefreshIcon';
 import { MastheadInteractiveDot } from './MastheadInteractiveDot';
-import { startupPopTransition, startupTextTransition } from '../utils/springs';
+import {
+  CARD_INTERACTION_SPRING,
+  EASE_OUT_EXPO,
+  startupPopTransition,
+  startupTextTransition,
+  TACTILE_SPRING,
+} from '../utils/springs';
 
 interface SyncStatus {
   status: 'idle' | 'syncing' | 'success' | 'error';
@@ -170,7 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onHoverEnd={() => setIsRefreshHovered(false)}
                 whileHover={syncStatus.status === 'syncing' ? undefined : { scale: 1.06 }}
                 whileTap={syncStatus.status === 'syncing' ? undefined : { scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 520, damping: 24, mass: 0.65 }}
+                transition={TACTILE_SPRING}
                 type="button"
                 title={
                   syncStatus.status === 'syncing'
@@ -192,7 +198,7 @@ export const Header: React.FC<HeaderProps> = ({
                       initial={{ scale: 0.45, opacity: isDark ? 0.28 : 0.16 }}
                       animate={{ scale: 1.55, opacity: 0 }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+                      transition={{ duration: 0.52, ease: EASE_OUT_EXPO }}
                       className={`pointer-events-none absolute inset-0 rounded-full ${
                         isDark ? 'bg-stone-200' : 'bg-stone-900'
                       }`}
@@ -208,7 +214,7 @@ export const Header: React.FC<HeaderProps> = ({
                         ? 24
                         : 0,
                   }}
-                  transition={{ type: 'spring', stiffness: 460, damping: 22, mass: 0.65 }}
+                  transition={CARD_INTERACTION_SPRING}
                   className="inline-flex items-center justify-center"
                 >
                   <SmoothRefreshIcon
@@ -233,7 +239,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onClick={(e) => onToggleTheme(e)}
                 whileHover={{ scale: 1.06 }}
                 whileTap={{ scale: 0.9 }}
-                transition={{ type: 'spring', stiffness: 520, damping: 24, mass: 0.65 }}
+                transition={TACTILE_SPRING}
                 type="button"
                 title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
                 aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -250,7 +256,7 @@ export const Header: React.FC<HeaderProps> = ({
                       initial={{ rotate: -45, scale: 0.65, opacity: 0 }}
                       animate={{ rotate: 0, scale: 1, opacity: 1 }}
                       exit={{ rotate: 45, scale: 0.65, opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
+                      transition={CARD_INTERACTION_SPRING}
                       className="inline-flex items-center justify-center"
                     >
                       <Sun className="w-4 h-4 block" />
@@ -261,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({
                       initial={{ rotate: 45, scale: 0.65, opacity: 0 }}
                       animate={{ rotate: 0, scale: 1, opacity: 1 }}
                       exit={{ rotate: -45, scale: 0.65, opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
+                      transition={CARD_INTERACTION_SPRING}
                       className="inline-flex items-center justify-center"
                     >
                       <Moon className="w-4 h-4 block" />

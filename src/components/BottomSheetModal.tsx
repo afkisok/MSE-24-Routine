@@ -18,6 +18,7 @@ import {
   type PanInfo,
   type Transition,
 } from 'motion/react';
+import { TACTILE_SPRING, UNIFIED_BACKDROP_TRANSITION } from '../utils/springs';
 
 /**
  * Shared MotionValue bridge tying the active bottom sheet's live `y` translation
@@ -32,13 +33,13 @@ export const BottomSheetMotionContext =
   createContext<BottomSheetMotionContextValue | null>(null);
 
 /**
- * Subtle tactile spring (ζ ≈ 0.77) for modal expansion and drag snap-back.
+ * Balanced, subtle tactile spring (ζ ≈ 0.76) for modal expansion and drag snap-back.
  */
 export const BOTTOM_SHEET_SPRING: Transition = {
   type: 'spring',
-  stiffness: 420,
-  damping: 29,
-  mass: 0.85,
+  stiffness: 380,
+  damping: 28,
+  mass: 0.9,
 };
 
 /**
@@ -54,17 +55,7 @@ const BOTTOM_SHEET_EXIT_SPRING: Transition = {
   restSpeed: 5,
 };
 
-export const BACKDROP_TRANSITION: Transition = {
-  duration: 0.3,
-  ease: [0.22, 1, 0.36, 1],
-};
-
-const HANDLE_SPRING: Transition = {
-  type: 'spring',
-  stiffness: 520,
-  damping: 32,
-  mass: 0.7,
-};
+export const BACKDROP_TRANSITION: Transition = UNIFIED_BACKDROP_TRANSITION;
 
 interface GrabHandleProps {
   isDark: boolean;
@@ -112,7 +103,7 @@ const GrabHandle: React.FC<GrabHandleProps> = ({ isDark, setterRef, onGrabPointe
             scaleX: isGrabbed ? 1.24 : 1,
             scaleY: isGrabbed ? 1.18 : 1,
           }}
-          transition={HANDLE_SPRING}
+          transition={TACTILE_SPRING}
           className={`w-12 h-1.5 rounded-full origin-center transition-colors duration-150 ${
             isGrabbed
               ? isDark

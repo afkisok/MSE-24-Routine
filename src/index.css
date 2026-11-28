@@ -89,7 +89,7 @@ body::-webkit-scrollbar,
   font-weight: 600;
   letter-spacing: 0.01em;
   border: 1px solid #1C1917;
-  transition: all 120ms ease;
+  transition: all 150ms ease;
   cursor: pointer;
   user-select: none;
 }
@@ -120,7 +120,7 @@ html.dark .aviation-btn-primary:hover {
   font-size: 12px;
   font-weight: 500;
   border: 1px solid #D6D3D1;
-  transition: all 120ms ease;
+  transition: all 150ms ease;
   cursor: pointer;
   user-select: none;
 }

@@ -7,14 +7,11 @@ import {
   TOTAL_DAY_MINUTES,
 } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
-import { startupPopTransition } from '../utils/springs';
-
-const SLOT_CARD_SPRING = {
-  type: 'spring' as const,
-  stiffness: 520,
-  damping: 24,
-  mass: 0.7,
-};
+import {
+  CARD_INTERACTION_SPRING,
+  startupPopTransition,
+  VIEW_TRANSITION,
+} from '../utils/springs';
 
 const TILE_LIFT_SPRING = {
   type: 'spring' as const,
@@ -214,7 +211,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         liftY.jump(0);
         liftScale.jump(1);
         highlightControlsRef.current.push(
-          animate(shadowProgress, 1, { duration: 0.22, ease: [0.22, 1, 0.36, 1] })
+          animate(shadowProgress, 1, VIEW_TRANSITION)
         );
         return;
       }
@@ -235,10 +232,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
       if (shouldReduceMotion) {
         liftY.jump(0);
         liftScale.jump(1);
-        const fadeOut = animate(shadowProgress, 0, {
-          duration: 0.28,
-          ease: [0.22, 1, 0.36, 1],
-        });
+        const fadeOut = animate(shadowProgress, 0, VIEW_TRANSITION);
         highlightControlsRef.current.push(fadeOut);
         fadeOut.then(() => {
           if (highlightCycleIdRef.current !== cycleId) return;
@@ -288,7 +282,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   }, [hasEntered, startupDelay]);
 
   const entryTransition = hasEntered
-    ? SLOT_CARD_SPRING
+    ? CARD_INTERACTION_SPRING
     : startupPopTransition(startupDelay, 0.2);
 
   const courseCode = extractCourseCode(event.subject);

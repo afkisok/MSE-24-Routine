@@ -3,7 +3,15 @@ import { AnimatePresence, motion } from 'motion/react';
 import { RoutineEvent, TermFinalExam } from '../types/routine';
 import { timeToMinutes, formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
-import { startupPopTransition, startupTextTransition } from '../utils/springs';
+import {
+  CARD_INTERACTION_SPRING,
+  EASE_OUT_EXPO,
+  MICRO_FADE_TRANSITION,
+  startupPopTransition,
+  startupTextTransition,
+  TACTILE_SPRING,
+  VIEW_TRANSITION,
+} from '../utils/springs';
 import {
   getTermFinalRelativeLabel,
   getTermFinalTimestamps,
@@ -73,21 +81,8 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
     }
   }, [isTermFinalMode]);
 
-  const VIEW_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
-  const HERO_TILE_PRESS_SPRING = {
-    type: 'spring' as const,
-    stiffness: 390,
-    damping: 28,
-    mass: 0.95,
-  };
-  const HERO_VIEW_SPRING = {
-    type: 'spring' as const,
-    stiffness: 390,
-    damping: 32,
-    mass: 0.95,
-  };
   const heroEntryTransition =
-    hasHeroEntered || !isColdStartup ? HERO_TILE_PRESS_SPRING : startupPopTransition(0.18, 0.22);
+    hasHeroEntered || !isColdStartup ? CARD_INTERACTION_SPRING : startupPopTransition(0.18, 0.22);
 
   const renderHeader = (title: string) => (
     <div className="flex items-end justify-between gap-2 mb-3 px-1">
@@ -103,7 +98,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: VIEW_EASE }}
+            transition={MICRO_FADE_TRANSITION}
             className={`font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-snug ${
               isDark ? 'text-stone-100' : 'text-stone-900'
             }`}
@@ -124,7 +119,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             onClick={onOpenAssignments}
             whileHover={{ y: -1.5, scale: 1.025 }}
             whileTap={{ scale: 0.94 }}
-            transition={{ type: 'spring', stiffness: 480, damping: 20, mass: 0.7 }}
+            transition={TACTILE_SPRING}
             className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-colors duration-150 cursor-pointer select-none ${
               isDark
                 ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#262523]'
@@ -141,7 +136,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     duration: 2.1,
                     repeat: Infinity,
                     repeatDelay: 2.2,
-                    ease: [0.22, 1, 0.36, 1],
+                    ease: EASE_OUT_EXPO,
                   }}
                   className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full pointer-events-none bg-[#9E2C2C]"
                 />
@@ -383,7 +378,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         transition={{
                           duration: 0.72,
                           delay: isColdStartup ? 0.28 : 0.06,
-                          ease: [0.22, 1, 0.36, 1],
+                          ease: EASE_OUT_EXPO,
                         }}
                         className={`relative overflow-hidden h-full ${
                           isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
@@ -431,7 +426,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       <motion.div
                         whileHover={{ x: 3 }}
                         whileTap={{ scale: 0.985 }}
-                        transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
+                        transition={CARD_INTERACTION_SPRING}
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelectTermFinal?.(exam);
@@ -583,7 +578,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             initial={hasSwitchedMode ? { opacity: 0, y: 6 } : false}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={HERO_VIEW_SPRING}
+            transition={VIEW_TRANSITION}
           >
             {renderTermFinalBody()}
           </motion.div>
@@ -593,7 +588,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             initial={hasSwitchedMode ? { opacity: 0, y: 6 } : false}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={HERO_VIEW_SPRING}
+            transition={VIEW_TRANSITION}
           >
 
       {upcomingList.length === 0 ? (
@@ -802,7 +797,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       transition={{
                         duration: 0.72,
                         delay: isColdStartup ? 0.28 : 0.06,
-                        ease: [0.22, 1, 0.36, 1],
+                        ease: EASE_OUT_EXPO,
                       }}
                       className={`relative overflow-hidden h-full ${
                         isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
@@ -855,7 +850,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     <motion.div
                       whileHover={{ x: 3 }}
                       whileTap={{ scale: 0.985 }}
-                      transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
+                      transition={CARD_INTERACTION_SPRING}
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectEvent(event);

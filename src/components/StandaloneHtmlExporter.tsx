@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { generateSingleFileHtml } from '../utils/singleFileHtmlGenerator';
 import { Copy, Download, Check, FileCode } from 'lucide-react';
 import { BOTTOM_SHEET_SPRING } from './BottomSheetModal';
+import { VIEW_TRANSITION } from '../utils/springs';
 
 interface StandaloneHtmlExporterProps {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export const StandaloneHtmlExporter: React.FC<StandaloneHtmlExporterProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{
-              opacity: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+              opacity: VIEW_TRANSITION,
               default: BOTTOM_SHEET_SPRING,
             }}
             className={`relative z-10 w-full max-w-2xl rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col max-h-[90vh] border will-change-transform transform-gpu ${

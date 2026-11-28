@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { KeyRound, AlertCircle } from 'lucide-react';
 import { BOTTOM_SHEET_SPRING } from './BottomSheetModal';
+import { EASE_OUT_EXPO, VIEW_TRANSITION } from '../utils/springs';
 
 interface AdminPinDialogProps {
   isOpen: boolean;
@@ -98,7 +99,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{
-              opacity: { duration: 0.2, ease: [0.22, 1, 0.36, 1] },
+              opacity: VIEW_TRANSITION,
               default: BOTTOM_SHEET_SPRING,
             }}
             className={`relative z-10 w-full max-w-sm rounded-3xl shadow-2xl border p-5 sm:p-6 flex flex-col will-change-transform transform-gpu ${
@@ -121,7 +122,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               animate={{ rotate: shake ? [-10, 12, -8, 6, 0] : 0, scale: 1 }}
               transition={{
                 rotate: shake
-                  ? { duration: 0.38, ease: [0.22, 1, 0.36, 1] }
+                  ? { duration: 0.38, ease: EASE_OUT_EXPO }
                   : { type: 'spring', stiffness: 420, damping: 18, mass: 0.7 },
                 scale: { type: 'spring', stiffness: 420, damping: 18, mass: 0.7 },
               }}
@@ -161,7 +162,7 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
                   }}
                   transition={
                     isFilled
-                      ? { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+                      ? { duration: 0.24, ease: EASE_OUT_EXPO }
                       : { type: 'spring', stiffness: 520, damping: 20, mass: 0.65 }
                   }
                   className={`w-11 h-12 rounded-xl flex items-center justify-center text-lg font-semibold tabular-nums border transition-colors ${
