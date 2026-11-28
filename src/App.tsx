@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { AnimatePresence, MotionConfig, animate, motion } from 'motion/react';
+import { AnimatePresence, MotionConfig, animate, motion, useScroll, useTransform } from 'motion/react';
 import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
 import { baselineTestData } from './data/baselineData';
 import {
@@ -253,37 +253,8 @@ export default function App() {
     isBottomSheetOpen || isPinDialogOpen || isExportModalOpen
   );
 
-  const topEdgeBlurRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let rafId: number | null = null;
-    const START_SCROLL_Y = 4;
-    const END_SCROLL_Y = 52;
-
-    const applyTopEdgeBlur = () => {
-      rafId = null;
-      const el = topEdgeBlurRef.current;
-      if (!el) return;
-      const y = window.scrollY;
-      const raw = Math.min(1, Math.max(0, (y - START_SCROLL_Y) / (END_SCROLL_Y - START_SCROLL_Y)));
-      // Smoothstep ease-in-out curve for gentle, seamless ramp from 0 to 1
-      const eased = raw * raw * (3 - 2 * raw);
-      el.style.setProperty('--top-blur-progress', eased.toFixed(4));
-      el.style.visibility = eased > 0.001 ? 'visible' : 'hidden';
-    };
-
-    const scheduleUpdate = () => {
-      if (rafId !== null) return;
-      rafId = window.requestAnimationFrame(applyTopEdgeBlur);
-    };
-
-    applyTopEdgeBlur();
-    window.addEventListener('scroll', scheduleUpdate, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', scheduleUpdate);
-      if (rafId !== null) window.cancelAnimationFrame(rafId);
-    };
-  }, []);
+  const { scrollY } = useScroll();
+  const topScrimOpacity = useTransform(scrollY, [0, 48], [0, 1], { clamp: true });
 
   const closeAllModals = () => {
     setSelectedEvent(null);
@@ -1749,11 +1720,11 @@ export default function App() {
         </div>
       </motion.div>
 
-      {/* Scroll-reactive feathered top edge blur overlay (strictly below z-40 modal backdrop) */}
-      <div
-        ref={topEdgeBlurRef}
+      {/* Scroll-linked top edge theme-colored gradient scrim (strictly below z-40 modal backdrop) */}
+      <motion.div
         aria-hidden="true"
-        className="top-edge-blur-bar fixed top-0 left-0 right-0 pointer-events-none z-30"
+        style={{ opacity: topScrimOpacity }}
+        className="top-edge-scrim fixed top-0 left-0 right-0 pointer-events-none z-30"
       />
 
       {/* Full-viewport edge-to-edge dimmed + blurred modal backdrop (stays pointer-events-auto until fully closed) */}
