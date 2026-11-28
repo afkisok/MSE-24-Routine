@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { AnimatePresence, MotionConfig, animate, motion, useScroll, useTransform } from 'motion/react';
+import { AnimatePresence, MotionConfig, animate, motion, useMotionValue } from 'motion/react';
 import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
 import { baselineTestData } from './data/baselineData';
 import {
@@ -253,8 +253,25 @@ export default function App() {
     isBottomSheetOpen || isPinDialogOpen || isExportModalOpen
   );
 
-  const { scrollY } = useScroll();
-  const topScrimOpacity = useTransform(scrollY, [0, 48], [0, 1], { clamp: true });
+  const topScrimOpacity = useMotionValue(0);
+
+  useEffect(() => {
+    const updateTopScrimOpacity = () => {
+      const scrollTop = Math.max(
+        window.scrollY || 0,
+        document.documentElement.scrollTop || 0,
+        document.body.scrollTop || 0
+      );
+      topScrimOpacity.set(Math.min(Math.max(scrollTop / 24, 0), 1));
+    };
+    updateTopScrimOpacity();
+    window.addEventListener('scroll', updateTopScrimOpacity, { passive: true });
+    document.addEventListener('scroll', updateTopScrimOpacity, { passive: true, capture: true });
+    return () => {
+      window.removeEventListener('scroll', updateTopScrimOpacity);
+      document.removeEventListener('scroll', updateTopScrimOpacity, { capture: true });
+    };
+  }, [topScrimOpacity]);
 
   const closeAllModals = () => {
     setSelectedEvent(null);
@@ -386,7 +403,7 @@ export default function App() {
     const targetColor = isDark
       ? isAnyModalOpen
         ? '#0C0C0B'
-        : '#161514'
+        : '#181716'
       : isAnyModalOpen
       ? '#868683'
       : '#F4F3EF';

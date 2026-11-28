@@ -327,7 +327,7 @@ html.dark .animate-slot-pulse {
 
 /* Scroll-linked top edge theme-colored gradient scrim (strictly beneath z-40 modal backdrop) */
 .top-edge-scrim {
-  height: calc(env(safe-area-inset-top, 0px) + 36px);
+  height: calc(env(safe-area-inset-top, 0px) + 26px);
 }
 .top-edge-scrim::before,
 .top-edge-scrim::after {
@@ -340,18 +340,22 @@ html.dark .animate-slot-pulse {
 .top-edge-scrim::before {
   background-image: linear-gradient(
     to bottom,
-    #F4F3EF 0%,
-    rgba(244, 243, 239, 0.85) 35%,
-    rgba(244, 243, 239, 0) 100%
+    rgba(247, 245, 240, 1) 0%,
+    rgba(247, 245, 240, 0.72) 22%,
+    rgba(247, 245, 240, 0.36) 50%,
+    rgba(247, 245, 240, 0.1) 78%,
+    rgba(247, 245, 240, 0) 100%
   );
   opacity: 1;
 }
 .top-edge-scrim::after {
   background-image: linear-gradient(
     to bottom,
-    #161514 0%,
-    rgba(22, 21, 20, 0.85) 35%,
-    rgba(22, 21, 20, 0) 100%
+    rgba(24, 23, 22, 1) 0%,
+    rgba(24, 23, 22, 0.72) 22%,
+    rgba(24, 23, 22, 0.36) 50%,
+    rgba(24, 23, 22, 0.1) 78%,
+    rgba(24, 23, 22, 0) 100%
   );
   opacity: 0;
 }
