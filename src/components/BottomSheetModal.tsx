@@ -32,14 +32,13 @@ export const BottomSheetMotionContext =
   createContext<BottomSheetMotionContextValue | null>(null);
 
 /**
- * Strictly critically damped spring (ζ ≈ 1.005):
- * Full precision for unitless scale, borderRadius, and opening transitions.
+ * Subtle tactile spring (ζ ≈ 0.77) for modal expansion and drag snap-back.
  */
 export const BOTTOM_SHEET_SPRING: Transition = {
   type: 'spring',
-  stiffness: 440,
-  damping: 40,
-  mass: 0.9,
+  stiffness: 420,
+  damping: 29,
+  mass: 0.85,
 };
 
 /**
@@ -164,6 +163,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   const grabSetterRef = useRef<((grabbed: boolean) => void) | null>(null);
   const sheetCardRef = useRef<HTMLDivElement | null>(null);
   const activeAnimRef = useRef<{ stop: () => void } | null>(null);
+  const scaleAnimRef = useRef<{ stop: () => void } | null>(null);
   const dismissVelocityRef = useRef<number>(0);
 
   const sharedMotion = useContext(BottomSheetMotionContext);
@@ -171,6 +171,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   const localSheetHeight = useMotionValue<number>(640);
   const sheetY = sharedMotion?.sheetY ?? localSheetY;
   const sheetHeight = sharedMotion?.sheetHeight ?? localSheetHeight;
+  const sheetScale = useMotionValue<number>(1);
 
   /**
    * Computes the exact vertical travel distance from resting detent (y = 0)
@@ -201,15 +202,19 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
     sheetHeight.set(dismissRange);
     activeAnimRef.current?.stop();
+    scaleAnimRef.current?.stop();
 
     if (shouldReduceMotion) {
       sheetY.jump(0);
+      sheetScale.jump(1);
       return;
     }
 
     sheetY.jump(startOffscreenY);
+    sheetScale.jump(0.972);
     activeAnimRef.current = animate(sheetY, 0, BOTTOM_SHEET_SPRING);
-  }, [computeDismissRange, sheetHeight, sheetY, shouldReduceMotion]);
+    scaleAnimRef.current = animate(sheetScale, 1, BOTTOM_SHEET_SPRING);
+  }, [computeDismissRange, sheetHeight, sheetScale, sheetY, shouldReduceMotion]);
 
   // Keep sheetHeight synced on viewport resizes or dynamic content height changes
   useEffect(() => {
@@ -236,6 +241,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
     if (isPresent) return;
 
     activeAnimRef.current?.stop();
+    scaleAnimRef.current?.stop();
     const dismissRange = computeDismissRange();
     sheetHeight.set(dismissRange);
 
@@ -246,6 +252,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 
     if (shouldReduceMotion) {
       sheetY.jump(targetExitY);
+      sheetScale.jump(1);
       safeToRemove();
       return;
     }
@@ -258,7 +265,9 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       ...BOTTOM_SHEET_EXIT_SPRING,
       ...(releaseVelocity > 0 ? { velocity: releaseVelocity } : {}),
     });
+    const scaleControls = animate(sheetScale, 0.972, BOTTOM_SHEET_EXIT_SPRING);
     activeAnimRef.current = controls;
+    scaleAnimRef.current = scaleControls;
 
     controls.then(() => {
       if (cancelled) return;
@@ -269,14 +278,17 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
     return () => {
       cancelled = true;
       controls.stop();
+      scaleControls.stop();
     };
-  }, [isPresent, computeDismissRange, sheetHeight, sheetY, shouldReduceMotion, safeToRemove]);
+  }, [isPresent, computeDismissRange, sheetHeight, sheetScale, sheetY, shouldReduceMotion, safeToRemove]);
 
   // Defensive cleanup on unmount so background depth is never left stuck non-zero
   useEffect(() => {
     return () => {
       activeAnimRef.current?.stop();
+      scaleAnimRef.current?.stop();
       activeAnimRef.current = null;
+      scaleAnimRef.current = null;
       const finalRange = Math.max(sheetHeight.get(), 260);
       if (sheetY.get() < finalRange) {
         sheetY.jump(finalRange);
@@ -301,6 +313,8 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   const handleDragStart = () => {
     activeAnimRef.current?.stop();
     activeAnimRef.current = null;
+    scaleAnimRef.current?.stop();
+    scaleAnimRef.current = animate(sheetScale, 1, BOTTOM_SHEET_SPRING);
     dismissVelocityRef.current = 0;
     grabSetterRef.current?.(true);
   };
@@ -369,9 +383,9 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         dragElastic={{ top: 0.08, bottom: 0.45 }}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
-        style={{ y: sheetY, overscrollBehaviorY: 'contain' }}
+        style={{ y: sheetY, scale: sheetScale, overscrollBehaviorY: 'contain' }}
         onClick={(e) => e.stopPropagation()}
-        className="fixed bottom-0 inset-x-0 mx-auto sm:relative sm:bottom-auto sm:inset-x-auto sm:mx-0 z-10 w-full max-w-lg overflow-visible will-change-transform transform-gpu pointer-events-auto"
+        className="fixed bottom-0 inset-x-0 mx-auto sm:relative sm:bottom-auto sm:inset-x-auto sm:mx-0 z-10 w-full max-w-lg origin-bottom sm:origin-center overflow-visible will-change-transform transform-gpu pointer-events-auto"
       >
         <div
           data-modal-scrollable="true"

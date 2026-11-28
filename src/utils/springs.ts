@@ -1,16 +1,15 @@
 import type { Transition } from 'motion/react';
 
 /**
- * Shared critically damped UI spring (ζ ≈ 1.01):
- * Matched to the collapsible Day column feel — snappy acceleration,
- * zero overshoot, seamlessly interruptible across modals, the group
- * filter pill, the collapsible Day rail, and horizontal timeline jumps.
+ * Shared subtle UI spring (ζ ≈ 0.77):
+ * Gives the collapsible Day rail and Day cards tactile acceleration and a
+ * subtle organic settle while remaining crisp and seamlessly interruptible.
  */
 export const UNIFIED_SPRING = {
   type: 'spring',
   stiffness: 360,
-  damping: 36,
-  mass: 0.88,
+  damping: 27,
+  mass: 0.85,
 } as const;
 
 /**
