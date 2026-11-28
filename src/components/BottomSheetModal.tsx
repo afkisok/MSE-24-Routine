@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   animate,
   motion,
+  useDragControls,
   useIsPresent,
   useMotionValue,
   type PanInfo,
@@ -47,13 +48,15 @@ const HANDLE_SPRING: Transition = {
 interface GrabHandleProps {
   isDark: boolean;
   setterRef: React.MutableRefObject<((grabbed: boolean) => void) | null>;
+  onGrabPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
 }
 
 /**
  * Isolated grab handle component so pressing or dragging never triggers a re-render
  * on the parent draggable motion.div sheet.
+ * Hitbox is tightly bounded to a ~30% expanded region around the handle pill itself.
  */
-const GrabHandle: React.FC<GrabHandleProps> = ({ isDark, setterRef }) => {
+const GrabHandle: React.FC<GrabHandleProps> = ({ isDark, setterRef, onGrabPointerDown }) => {
   const [isGrabbed, setIsGrabbed] = useState(false);
 
   useEffect(() => {
@@ -75,26 +78,31 @@ const GrabHandle: React.FC<GrabHandleProps> = ({ isDark, setterRef }) => {
   }, [isGrabbed]);
 
   return (
-    <div
-      className="flex justify-center -mt-1 mb-3 pt-1 cursor-grab active:cursor-grabbing touch-none"
-      onPointerDown={() => setIsGrabbed(true)}
-    >
-      <motion.div
-        animate={{
-          scaleX: isGrabbed ? 1.24 : 1,
-          scaleY: isGrabbed ? 1.18 : 1,
+    <div className="flex justify-center -mt-2.5 mb-0.5">
+      <div
+        onPointerDown={(e) => {
+          setIsGrabbed(true);
+          onGrabPointerDown(e);
         }}
-        transition={HANDLE_SPRING}
-        className={`w-12 h-1.5 rounded-full origin-center transition-colors duration-150 ${
-          isGrabbed
-            ? isDark
-              ? 'bg-stone-500'
-              : 'bg-stone-400'
-            : isDark
-            ? 'bg-stone-700'
-            : 'bg-stone-300'
-        }`}
-      />
+        className="inline-flex items-center justify-center px-[0.45rem] py-2.5 rounded-full cursor-grab active:cursor-grabbing touch-none select-none"
+      >
+        <motion.div
+          animate={{
+            scaleX: isGrabbed ? 1.24 : 1,
+            scaleY: isGrabbed ? 1.18 : 1,
+          }}
+          transition={HANDLE_SPRING}
+          className={`w-12 h-1.5 rounded-full origin-center transition-colors duration-150 ${
+            isGrabbed
+              ? isDark
+                ? 'bg-stone-500'
+                : 'bg-stone-400'
+              : isDark
+              ? 'bg-stone-700'
+              : 'bg-stone-300'
+          }`}
+        />
+      </div>
     </div>
   );
 };
@@ -128,6 +136,9 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const isPresent = useIsPresent();
+  const isPresentRef = useRef(isPresent);
+  isPresentRef.current = isPresent;
+  const dragControls = useDragControls();
   const grabSetterRef = useRef<((grabbed: boolean) => void) | null>(null);
   const sheetCardRef = useRef<HTMLDivElement | null>(null);
   const snapBackAnimRef = useRef<{ stop: () => void } | null>(null);
@@ -191,7 +202,21 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
     snapBackAnimRef.current = animate(sheetY, 0, BOTTOM_SHEET_SPRING);
   };
 
-  const grabHandle = <GrabHandle isDark={isDark} setterRef={grabSetterRef} />;
+  const handleGrabPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isPresentRef.current) return;
+      dragControls.start(e);
+    },
+    [dragControls]
+  );
+
+  const grabHandle = (
+    <GrabHandle
+      isDark={isDark}
+      setterRef={grabSetterRef}
+      onGrabPointerDown={handleGrabPointerDown}
+    />
+  );
 
   return (
     <motion.div
@@ -219,6 +244,8 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
         exit={{ y: exitY, transition: BOTTOM_SHEET_EXIT_SPRING }}
         transition={BOTTOM_SHEET_SPRING}
         drag={isPresent ? 'y' : false}
+        dragControls={dragControls}
+        dragListener={false}
         dragConstraints={{ top: 0 }}
         dragElastic={{ top: 0.08, bottom: 0.45 }}
         onDragStart={handleDragStart}
@@ -235,10 +262,7 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
               : 'bg-white border-stone-200 text-stone-900 shadow-[0_-10px_36px_-8px_rgba(28,25,23,0.18)] sm:shadow-2xl sm:shadow-stone-900/20'
           } ${sheetClassName}`}
         >
-          <div
-            onPointerDown={() => grabSetterRef.current?.(true)}
-            className="cursor-grab active:cursor-grabbing shrink-0 touch-none"
-          >
+          <div className="shrink-0">
             {renderHeader(grabHandle)}
           </div>
 
