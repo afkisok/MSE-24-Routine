@@ -254,6 +254,7 @@ export default function App() {
   );
 
   const topScrimOpacity = useMotionValue(0);
+  const [jumpIconAnimId, setJumpIconAnimId] = useState(0);
 
   useEffect(() => {
     const updateTopScrimOpacity = () => {
@@ -1580,8 +1581,11 @@ export default function App() {
                       Nothing out of the ordinary
                     </p>
                   ) : (
-                    <button
+                    <motion.button
                       type="button"
+                      whileHover={{ x: 2.5 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
                       onClick={() => handleScrollToOffRoutineSlot(outOfOrdinaryNotice.primaryTarget)}
                       title={`Jump to ${outOfOrdinaryNotice.label}`}
                       className={`p-0 m-0 border-0 bg-transparent text-left text-sm leading-5 font-sans font-normal tabular-nums cursor-pointer select-none transition-colors duration-150 self-start max-w-full ${
@@ -1591,7 +1595,7 @@ export default function App() {
                       }`}
                     >
                       {outOfOrdinaryNotice.label}
-                    </button>
+                    </motion.button>
                   )}
                 </div>
 
@@ -1656,15 +1660,22 @@ export default function App() {
                 </div>
 
                 {/* Compact Tactile Micro-Pill "Now" / "Next" Jump Button (Harmonized h-9) */}
-                <button
+                <motion.button
                   type="button"
-                  onClick={handleScrollToNow}
+                  onClick={() => {
+                    setJumpIconAnimId((id) => id + 1);
+                    handleScrollToNow();
+                  }}
+                  onHoverStart={() => setJumpIconAnimId((id) => id + 1)}
+                  whileHover={{ y: -1.5, scale: 1.03 }}
+                  whileTap={{ scale: 0.93 }}
+                  transition={{ type: 'spring', stiffness: 480, damping: 20, mass: 0.7 }}
                   title={
                     hasActiveOrRemainingSlotToday
                       ? 'Jump view to current operating hour'
                       : 'Jump view to next scheduled class'
                   }
-                  className={`h-9 px-3.5 py-0 text-xs font-semibold leading-none rounded-full inline-flex items-center justify-center gap-1.5 cursor-pointer transition-all duration-150 active:scale-95 border select-none shrink-0 whitespace-nowrap ${
+                  className={`h-9 px-3.5 py-0 text-xs font-semibold leading-none rounded-full inline-flex items-center justify-center gap-1.5 cursor-pointer transition-colors duration-150 border select-none shrink-0 whitespace-nowrap ${
                     isDark
                       ? 'bg-[#1E1D1C] hover:bg-[#262523] text-stone-100 border-transparent'
                       : 'bg-white hover:bg-stone-50 text-stone-900 border-transparent shadow-[0_1px_2px_0_rgba(0,0,0,0.04)]'
@@ -1672,16 +1683,32 @@ export default function App() {
                 >
                   {hasActiveOrRemainingSlotToday ? (
                     <>
-                      <Clock className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
+                      <motion.span
+                        key={`jump-clock-${jumpIconAnimId}`}
+                        initial={{ rotate: 0 }}
+                        animate={jumpIconAnimId > 0 ? { rotate: [0, -18, 14, -6, 0] } : { rotate: 0 }}
+                        transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+                        className="inline-flex items-center justify-center shrink-0"
+                      >
+                        <Clock className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
+                      </motion.span>
                       <span className="leading-none">Now</span>
                     </>
                   ) : (
                     <>
-                      <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
+                      <motion.span
+                        key={`jump-arrow-${jumpIconAnimId}`}
+                        initial={{ x: 0 }}
+                        animate={jumpIconAnimId > 0 ? { x: [0, 3.5, 0] } : { x: 0 }}
+                        transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                        className="inline-flex items-center justify-center shrink-0"
+                      >
+                        <ArrowRight className="w-3.5 h-3.5 shrink-0 text-[#9E2C2C]" />
+                      </motion.span>
                       <span className="leading-none">Next</span>
                     </>
                   )}
-                </button>
+                </motion.button>
               </div>
                   </div>
                 </motion.div>

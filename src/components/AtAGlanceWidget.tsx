@@ -85,25 +85,42 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
       </div>
 
       {onOpenAssignments && (
-        <button
+        <motion.button
           type="button"
           onClick={onOpenAssignments}
-          className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-all duration-150 active:scale-95 cursor-pointer select-none ${
+          whileHover={{ y: -1.5, scale: 1.025 }}
+          whileTap={{ scale: 0.94 }}
+          transition={{ type: 'spring', stiffness: 480, damping: 20, mass: 0.7 }}
+          className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-colors duration-150 cursor-pointer select-none ${
             isDark
               ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#262523]'
               : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50'
           }`}
         >
           {assignmentsCount > 0 && (
-            <span
-              className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none bg-[#9E2C2C] ${
-                isDark ? 'ring-[#161514]' : 'ring-[#F4F3EF]'
-              }`}
-              aria-hidden="true"
-            />
+            <>
+              <motion.span
+                aria-hidden="true"
+                initial={{ scale: 1, opacity: 0.55 }}
+                animate={{ scale: [1, 2.3], opacity: [0.55, 0] }}
+                transition={{
+                  duration: 2.1,
+                  repeat: Infinity,
+                  repeatDelay: 2.2,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full pointer-events-none bg-[#9E2C2C]"
+              />
+              <span
+                className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none bg-[#9E2C2C] ${
+                  isDark ? 'ring-[#161514]' : 'ring-[#F4F3EF]'
+                }`}
+                aria-hidden="true"
+              />
+            </>
           )}
           <span className="leading-none">Assignments</span>
-        </button>
+        </motion.button>
       )}
     </div>
   );
@@ -304,11 +321,23 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       }`}
                     >
                       <div
-                        className={`h-full transition-[width] duration-700 ease-out ${
+                        className={`relative overflow-hidden h-full transition-[width] duration-700 ease-out ${
                           isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
                         }`}
                         style={{ width: `${liveProgressPercent}%` }}
-                      />
+                      >
+                        <motion.span
+                          initial={{ x: '-120%' }}
+                          animate={{ x: '260%' }}
+                          transition={{
+                            duration: 2.6,
+                            repeat: Infinity,
+                            repeatDelay: 1.5,
+                            ease: 'easeInOut',
+                          }}
+                          className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/55 to-transparent"
+                        />
+                      </div>
                     </div>
                   )}
                 </motion.div>
@@ -330,8 +359,11 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       : `${relativeLabel || exam.displayDate}, ${formatTo12Hour(exam.startTime)}`;
 
                   return (
-                    <div
+                    <motion.div
                       key={exam.id}
+                      whileHover={{ x: 3 }}
+                      whileTap={{ scale: 0.985 }}
+                      transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onSelectTermFinal?.(exam);
@@ -345,7 +377,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                           onSelectTermFinal?.(exam);
                         }
                       }}
-                      className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-all duration-150 ease-out active:scale-[0.98] ${
+                      className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
                         isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
                       }`}
                     >
@@ -373,7 +405,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       >
                         {exam.room || 'TBA'}
                       </span>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -679,11 +711,23 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     }`}
                   >
                     <div
-                      className={`h-full transition-[width] duration-700 ease-out ${
+                      className={`relative overflow-hidden h-full transition-[width] duration-700 ease-out ${
                         isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
                       }`}
                       style={{ width: `${liveProgressPercent}%` }}
-                    />
+                    >
+                      <motion.span
+                        initial={{ x: '-120%' }}
+                        animate={{ x: '260%' }}
+                        transition={{
+                          duration: 2.6,
+                          repeat: Infinity,
+                          repeatDelay: 1.5,
+                          ease: 'easeInOut',
+                        }}
+                        className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/55 to-transparent"
+                      />
+                    </div>
                   </div>
                 )}
               </motion.div>
@@ -710,8 +754,11 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   /\b(exam|ct|quiz|term\s*finals?|tf)\b/.test(typeStatusCombined);
 
                 return (
-                  <div
+                  <motion.div
                     key={event.id || `${event.day}-${event.startTime}-${index}`}
+                    whileHover={{ x: 3 }}
+                    whileTap={{ scale: 0.985 }}
+                    transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSelectEvent(event);
@@ -725,7 +772,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         onSelectEvent(event);
                       }
                     }}
-                    className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-all duration-150 ease-out active:scale-[0.98] ${
+                    className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
                       isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
                     }`}
                   >
@@ -762,7 +809,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     >
                       {event.room || 'TBA'}
                     </span>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

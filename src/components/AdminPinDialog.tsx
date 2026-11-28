@@ -136,9 +136,12 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
         </div>
 
         {/* PIN Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-4 my-2">
-          {/* Visual 4-Digit Display */}
-          <div className="flex items-center justify-center gap-3 py-2">
+        <form onSubmit={handleSubmit} className="flex flex-col items-center gap-3 mt-1">
+          {/* Visual 4-Digit Display (auto-verifies on 4th digit) */}
+          <div
+            onClick={() => inputRef.current?.focus()}
+            className="flex items-center justify-center gap-3 py-2 cursor-text"
+          >
             {[0, 1, 2, 3].map((idx) => {
               const char = pin[idx];
               const isFilled = Boolean(char);
@@ -190,20 +193,6 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
               <span>Incorrect PIN. Please try again.</span>
             </div>
           )}
-
-          <div className="w-full flex items-center pt-2">
-            <button
-              type="submit"
-              disabled={pin.length < 4}
-              className={`w-full py-2 px-3 text-xs font-semibold rounded-full cursor-pointer transition-all active:scale-95 border disabled:opacity-40 ${
-                isDark
-                  ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
-                  : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
-              }`}
-            >
-              Verify
-            </button>
-          </div>
         </form>
           </motion.div>
         </motion.div>

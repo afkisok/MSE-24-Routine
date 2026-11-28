@@ -29,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const isDark = theme === 'dark';
   const [refreshPulseId, setRefreshPulseId] = useState(0);
+  const [dotHopId, setDotHopId] = useState(0);
 
   // Timing and tap counter state for mobile touchscreens (850ms window)
   const tapCountRef = useRef(0);
@@ -126,9 +127,7 @@ export const Header: React.FC<HeaderProps> = ({
             onTouchEnd={handleTouchEnd}
             aria-label="MSE '24 Department Routine Badge"
             style={{ touchAction: 'manipulation' }}
-            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border cursor-pointer select-none touch-manipulation transition-transform duration-300 ease-out active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-500 ${
-              isMounted ? 'scale-100' : 'scale-95'
-            } ${
+            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border cursor-pointer select-none touch-manipulation focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-500 ${
               isDark
                 ? 'bg-stone-100 text-stone-900 border-stone-100 hover:bg-stone-200'
                 : 'bg-stone-900 text-stone-50 border-stone-900 hover:bg-stone-800'
@@ -204,12 +203,15 @@ export const Header: React.FC<HeaderProps> = ({
             </motion.button>
 
             {/* Clean Circular Theme Toggle Button */}
-            <button
+            <motion.button
               onClick={(e) => onToggleTheme(e)}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 520, damping: 24, mass: 0.65 }}
               type="button"
               title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-all duration-150 active:scale-95 border select-none overflow-hidden ${
+              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-colors duration-150 border select-none overflow-hidden ${
                 isDark
                   ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:bg-[#262523] hover:text-stone-100'
                   : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
@@ -240,7 +242,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </motion.span>
                 )}
               </AnimatePresence>
-            </button>
+            </motion.button>
           </div>
         </div>
 
@@ -259,7 +261,25 @@ export const Header: React.FC<HeaderProps> = ({
               return (
                 <>
                   {secondLine.slice(0, -1)}
-                  <span className={crimsonTextClass}>.</span>
+                  <motion.span
+                    key={`masthead-dot-${dotHopId}`}
+                    initial={dotHopId === 0 ? { y: -9, scale: 0.45, opacity: 0 } : { y: 0, scale: 1 }}
+                    animate={
+                      dotHopId === 0
+                        ? { y: 0, scale: 1, opacity: 1 }
+                        : { y: [0, -7, 0], scaleY: [1, 1.18, 0.88, 1], scaleX: [1, 0.9, 1.12, 1] }
+                    }
+                    transition={
+                      dotHopId === 0
+                        ? { type: 'spring', stiffness: 440, damping: 14, mass: 0.7, delay: 0.22 }
+                        : { duration: 0.42, ease: [0.22, 1, 0.36, 1] }
+                    }
+                    onClick={() => setDotHopId((n) => n + 1)}
+                    onHoverStart={() => setDotHopId((n) => n + 1)}
+                    className={`inline-block origin-bottom cursor-pointer ${crimsonTextClass}`}
+                  >
+                    .
+                  </motion.span>
                 </>
               );
             }
@@ -267,20 +287,36 @@ export const Header: React.FC<HeaderProps> = ({
               return (
                 <>
                   {secondLine.slice(0, -1)}
-                  <span className="relative inline-block leading-none">
+                  <span
+                    onClick={() => setDotHopId((n) => n + 1)}
+                    onMouseEnter={() => setDotHopId((n) => n + 1)}
+                    className="relative inline-block leading-none cursor-pointer"
+                  >
                     <span
                       className="inline-block leading-none"
                       style={{ clipPath: 'inset(0 0 45% 0)' }}
                     >
                       ?
                     </span>
-                    <span
+                    <motion.span
+                      key={`masthead-qdot-${dotHopId}`}
                       aria-hidden="true"
-                      className={`pointer-events-none select-none absolute inset-0 inline-block leading-none ${crimsonTextClass}`}
+                      initial={dotHopId === 0 ? { y: -7, scale: 0.5, opacity: 0 } : { y: 0, scale: 1 }}
+                      animate={
+                        dotHopId === 0
+                          ? { y: 0, scale: 1, opacity: 1 }
+                          : { y: [0, -5, 0], scaleY: [1, 1.16, 0.9, 1], scaleX: [1, 0.92, 1.1, 1] }
+                      }
+                      transition={
+                        dotHopId === 0
+                          ? { type: 'spring', stiffness: 440, damping: 14, mass: 0.7, delay: 0.22 }
+                          : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
+                      }
+                      className={`pointer-events-none select-none absolute inset-0 inline-block leading-none origin-bottom ${crimsonTextClass}`}
                       style={{ clipPath: 'inset(55% 0 0 0)' }}
                     >
                       ?
-                    </span>
+                    </motion.span>
                   </span>
                 </>
               );

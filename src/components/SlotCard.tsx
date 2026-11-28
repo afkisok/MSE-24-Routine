@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import {
   calculateSlotGeometry,
@@ -6,6 +7,13 @@ import {
   TOTAL_DAY_MINUTES,
 } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
+
+const SLOT_CARD_SPRING = {
+  type: 'spring' as const,
+  stiffness: 520,
+  damping: 24,
+  mass: 0.7,
+};
 
 interface SlotCardProps {
   event: RoutineEvent;
@@ -135,7 +143,10 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   // 0. CANCELED SLOT CARD: Quiet, borderless, baseline-aligned strikethrough CourseCode only
   if (isCancelled) {
     return (
-      <div
+      <motion.div
+        whileHover={{ scale: 1.014 }}
+        whileTap={{ scale: 0.97 }}
+        transition={SLOT_CARD_SPRING}
         onClick={(e) => {
           e.stopPropagation();
           onSelect(event);
@@ -155,7 +166,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`Canceled: ${event.subject}`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,background-color] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[opacity,background-color] duration-150 ease-out flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-100' : 'focus-visible:ring-stone-900'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'}`}
       >
@@ -185,14 +196,17 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         >
           &nbsp;
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   // 1. NARROW CT / EXAM BLOCK (<= 55 mins): Compact centered layout with two-row stacked course code
   if (isNarrowExam) {
     return (
-      <div
+      <motion.div
+        whileHover={{ scale: 1.022 }}
+        whileTap={{ scale: 0.962 }}
+        transition={SLOT_CARD_SPRING}
         onClick={(e) => {
           e.stopPropagation();
           onSelect(event);
@@ -212,7 +226,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`CT / Exam: ${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[opacity,background-color] duration-150 ease-out flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-900' : 'focus-visible:ring-stone-50'
         } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
           isHighlighted ? 'animate-slot-pulse z-20' : ''
@@ -242,7 +256,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         >
           {compactStartTime}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
@@ -262,7 +276,10 @@ export const SlotCard: React.FC<SlotCardProps> = ({
 
   // 2. STANDARD & WIDE EXAM SLOT CARD (THREE-TIER VERTICAL STACK)
   return (
-    <div
+    <motion.div
+      whileHover={{ scale: 1.016 }}
+      whileTap={{ scale: 0.968 }}
+      transition={SLOT_CARD_SPRING}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(event);
@@ -282,7 +299,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         }
       }}
       title={`${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[transform,opacity,box-shadow] duration-150 ease-out active:scale-[0.98] group flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
+      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[opacity,background-color] duration-150 ease-out group flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
         isExam
           ? isDark
             ? 'focus-visible:ring-stone-900'
@@ -385,7 +402,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 

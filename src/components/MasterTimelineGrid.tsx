@@ -259,6 +259,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               <motion.div
                 initial={false}
                 animate={{ width: isScrolled ? 36 : 96 }}
+                whileHover={isScrolled ? { scale: 1.06 } : undefined}
                 whileTap={isScrolled ? { scale: 0.94 } : undefined}
                 transition={UNIFIED_SPRING}
                 onClick={isScrolled ? scrollToStart : undefined}
