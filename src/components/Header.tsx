@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Sun, Moon } from 'lucide-react';
 import { SmoothRefreshIcon } from './SmoothRefreshIcon';
-import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from '../utils/springs';
+import { startupPopTransition, startupTextTransition } from '../utils/springs';
 
 interface SyncStatus {
   status: 'idle' | 'syncing' | 'success' | 'error';
@@ -155,9 +155,9 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             {/* Discreet Manual Refresh Button */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.78, y: -5 }}
+              initial={{ opacity: 0, scale: 0.88, y: 4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ ...STARTUP_POP_SPRING, delay: 0.04 }}
+              transition={startupPopTransition(0.03)}
               className="inline-flex shrink-0"
             >
               <motion.button
@@ -224,9 +224,9 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Clean Circular Theme Toggle Button */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.78, y: -5 }}
+              initial={{ opacity: 0, scale: 0.88, y: 4 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ ...STARTUP_POP_SPRING, delay: 0.09 }}
+              transition={startupPopTransition(0.07)}
               className="inline-flex shrink-0"
             >
               <motion.button
@@ -280,9 +280,9 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <motion.span
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ ...STARTUP_TEXT_SPRING, delay: 0.08 }}
+            transition={startupTextTransition(0.05)}
             className="inline-block"
           >
             {mastheadLines[0]}
@@ -295,16 +295,16 @@ export const Header: React.FC<HeaderProps> = ({
               return (
                 <>
                   <motion.span
-                    initial={{ opacity: 0, y: 14 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
+                    transition={startupTextTransition(0.1)}
                     className="inline-block"
                   >
                     {secondLine.slice(0, -1)}
                   </motion.span>
                   <motion.span
                     key={`masthead-dot-${dotHopId}`}
-                    initial={dotHopId === 0 ? { y: -9, scale: 0.45, opacity: 0 } : { y: 0, scale: 1 }}
+                    initial={dotHopId === 0 ? { y: -7, scale: 0.55, opacity: 0 } : { y: 0, scale: 1 }}
                     animate={
                       dotHopId === 0
                         ? { y: 0, scale: 1, opacity: 1 }
@@ -312,7 +312,10 @@ export const Header: React.FC<HeaderProps> = ({
                     }
                     transition={
                       dotHopId === 0
-                        ? { type: 'spring', stiffness: 420, damping: 19, mass: 0.7, delay: 0.28 }
+                        ? {
+                            opacity: { duration: 0.18, delay: 0.22, ease: [0.22, 1, 0.36, 1] },
+                            default: { type: 'spring', stiffness: 400, damping: 21, mass: 0.72, delay: 0.22 },
+                          }
                         : { duration: 0.42, ease: [0.22, 1, 0.36, 1] }
                     }
                     onClick={() => setDotHopId((n) => n + 1)}
@@ -328,9 +331,9 @@ export const Header: React.FC<HeaderProps> = ({
               return (
                 <>
                   <motion.span
-                    initial={{ opacity: 0, y: 14 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
+                    transition={startupTextTransition(0.1)}
                     className="inline-block"
                   >
                     {secondLine.slice(0, -1)}
@@ -341,9 +344,9 @@ export const Header: React.FC<HeaderProps> = ({
                     className="relative inline-block leading-none cursor-pointer"
                   >
                     <motion.span
-                      initial={{ opacity: 0, y: 14 }}
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
+                      transition={startupTextTransition(0.1)}
                       className="inline-block leading-none"
                       style={{ clipPath: 'inset(0 0 45% 0)' }}
                     >
@@ -352,7 +355,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <motion.span
                       key={`masthead-qdot-${dotHopId}`}
                       aria-hidden="true"
-                      initial={dotHopId === 0 ? { y: -7, scale: 0.5, opacity: 0 } : { y: 0, scale: 1 }}
+                      initial={dotHopId === 0 ? { y: -6, scale: 0.58, opacity: 0 } : { y: 0, scale: 1 }}
                       animate={
                         dotHopId === 0
                           ? { y: 0, scale: 1, opacity: 1 }
@@ -360,7 +363,10 @@ export const Header: React.FC<HeaderProps> = ({
                       }
                       transition={
                         dotHopId === 0
-                          ? { type: 'spring', stiffness: 420, damping: 19, mass: 0.7, delay: 0.28 }
+                          ? {
+                              opacity: { duration: 0.18, delay: 0.22, ease: [0.22, 1, 0.36, 1] },
+                              default: { type: 'spring', stiffness: 400, damping: 21, mass: 0.72, delay: 0.22 },
+                            }
                           : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
                       }
                       className={`pointer-events-none select-none absolute inset-0 inline-block leading-none origin-bottom ${crimsonTextClass}`}
@@ -374,9 +380,9 @@ export const Header: React.FC<HeaderProps> = ({
             }
             return (
               <motion.span
-                initial={{ opacity: 0, y: 14 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
+                transition={startupTextTransition(0.1)}
                 className="inline-block"
               >
                 {secondLine}

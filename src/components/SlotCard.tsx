@@ -7,7 +7,7 @@ import {
   TOTAL_DAY_MINUTES,
 } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
-import { STARTUP_POP_SPRING } from '../utils/springs';
+import { startupPopTransition } from '../utils/springs';
 
 const SLOT_CARD_SPRING = {
   type: 'spring' as const,
@@ -112,17 +112,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
 
   const entryTransition = hasEntered
     ? SLOT_CARD_SPRING
-    : {
-        opacity: {
-          duration: 0.2,
-          delay: startupDelay,
-          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-        },
-        default: {
-          ...STARTUP_POP_SPRING,
-          delay: startupDelay,
-        },
-      };
+    : startupPopTransition(startupDelay, 0.2);
 
   const { leftPercent, widthPercent, durationMinutes } = calculateSlotGeometry(
     event.startTime,
@@ -171,11 +161,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   if (isCancelled) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.93 }}
+        initial={{ opacity: 0, y: 7, scale: 0.955 }}
         animate={{ opacity: isDimmed ? 0.25 : 1, y: 0, scale: 1 }}
         whileHover={{ scale: 1.014, opacity: isDimmed ? 0.8 : 1 }}
         whileTap={{ scale: 0.97 }}
         transition={entryTransition}
+        onHoverStart={() => {
+          if (!hasEntered) setHasEntered(true);
+        }}
         onAnimationComplete={() => {
           if (!hasEntered) setHasEntered(true);
         }}
@@ -236,11 +229,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   if (isNarrowExam) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 10, scale: 0.92 }}
+        initial={{ opacity: 0, y: 7, scale: 0.945 }}
         animate={{ opacity: isDimmed ? 0.25 : 1, y: 0, scale: 1 }}
         whileHover={{ scale: 1.022, opacity: isDimmed ? 0.8 : 1 }}
         whileTap={{ scale: 0.962 }}
         transition={entryTransition}
+        onHoverStart={() => {
+          if (!hasEntered) setHasEntered(true);
+        }}
         onAnimationComplete={() => {
           if (!hasEntered) setHasEntered(true);
         }}
@@ -314,11 +310,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   // 2. STANDARD & WIDE EXAM SLOT CARD (THREE-TIER VERTICAL STACK)
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.93 }}
+      initial={{ opacity: 0, y: 7, scale: 0.955 }}
       animate={{ opacity: isDimmed ? 0.25 : 1, y: 0, scale: 1 }}
       whileHover={{ scale: 1.016, opacity: isDimmed ? 0.8 : 1 }}
       whileTap={{ scale: 0.968 }}
       transition={entryTransition}
+      onHoverStart={() => {
+        if (!hasEntered) setHasEntered(true);
+      }}
       onAnimationComplete={() => {
         if (!hasEntered) setHasEntered(true);
       }}

@@ -21,22 +21,44 @@ export const UNIFIED_BACKDROP_TRANSITION: Transition = {
   ease: [0.22, 1, 0.36, 1],
 };
 
+const STARTUP_OPACITY_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
 /**
- * Subtle editorial lift spring for masthead lines, headings, and card copy on startup.
+ * Editorial lift spring (ζ ≈ 0.93) for masthead lines, headings, and card copy on startup.
  */
 export const STARTUP_TEXT_SPRING = {
   type: 'spring',
-  stiffness: 380,
-  damping: 30,
-  mass: 0.8,
+  stiffness: 360,
+  damping: 32,
+  mass: 0.82,
 } as const;
 
 /**
- * Playful tactile spring pop for circular actions, pills, day badges, and class tiles on startup.
+ * Tactile spring pop (ζ ≈ 0.83) for circular actions, pills, day badges, and class tiles on startup.
  */
 export const STARTUP_POP_SPRING = {
   type: 'spring',
-  stiffness: 430,
-  damping: 27,
-  mass: 0.72,
+  stiffness: 410,
+  damping: 29,
+  mass: 0.75,
 } as const;
+
+/**
+ * Decouples crisp opacity easing from smooth transform spring physics for editorial text/container entrances.
+ */
+export function startupTextTransition(delay = 0, opacityDuration = 0.24): Transition {
+  return {
+    opacity: { duration: opacityDuration, delay, ease: STARTUP_OPACITY_EASE },
+    default: { ...STARTUP_TEXT_SPRING, delay },
+  };
+}
+
+/**
+ * Decouples crisp opacity easing from tactile spring pop physics for interactive controls and tiles.
+ */
+export function startupPopTransition(delay = 0, opacityDuration = 0.2): Transition {
+  return {
+    opacity: { duration: opacityDuration, delay, ease: STARTUP_OPACITY_EASE },
+    default: { ...STARTUP_POP_SPRING, delay },
+  };
+}

@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { RoutineEvent, TermFinalExam } from '../types/routine';
 import { timeToMinutes, formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
-import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from '../utils/springs';
+import { startupPopTransition, startupTextTransition } from '../utils/springs';
 import {
   getTermFinalRelativeLabel,
   getTermFinalTimestamps,
@@ -52,16 +52,26 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const todayDayNum = now.getDay();
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
+  const initialModeRef = useRef(isTermFinalMode);
   const [hasSwitchedMode, setHasSwitchedMode] = useState(false);
+  const [hasSwitchedAway, setHasSwitchedAway] = useState(false);
   const [hasHeroEntered, setHasHeroEntered] = useState(false);
+
+  const isColdStartup = !hasSwitchedAway && isTermFinalMode === initialModeRef.current;
 
   useEffect(() => {
     setHasSwitchedMode(true);
     const timer = window.setTimeout(() => {
       setHasHeroEntered(true);
-    }, 680);
+    }, 620);
     return () => window.clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    if (isTermFinalMode !== initialModeRef.current) {
+      setHasSwitchedAway(true);
+    }
+  }, [isTermFinalMode]);
 
   const VIEW_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
   const HERO_TILE_PRESS_SPRING = {
@@ -76,19 +86,15 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
     damping: 32,
     mass: 0.95,
   };
-  const heroEntryTransition = hasHeroEntered
-    ? HERO_TILE_PRESS_SPRING
-    : {
-        opacity: { duration: 0.24, delay: 0.22, ease: VIEW_EASE },
-        default: { ...STARTUP_POP_SPRING, delay: 0.22 },
-      };
+  const heroEntryTransition =
+    hasHeroEntered || !isColdStartup ? HERO_TILE_PRESS_SPRING : startupPopTransition(0.18, 0.22);
 
   const renderHeader = (title: string) => (
     <div className="flex items-end justify-between gap-2 mb-3 px-1">
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 7 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ ...STARTUP_TEXT_SPRING, delay: 0.17 }}
+        transition={startupTextTransition(0.14)}
         className="relative pb-0.5 min-w-0"
       >
         <AnimatePresence mode="wait" initial={false}>
@@ -109,9 +115,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
       {onOpenAssignments && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.88, y: 6 }}
+          initial={{ opacity: 0, scale: 0.92, y: 5 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ ...STARTUP_POP_SPRING, delay: 0.21 }}
+          transition={startupPopTransition(0.17)}
         >
           <motion.button
             type="button"
@@ -178,9 +184,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
     return (
       <motion.div
-        initial={{ opacity: 0, scale: 0.92, y: 6 }}
+        initial={isColdStartup ? { opacity: 0, scale: 0.95, y: 5 } : false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ ...STARTUP_POP_SPRING, delay: 0.31 }}
+        transition={startupPopTransition(0.24)}
         className="shrink-0 text-right mt-[2px]"
       >
         <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
@@ -245,7 +251,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
               return (
                 <motion.div
-                  initial={{ opacity: 0, y: 12, scale: 0.975 }}
+                  initial={isColdStartup ? { opacity: 0, y: 10, scale: 0.982 } : false}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   whileHover={{ y: -2, scale: 1.008 }}
                   whileTap={{ scale: 0.985 }}
@@ -278,9 +284,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   {/* Top Row: Course Code + Title (left) & Co-Star ROOM Readout (right) */}
                   <div className="flex justify-between items-start gap-4">
                     <motion.div
-                      initial={{ opacity: 0, y: 6 }}
+                      initial={isColdStartup ? { opacity: 0, y: 5 } : false}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.28 }}
+                      transition={startupTextTransition(0.22)}
                       className="min-w-0"
                     >
                       <div
@@ -313,9 +319,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
                   {/* Bottom Row: Live Status Tracker or High-Contrast Day & Time Range */}
                   <motion.div
-                    initial={{ opacity: 0, y: 5 }}
+                    initial={isColdStartup ? { opacity: 0, y: 4 } : false}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.34 }}
+                    transition={startupTextTransition(0.26)}
                     className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
                       isDark ? 'border-white/[0.06]' : 'border-black/5'
                     }`}
@@ -374,7 +380,11 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       <motion.div
                         initial={{ width: '0%' }}
                         animate={{ width: `${liveProgressPercent}%` }}
-                        transition={{ duration: 0.75, delay: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{
+                          duration: 0.72,
+                          delay: isColdStartup ? 0.28 : 0.06,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                         className={`relative overflow-hidden h-full ${
                           isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
                         }`}
@@ -414,9 +424,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   return (
                     <motion.div
                       key={exam.id}
-                      initial={{ opacity: 0, x: -8 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.3 + idx * 0.05 }}
+                      initial={isColdStartup ? { opacity: 0, y: 6 } : false}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={startupTextTransition(0.27 + idx * 0.035)}
                     >
                       <motion.div
                         whileHover={{ x: 3 }}
@@ -638,7 +648,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
             return (
               <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.975 }}
+                initial={isColdStartup ? { opacity: 0, y: 10, scale: 0.982 } : false}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 whileHover={{ y: -2, scale: 1.008 }}
                 whileTap={{ scale: 0.985 }}
@@ -671,9 +681,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 {/* Top Row: Course Code + Name (left) & Co-Star ROOM Readout (right) */}
                 <div className="flex justify-between items-start gap-4">
                   <motion.div
-                    initial={{ opacity: 0, y: 6 }}
+                    initial={isColdStartup ? { opacity: 0, y: 5 } : false}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.28 }}
+                    transition={startupTextTransition(0.22)}
                     className="min-w-0"
                   >
                     <div
@@ -708,9 +718,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
                 {/* Bottom Row: Live Status Tracker or High-Contrast Day & Time Range */}
                 <motion.div
-                  initial={{ opacity: 0, y: 5 }}
+                  initial={isColdStartup ? { opacity: 0, y: 4 } : false}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...STARTUP_TEXT_SPRING, delay: 0.34 }}
+                  transition={startupTextTransition(0.26)}
                   className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
                     isDark ? 'border-white/[0.06]' : 'border-black/5'
                   }`}
@@ -789,7 +799,11 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     <motion.div
                       initial={{ width: '0%' }}
                       animate={{ width: `${liveProgressPercent}%` }}
-                      transition={{ duration: 0.75, delay: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                      transition={{
+                        duration: 0.72,
+                        delay: isColdStartup ? 0.28 : 0.06,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
                       className={`relative overflow-hidden h-full ${
                         isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
                       }`}
@@ -834,9 +848,9 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 return (
                   <motion.div
                     key={event.id || `${event.day}-${event.startTime}-${index}`}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.3 + index * 0.05 }}
+                    initial={isColdStartup ? { opacity: 0, y: 6 } : false}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={startupTextTransition(0.27 + index * 0.035)}
                   >
                     <motion.div
                       whileHover={{ x: 3 }}

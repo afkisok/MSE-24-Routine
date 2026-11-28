@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { AnimatePresence, MotionConfig, animate, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react';
 import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
@@ -29,8 +29,11 @@ import { AssignmentsModal } from './components/AssignmentsModal';
 import { AdminConfigModal } from './components/AdminConfigModal';
 import { AdminPinDialog } from './components/AdminPinDialog';
 import { StandaloneHtmlExporter } from './components/StandaloneHtmlExporter';
-import { BACKDROP_TRANSITION, BOTTOM_SHEET_SPRING } from './components/BottomSheetModal';
-import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from './utils/springs';
+import {
+  BOTTOM_SHEET_SPRING,
+  BottomSheetMotionContext,
+} from './components/BottomSheetModal';
+import { startupPopTransition, startupTextTransition } from './utils/springs';
 import { Clock, ArrowRight } from 'lucide-react';
 
 const GROUP_PILL_SPRING = {
@@ -249,8 +252,53 @@ export default function App() {
     selectedEvent || isAssignmentsModalOpen || isAdminModalOpen
   );
 
-  const isAnyModalOpen = Boolean(
-    isBottomSheetOpen || isPinDialogOpen || isExportModalOpen
+  const isNonSheetModalOpen = Boolean(isPinDialogOpen || isExportModalOpen);
+
+  const isAnyModalOpen = Boolean(isBottomSheetOpen || isNonSheetModalOpen);
+
+  // Single source of truth for gesture-linked bottom sheet position (`sheetY`) and dismiss range (`sheetHeight`)
+  const defaultSheetRange =
+    typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.72) : 640;
+  const sheetY = useMotionValue<number>(defaultSheetRange);
+  const sheetHeight = useMotionValue<number>(defaultSheetRange);
+  const dialogDepthProgress = useMotionValue<number>(0);
+
+  // Map sheetY in [0, sheetHeight] -> progress p in [1, 0], strictly clamped so upward over-drag (y < 0) stays locked at 1
+  const sheetDepthProgress = useTransform(
+    [sheetY, sheetHeight],
+    ([y, h]: number[]) => {
+      const safeH = Math.max(1, h);
+      if (y <= 0) return 1;
+      if (y >= safeH) return 0;
+      return 1 - y / safeH;
+    }
+  );
+
+  // Drive dialogDepthProgress smoothly for centered non-sheet dialogs (PIN & HTML Exporter)
+  useEffect(() => {
+    const controls = animate(dialogDepthProgress, isNonSheetModalOpen ? 1 : 0, BOTTOM_SHEET_SPRING);
+    return () => controls.stop();
+  }, [isNonSheetModalOpen, dialogDepthProgress]);
+
+  // Unified clamped background focus progress p ∈ [0, 1]
+  const depthProgress = useTransform(
+    [sheetDepthProgress, dialogDepthProgress],
+    ([sp, dp]: number[]) => Math.max(0, Math.min(1, Math.max(sp, dp)))
+  );
+
+  const backgroundScale = useTransform(depthProgress, [0, 1], [1, 0.94], { clamp: true });
+  const backgroundRadius = useTransform(depthProgress, [0, 1], [0, 20], { clamp: true });
+  const backdropOpacity = useTransform(depthProgress, [0, 1], [0, 1], { clamp: true });
+  const backdropBlur = useTransform(depthProgress, (v) =>
+    v <= 0.004 ? 'blur(0px)' : `blur(${(v * 12).toFixed(2)}px)`
+  );
+  const backdropVisibility = useTransform(depthProgress, (v) =>
+    v > 0.002 ? 'visible' : 'hidden'
+  );
+
+  const sheetMotionContextValue = useMemo(
+    () => ({ sheetY, sheetHeight }),
+    [sheetY, sheetHeight]
   );
 
   const topScrimOpacity = useMotionValue(0);
@@ -784,10 +832,20 @@ export default function App() {
   }, [selectedGroup, isTermFinalView, shouldReduceMotion, groupPillLeft, groupPillRight, groupTrackWidthMV]);
 
   const [hasCompletedInitialMount, setHasCompletedInitialMount] = useState(false);
+  const initialTermFinalViewRef = useRef(isTermFinalView);
+  const [hasSwitchedScheduleView, setHasSwitchedScheduleView] = useState(false);
+  const isColdScheduleStartup =
+    !hasSwitchedScheduleView && isTermFinalView === initialTermFinalViewRef.current;
 
   useEffect(() => {
     setHasCompletedInitialMount(true);
   }, []);
+
+  useEffect(() => {
+    if (isTermFinalView !== initialTermFinalViewRef.current) {
+      setHasSwitchedScheduleView(true);
+    }
+  }, [isTermFinalView]);
 
   const scrollAnimationRef = useRef<{ stop: () => void } | null>(null);
   const scrollCleanupRef = useRef<(() => void) | null>(null);
@@ -1518,15 +1576,11 @@ export default function App() {
         }`}
       />
 
-      {/* Unified background dashboard layer: scales gently as one single cohesive unit with rounded corners clipped around backdrop */}
+      {/* Unified background dashboard layer: scales & rounds 1:1 with live sheetY motion value (zero CSS transition lag) */}
       <motion.div
-        initial={false}
-        animate={{
-          scale: isAnyModalOpen ? 0.97 : 1,
-          borderRadius: isAnyModalOpen ? 20 : 0,
-        }}
-        transition={BOTTOM_SHEET_SPRING}
         style={{
+          scale: backgroundScale,
+          borderRadius: backgroundRadius,
           transformOrigin: `50% ${canvasOriginYRef.current}px`,
           isolation: 'isolate',
         }}
@@ -1570,9 +1624,9 @@ export default function App() {
         <div>
           <div className="flex flex-col mb-3 px-1">
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 7 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ ...STARTUP_TEXT_SPRING, delay: 0.28 }}
+              transition={startupTextTransition(0.25)}
               className="flex items-center justify-between sm:justify-start w-full mb-0"
             >
               {hasUpcomingFinals ? (
@@ -1646,9 +1700,9 @@ export default function App() {
                   <div className="pb-0.5">
                 {/* Plain borderless muted-gray status line with optically balanced spacing above and below */}
                 <motion.div
-                  initial={{ opacity: 0, y: 6 }}
+                  initial={isColdScheduleStartup ? { opacity: 0, y: 5 } : false}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ ...STARTUP_TEXT_SPRING, delay: 0.32 }}
+                  transition={startupTextTransition(0.28)}
                   className="mt-1.5 mb-2.5 flex flex-col gap-0.5 min-w-0"
                 >
                   {!outOfOrdinaryNotice ? (
@@ -1682,9 +1736,9 @@ export default function App() {
                 <div className="flex items-center gap-2 flex-nowrap self-start">
                 {/* One UI-style segmented pill selector with spring-animated sliding indicator (h-9) */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.93, y: 6 }}
+                  initial={isColdScheduleStartup ? { opacity: 0, scale: 0.95, y: 5 } : false}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ ...STARTUP_POP_SPRING, delay: 0.35 }}
+                  transition={startupPopTransition(0.3)}
                   className={`h-9 inline-flex items-center p-1 rounded-full overflow-hidden border border-transparent transition-colors box-border shrink-0 ${
                     isDark
                       ? 'bg-[#100F0E] shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
@@ -1735,9 +1789,9 @@ export default function App() {
                           }`}
                         >
                           <motion.span
-                            initial={{ opacity: 0, y: 3 }}
+                            initial={isColdScheduleStartup ? { opacity: 0, y: 3 } : false}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ ...STARTUP_TEXT_SPRING, delay: 0.38 + groupIdx * 0.025 }}
+                            transition={startupTextTransition(0.32 + groupIdx * 0.02, 0.2)}
                             className="inline-block"
                           >
                             {groupOption}
@@ -1750,9 +1804,9 @@ export default function App() {
 
                 {/* Compact Tactile Micro-Pill "Now" / "Next" Jump Button (Harmonized h-9) */}
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.88, y: 6 }}
+                  initial={isColdScheduleStartup ? { opacity: 0, scale: 0.92, y: 5 } : false}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ ...STARTUP_POP_SPRING, delay: 0.4 }}
+                  transition={startupPopTransition(0.34)}
                   className="shrink-0"
                 >
                 <motion.button
@@ -1826,6 +1880,7 @@ export default function App() {
                   nowMs={nowMs}
                   theme={theme}
                   onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
+                  isInitialStartup={isColdScheduleStartup}
                 />
               </motion.div>
             ) : (
@@ -1847,6 +1902,7 @@ export default function App() {
                   selectedGroup={selectedGroup}
                   highlightedEventKey={highlightedEventKey}
                   totalDayMinutes={dynamicTotalDayMinutes}
+                  isInitialStartup={isColdScheduleStartup}
                 />
               </motion.div>
             )}
@@ -1863,61 +1919,58 @@ export default function App() {
         className="top-edge-scrim fixed top-0 left-0 right-0 pointer-events-none z-30"
       />
 
-      {/* Full-viewport edge-to-edge dimmed + blurred modal backdrop (stays pointer-events-auto until fully closed) */}
-      <AnimatePresence>
-        {isAnyModalOpen && (
-          <motion.div
-            key="canvas-modal-backdrop"
-            aria-hidden="true"
-            initial={{
-              backgroundColor: 'rgba(0, 0, 0, 0)',
-              '--modal-blur': '0px',
-            }}
-            animate={{
-              backgroundColor: 'rgba(0, 0, 0, 0.45)',
-              '--modal-blur': '6px',
-            }}
-            exit={{
-              backgroundColor: 'rgba(0, 0, 0, 0)',
-              '--modal-blur': '0px',
-            }}
-            transition={BACKDROP_TRANSITION}
-            style={{
-              backdropFilter: 'blur(var(--modal-blur, 0px))',
-              WebkitBackdropFilter: 'blur(var(--modal-blur, 0px))',
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              closeAllModals();
-            }}
-            className="fixed inset-0 z-40 pointer-events-auto"
-          />
-        )}
-      </AnimatePresence>
+      {/* Full-viewport gesture-linked dimmed + blurred modal backdrop (tracks sheetY 1:1 with zero CSS transition lag) */}
+      <motion.div
+        aria-hidden="true"
+        style={{
+          opacity: backdropOpacity,
+          backdropFilter: backdropBlur,
+          WebkitBackdropFilter: backdropBlur,
+          visibility: backdropVisibility,
+          pointerEvents: isAnyModalOpen ? 'auto' : 'none',
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          closeAllModals();
+        }}
+        className="fixed inset-0 z-40 bg-black/45 will-change-[opacity,backdrop-filter]"
+      />
 
-      {/* Flight Manifest Bottom Sheet Modal Inspector */}
-      <AnimatePresence>
-        {selectedEvent && (
-          <EventModal
-            key={`event-modal-${selectedEvent.id || `${selectedEvent.day}-${selectedEvent.startTime}-${selectedEvent.subject}`}`}
-            event={selectedEvent}
-            onClose={() => setSelectedEvent(null)}
-            theme={theme}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Active Assignments Bottom Sheet Modal */}
-      <AnimatePresence>
-        {isAssignmentsModalOpen && (
-          <AssignmentsModal
-            key="assignments-modal"
-            assignments={assignments}
-            onClose={() => setIsAssignmentsModalOpen(false)}
-            theme={theme}
-          />
-        )}
-      </AnimatePresence>
+      {/* Bottom Sheet Modals sharing single sheetY MotionValue source of truth */}
+      <BottomSheetMotionContext.Provider value={sheetMotionContextValue}>
+        <AnimatePresence mode="wait">
+          {selectedEvent ? (
+            <EventModal
+              key={`event-modal-${selectedEvent.id || `${selectedEvent.day}-${selectedEvent.startTime}-${selectedEvent.subject}`}`}
+              event={selectedEvent}
+              onClose={() => setSelectedEvent(null)}
+              theme={theme}
+            />
+          ) : isAssignmentsModalOpen ? (
+            <AssignmentsModal
+              key="assignments-modal"
+              assignments={assignments}
+              onClose={() => setIsAssignmentsModalOpen(false)}
+              theme={theme}
+            />
+          ) : isAdminModalOpen ? (
+            <AdminConfigModal
+              key="admin-config-modal"
+              onClose={() => setIsAdminModalOpen(false)}
+              currentUrl={getActiveCsvUrl()}
+              onSaveUrl={handleSaveAdminUrl}
+              onResetToOfficialDefault={handleResetToOfficialDefault}
+              onForceRefresh={() => fetchAndSync()}
+              onResetBaseline={handleResetBaseline}
+              onOpenExport={() => setIsExportModalOpen(true)}
+              syncStatus={syncStatus}
+              totalEventsCount={events.length}
+              lastSyncTime={lastSyncTime}
+              theme={theme}
+            />
+          ) : null}
+        </AnimatePresence>
+      </BottomSheetMotionContext.Provider>
 
       {/* Admin PIN Verification Dialog (PIN: 2024 via Triple-Tap) */}
       <AdminPinDialog
@@ -1926,26 +1979,6 @@ export default function App() {
         onSuccess={() => setIsAdminModalOpen(true)}
         theme={theme}
       />
-
-      {/* Hidden Admin Configuration Bottom Sheet Modal */}
-      <AnimatePresence>
-        {isAdminModalOpen && (
-          <AdminConfigModal
-            key="admin-config-modal"
-            onClose={() => setIsAdminModalOpen(false)}
-            currentUrl={getActiveCsvUrl()}
-            onSaveUrl={handleSaveAdminUrl}
-            onResetToOfficialDefault={handleResetToOfficialDefault}
-            onForceRefresh={() => fetchAndSync()}
-            onResetBaseline={handleResetBaseline}
-            onOpenExport={() => setIsExportModalOpen(true)}
-            syncStatus={syncStatus}
-            totalEventsCount={events.length}
-            lastSyncTime={lastSyncTime}
-            theme={theme}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Standalone HTML Exporter (accessible via Admin Config) */}
       <StandaloneHtmlExporter

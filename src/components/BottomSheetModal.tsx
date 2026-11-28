@@ -1,13 +1,35 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   animate,
   motion,
   useDragControls,
-  useIsPresent,
   useMotionValue,
+  usePresence,
+  useReducedMotion,
+  type MotionValue,
   type PanInfo,
   type Transition,
 } from 'motion/react';
+
+/**
+ * Shared MotionValue bridge tying the active bottom sheet's live `y` translation
+ * and measured dismiss height directly to the background page depth & backdrop blur.
+ */
+export interface BottomSheetMotionContextValue {
+  sheetY: MotionValue<number>;
+  sheetHeight: MotionValue<number>;
+}
+
+export const BottomSheetMotionContext =
+  createContext<BottomSheetMotionContextValue | null>(null);
 
 /**
  * Strictly critically damped spring (ζ ≈ 1.005):
@@ -119,10 +141,9 @@ interface BottomSheetModalProps {
 
 /**
  * Tactile, gesture-driven iOS-style bottom sheet modal wrapper.
+ * - Single shared `sheetY` MotionValue drives both sheet position and background depth/blur 1:1
  * - Critically damped, zero-bounce, interruptible spring with deterministic exit completion
- * - Always keeps backdrop pointer-events locked (pointer-events-auto) until fully unmounted
- * - Direct, unlocked close handler so Close button, backdrop taps, Escape, and drag always work
- * - Vertical thumb drag (`drag="y"`) with upward rubber-banding (`top: 0.08`)
+ * - Vertical thumb drag (`drag="y"`) with upward rubber-banding (`top: 0.08`) clamped for background depth
  * - Dismisses on drag > 100px or downward flick velocity > 500px/s; otherwise springs smoothly to y: 0
  */
 export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
@@ -135,44 +156,135 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   children,
 }) => {
   const isDark = theme === 'dark';
-  const isPresent = useIsPresent();
+  const [isPresent, safeToRemove] = usePresence();
+  const shouldReduceMotion = useReducedMotion();
   const isPresentRef = useRef(isPresent);
   isPresentRef.current = isPresent;
   const dragControls = useDragControls();
   const grabSetterRef = useRef<((grabbed: boolean) => void) | null>(null);
   const sheetCardRef = useRef<HTMLDivElement | null>(null);
-  const snapBackAnimRef = useRef<{ stop: () => void } | null>(null);
+  const activeAnimRef = useRef<{ stop: () => void } | null>(null);
+  const dismissVelocityRef = useRef<number>(0);
 
-  const computeOffscreenY = useCallback((): number => {
-    if (typeof window === 'undefined') return 900;
-    if (window.innerWidth >= 640) {
-      return Math.round(window.innerHeight * 1.05);
-    }
+  const sharedMotion = useContext(BottomSheetMotionContext);
+  const localSheetY = useMotionValue<number>(640);
+  const localSheetHeight = useMotionValue<number>(640);
+  const sheetY = sharedMotion?.sheetY ?? localSheetY;
+  const sheetHeight = sharedMotion?.sheetHeight ?? localSheetHeight;
+
+  /**
+   * Computes the exact vertical travel distance from resting detent (y = 0)
+   * to fully off-screen below the viewport:
+   * - Mobile (< 640px): anchored at bottom-0, so travel equals the card's actual height
+   * - Desktop (>= 640px): vertically centered, so travel equals half viewport + half card height
+   */
+  const computeDismissRange = useCallback((): number => {
+    if (typeof window === 'undefined') return 640;
     const cardHeight = sheetCardRef.current?.offsetHeight ?? 0;
-    return Math.max(cardHeight + 64, Math.round(window.innerHeight * 0.96));
+    if (window.innerWidth >= 640) {
+      const effectiveCard = Math.max(cardHeight, Math.round(window.innerHeight * 0.45));
+      return Math.round((window.innerHeight + effectiveCard) / 2) + 24;
+    }
+    if (cardHeight > 0) {
+      return Math.max(cardHeight, 260);
+    }
+    return Math.round(window.innerHeight * 0.65);
   }, []);
 
-  const [exitY, setExitY] = useState<number>(() => computeOffscreenY());
-  const initialYRef = useRef<number>(exitY);
-  const sheetY = useMotionValue<number>(initialYRef.current);
+  // Synchronously measure card height before first paint, park sheetY off-screen, and spring open to y = 0
+  useLayoutEffect(() => {
+    const dismissRange = computeDismissRange();
+    const startOffscreenY =
+      typeof window !== 'undefined' && window.innerWidth < 640
+        ? dismissRange + 36
+        : dismissRange;
 
+    sheetHeight.set(dismissRange);
+    activeAnimRef.current?.stop();
+
+    if (shouldReduceMotion) {
+      sheetY.jump(0);
+      return;
+    }
+
+    sheetY.jump(startOffscreenY);
+    activeAnimRef.current = animate(sheetY, 0, BOTTOM_SHEET_SPRING);
+  }, [computeDismissRange, sheetHeight, sheetY, shouldReduceMotion]);
+
+  // Keep sheetHeight synced on viewport resizes or dynamic content height changes
   useEffect(() => {
-    const updateExitY = () => setExitY(computeOffscreenY());
-    updateExitY();
-    window.addEventListener('resize', updateExitY);
-    return () => window.removeEventListener('resize', updateExitY);
-  }, [computeOffscreenY]);
+    const syncRange = () => {
+      const nextRange = computeDismissRange();
+      sheetHeight.set(nextRange);
+    };
 
+    window.addEventListener('resize', syncRange);
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && sheetCardRef.current) {
+      observer = new ResizeObserver(syncRange);
+      observer.observe(sheetCardRef.current);
+    }
+
+    return () => {
+      window.removeEventListener('resize', syncRange);
+      observer?.disconnect();
+    };
+  }, [computeDismissRange, sheetHeight]);
+
+  // Animate sheetY smoothly off-screen on exit while keeping background scale/blur locked 1:1
+  useEffect(() => {
+    if (isPresent) return;
+
+    activeAnimRef.current?.stop();
+    const dismissRange = computeDismissRange();
+    sheetHeight.set(dismissRange);
+
+    const targetExitY =
+      typeof window !== 'undefined' && window.innerWidth < 640
+        ? dismissRange + 48
+        : dismissRange + 24;
+
+    if (shouldReduceMotion) {
+      sheetY.jump(targetExitY);
+      safeToRemove();
+      return;
+    }
+
+    const releaseVelocity = dismissVelocityRef.current;
+    dismissVelocityRef.current = 0;
+
+    let cancelled = false;
+    const controls = animate(sheetY, targetExitY, {
+      ...BOTTOM_SHEET_EXIT_SPRING,
+      ...(releaseVelocity > 0 ? { velocity: releaseVelocity } : {}),
+    });
+    activeAnimRef.current = controls;
+
+    controls.then(() => {
+      if (cancelled) return;
+      sheetY.jump(targetExitY);
+      safeToRemove();
+    });
+
+    return () => {
+      cancelled = true;
+      controls.stop();
+    };
+  }, [isPresent, computeDismissRange, sheetHeight, sheetY, shouldReduceMotion, safeToRemove]);
+
+  // Defensive cleanup on unmount so background depth is never left stuck non-zero
   useEffect(() => {
     return () => {
-      snapBackAnimRef.current?.stop();
-      snapBackAnimRef.current = null;
+      activeAnimRef.current?.stop();
+      activeAnimRef.current = null;
+      const finalRange = Math.max(sheetHeight.get(), 260);
+      if (sheetY.get() < finalRange) {
+        sheetY.jump(finalRange);
+      }
     };
-  }, []);
+  }, [sheetHeight, sheetY]);
 
   const handleClose = useCallback(() => {
-    snapBackAnimRef.current?.stop();
-    snapBackAnimRef.current = null;
     grabSetterRef.current?.(false);
     onClose();
   }, [onClose]);
@@ -187,19 +299,29 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
   }, [handleClose]);
 
   const handleDragStart = () => {
-    snapBackAnimRef.current?.stop();
-    snapBackAnimRef.current = null;
+    activeAnimRef.current?.stop();
+    activeAnimRef.current = null;
+    dismissVelocityRef.current = 0;
     grabSetterRef.current?.(true);
   };
 
   const handleDragEnd = (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     grabSetterRef.current?.(false);
-    if (info.offset.y > 100 || info.velocity.y > 500) {
+    const shouldDismiss =
+      (info.offset.y > 100 && info.velocity.y >= -200) ||
+      (info.offset.y > 24 && info.velocity.y > 500);
+
+    if (shouldDismiss) {
+      dismissVelocityRef.current = Math.max(0, info.velocity.y);
       handleClose();
       return;
     }
-    snapBackAnimRef.current?.stop();
-    snapBackAnimRef.current = animate(sheetY, 0, BOTTOM_SHEET_SPRING);
+
+    activeAnimRef.current?.stop();
+    activeAnimRef.current = animate(sheetY, 0, {
+      ...BOTTOM_SHEET_SPRING,
+      velocity: Math.max(-1200, Math.min(info.velocity.y, 400)),
+    });
   };
 
   const handleGrabPointerDown = useCallback(
@@ -239,13 +361,10 @@ export const BottomSheetModal: React.FC<BottomSheetModalProps> = ({
       {/* Gesture-driven critically damped spring bottom sheet anchored flush to bottom-0 on mobile */}
       <motion.div
         ref={sheetCardRef}
-        initial={{ y: initialYRef.current }}
-        animate={{ y: 0 }}
-        exit={{ y: exitY, transition: BOTTOM_SHEET_EXIT_SPRING }}
-        transition={BOTTOM_SHEET_SPRING}
         drag={isPresent ? 'y' : false}
         dragControls={dragControls}
         dragListener={false}
+        dragMomentum={false}
         dragConstraints={{ top: 0 }}
         dragElastic={{ top: 0.08, bottom: 0.45 }}
         onDragStart={handleDragStart}

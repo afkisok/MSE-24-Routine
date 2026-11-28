@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { animate, motion } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
-import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING, UNIFIED_SPRING } from '../utils/springs';
+import { startupPopTransition, startupTextTransition, UNIFIED_SPRING } from '../utils/springs';
 import {
   DAY_START_MINUTES,
   TOTAL_DAY_MINUTES,
@@ -24,6 +24,7 @@ interface MasterTimelineGridProps {
   selectedGroup?: 'All' | 'Group A' | 'Group B';
   highlightedEventKey?: string | null;
   totalDayMinutes?: number;
+  isInitialStartup?: boolean;
 }
 
 export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
@@ -37,7 +38,10 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   selectedGroup = 'All',
   highlightedEventKey = null,
   totalDayMinutes = TOTAL_DAY_MINUTES,
+  isInitialStartup = true,
 }) => {
+  const [useStartupTiming] = useState(isInitialStartup);
+  const baseDelay = useStartupTiming ? 0.35 : 0;
   const safeTotalMinutes = Math.max(TOTAL_DAY_MINUTES, totalDayMinutes);
   const periodMarkers: PeriodMarker[] = getAcademicPeriodMarkers(safeTotalMinutes);
   const isDark = theme === 'dark';
@@ -172,9 +176,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   return (
     <div className="flex flex-col">
       <motion.div
-        initial={{ opacity: 0, y: 14, scale: 0.985 }}
+        initial={useStartupTiming ? { opacity: 0, y: 10, scale: 0.99 } : false}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ ...STARTUP_TEXT_SPRING, delay: 0.33 }}
+        transition={startupTextTransition(baseDelay)}
         className={`relative rounded-2xl overflow-hidden flex items-stretch select-none border transition-colors ${
           isDark
             ? 'bg-[#100F0E] border-transparent'
@@ -237,9 +241,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             }`}
           >
             <motion.span
-              initial={{ opacity: 0, y: -4 }}
+              initial={{ opacity: 0, y: -3 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ ...STARTUP_TEXT_SPRING, delay: 0.37 }}
+              transition={startupTextTransition(baseDelay + 0.03, 0.2)}
               className="inline-block"
             >
               Day
@@ -266,9 +270,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               className="h-24 py-2 flex items-center justify-center bg-transparent"
             >
               <motion.div
-                initial={{ opacity: 0, x: -10, scale: 0.92 }}
+                initial={{ opacity: 0, x: -6, scale: 0.95 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                transition={{ ...STARTUP_POP_SPRING, delay: 0.35 + dayIdx * 0.045 }}
+                transition={startupPopTransition(baseDelay + 0.02 + dayIdx * 0.035)}
                 className="h-full flex items-center justify-center"
               >
               {/* Centered Day Card / Vertical Pill — synchronized spring physics */}
@@ -402,12 +406,12 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     } ${isDark ? 'text-stone-400' : 'text-stone-500'}`}
                   >
                     <motion.span
-                      initial={{ opacity: 0, y: -4 }}
+                      initial={{ opacity: 0, y: -3 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{
-                        ...STARTUP_TEXT_SPRING,
-                        delay: Math.min(0.62, 0.36 + markerIdx * 0.025),
-                      }}
+                      transition={startupTextTransition(
+                        baseDelay + Math.min(0.17, 0.02 + markerIdx * 0.018),
+                        0.2
+                      )}
                       className="inline-block"
                     >
                       {formatTo12Hour(marker.timeStr)}
@@ -423,7 +427,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                   <motion.div
                     initial={{ scaleY: 0, opacity: 0 }}
                     animate={{ scaleY: 1, opacity: 1 }}
-                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.44 }}
+                    transition={startupTextTransition(baseDelay + 0.09, 0.2)}
                     style={{ left: `${nowLeftPercent}%`, transformOrigin: 'top center' }}
                     className="absolute top-[calc(50%+11px)] bottom-0 -translate-x-1/2 w-[1.5px] z-10 pointer-events-none bg-[#9E2C2C]"
                   />
@@ -432,9 +436,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 pointer-events-none"
                   >
                     <motion.div
-                      initial={{ opacity: 0, scale: 0.72, y: -4 }}
+                      initial={{ opacity: 0, scale: 0.82, y: -3 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
-                      transition={{ ...STARTUP_POP_SPRING, delay: 0.46 }}
+                      transition={startupPopTransition(baseDelay + 0.11, 0.18)}
                       className="h-6 px-2.5 rounded-full text-[11px] font-sans font-semibold leading-none tabular-nums inline-flex items-center justify-center whitespace-nowrap shadow-sm bg-[#9E2C2C] text-white"
                     >
                       {formatMinutesTo12Hour(DAY_START_MINUTES + currentMinuteOffset)}
@@ -464,7 +468,11 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                     <motion.div
                       initial={{ scaleY: 0, opacity: 0 }}
                       animate={{ scaleY: 1, opacity: isDark ? 0.9 : 0.85 }}
-                      transition={{ duration: 0.42, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      transition={{
+                        duration: 0.36,
+                        delay: baseDelay + 0.1,
+                        ease: [0.22, 1, 0.36, 1],
+                      }}
                       style={{ left: `${nowLeftPercent}%`, transformOrigin: 'top center' }}
                       className="absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none bg-[#9E2C2C]"
                     />
@@ -498,7 +506,9 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                             isDimmed={isDimmed}
                             isHighlighted={isHighlighted}
                             totalDayMinutes={safeTotalMinutes}
-                            startupDelay={Math.min(0.66, 0.38 + dayIdx * 0.045 + idx * 0.03)}
+                            startupDelay={
+                              baseDelay + Math.min(0.23, 0.04 + dayIdx * 0.035 + idx * 0.024)
+                            }
                           />
                         );
                       })

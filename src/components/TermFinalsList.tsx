@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { TermFinalExam } from '../types/routine';
 import { formatTo12Hour } from '../utils/timeCalculations';
-import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from '../utils/springs';
+import { startupPopTransition, startupTextTransition } from '../utils/springs';
 import {
   isTermFinalPast,
   isTermFinalUpcoming,
@@ -14,6 +14,7 @@ interface TermFinalsListProps {
   nowMs: number;
   theme?: 'light' | 'dark';
   onSelectExam: (exam: TermFinalExam) => void;
+  isInitialStartup?: boolean;
 }
 
 interface TermFinalDateGroup {
@@ -28,7 +29,10 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
   nowMs,
   theme = 'light',
   onSelectExam,
+  isInitialStartup = true,
 }) => {
+  const [useStartupTiming] = useState(isInitialStartup);
+  const baseDelay = useStartupTiming ? 0.35 : 0;
   const isDark = theme === 'dark';
   const sorted = sortTermFinalsChronologically(termFinals);
 
@@ -57,9 +61,9 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 14, scale: 0.985 }}
+      initial={useStartupTiming ? { opacity: 0, y: 10, scale: 0.99 } : false}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.33 }}
+      transition={startupTextTransition(baseDelay)}
       className={`rounded-2xl p-2 border select-none transition-colors ${
         isDark
           ? 'bg-[#100F0E] border-transparent shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
@@ -72,7 +76,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
           const isEntireDatePast = group.exams.every(
             (exam) => exam.status !== 'Cancelled' && isTermFinalPast(exam, nowMs)
           );
-          const rowDelay = 0.37 + Math.min(groupIdx * 0.045, 0.22);
+          const rowDelay = baseDelay + 0.02 + Math.min(groupIdx * 0.035, 0.18);
 
           return (
             <div
@@ -81,9 +85,9 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
             >
               {/* Left Date Badge Tile (Fixed compact w-20, centered vertically) */}
               <motion.div
-                initial={{ opacity: 0, x: -8, scale: 0.94 }}
+                initial={{ opacity: 0, x: -6, scale: 0.95 }}
                 animate={{ opacity: isEntireDatePast ? 0.45 : 1, x: 0, scale: 1 }}
-                transition={{ ...STARTUP_POP_SPRING, delay: rowDelay }}
+                transition={startupPopTransition(rowDelay)}
                 className={`w-20 shrink-0 rounded-xl px-2 py-2.5 flex flex-col items-center justify-center text-center transition-colors border ${
                   isNextDate
                     ? isDark
@@ -112,9 +116,9 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                   return (
                     <motion.div
                       key={exam.id}
-                      initial={{ opacity: 0, y: 10, scale: 0.975 }}
+                      initial={{ opacity: 0, y: 7, scale: 0.985 }}
                       animate={{ opacity: isPast ? 0.45 : 1, y: 0, scale: 1 }}
-                      transition={{ ...STARTUP_TEXT_SPRING, delay: rowDelay + 0.03 + examIdx * 0.03 }}
+                      transition={startupTextTransition(rowDelay + 0.025 + examIdx * 0.025)}
                       onClick={() => onSelectExam(exam)}
                       role="button"
                       tabIndex={0}
