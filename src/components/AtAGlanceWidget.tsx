@@ -209,10 +209,10 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       onSelectTermFinal?.(heroExam);
                     }
                   }}
-                  className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-colors duration-150 border will-change-transform ${
+                  className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-[background-color,box-shadow] duration-200 border will-change-transform ${
                     isDark
-                      ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                      : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50/70'
+                      ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-[0_2px_6px_rgba(0,0,0,0.28),0_10px_24px_-6px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-[#242321] hover:shadow-[0_3px_8px_rgba(0,0,0,0.34),0_14px_28px_-6px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]'
+                      : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_rgba(28,25,23,0.04),0_6px_18px_-4px_rgba(28,25,23,0.08)] hover:bg-stone-50/70 hover:shadow-[0_2px_4px_rgba(28,25,23,0.05),0_10px_24px_-6px_rgba(28,25,23,0.11)]'
                   }`}
                 >
                   {/* Top Row: Course Code + Title (left) & Co-Star ROOM Readout (right) */}
@@ -562,10 +562,10 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                     onSelectEvent(event);
                   }
                 }}
-                className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-colors duration-150 border will-change-transform ${
+                className={`relative overflow-hidden rounded-2xl p-4 sm:p-5 cursor-pointer transition-[background-color,box-shadow] duration-200 border will-change-transform ${
                   isDark
-                    ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                    : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50/70'
+                    ? 'bg-[#1E1D1C] border-transparent text-stone-100 shadow-[0_2px_6px_rgba(0,0,0,0.28),0_10px_24px_-6px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] hover:bg-[#242321] hover:shadow-[0_3px_8px_rgba(0,0,0,0.34),0_14px_28px_-6px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)]'
+                    : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_rgba(28,25,23,0.04),0_6px_18px_-4px_rgba(28,25,23,0.08)] hover:bg-stone-50/70 hover:shadow-[0_2px_4px_rgba(28,25,23,0.05),0_10px_24px_-6px_rgba(28,25,23,0.11)]'
                 }`}
               >
                 {/* Top Row: Course Code + Name (left) & Co-Star ROOM Readout (right) */}

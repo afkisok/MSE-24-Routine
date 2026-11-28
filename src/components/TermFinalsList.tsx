@@ -56,10 +56,10 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
 
   return (
     <div
-      className={`rounded-2xl p-2 shadow-2xs border select-none transition-colors ${
+      className={`rounded-2xl p-2 border select-none transition-colors ${
         isDark
-          ? 'bg-[#100F0E] border-transparent'
-          : 'bg-[#EAE8E2] border-transparent'
+          ? 'bg-[#100F0E] border-transparent shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
+          : 'bg-[#EAE8E2] border-transparent shadow-[inset_0_3px_18px_rgba(24,23,22,0.028),inset_0_1px_6px_rgba(24,23,22,0.015)]'
       }`}
     >
       <div className="flex flex-col gap-2">
@@ -86,11 +86,11 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                 className={`w-20 shrink-0 rounded-xl px-2 py-2.5 flex flex-col items-center justify-center text-center transition-all border ${
                   isNextDate
                     ? isDark
-                      ? 'bg-stone-100 border-transparent text-stone-900 shadow-xs'
-                      : 'bg-stone-900 border-transparent text-stone-50 shadow-[0_1px_2px_0_rgba(0,0,0,0.12)]'
+                      ? 'bg-stone-100 border-transparent text-stone-900'
+                      : 'bg-stone-900 border-transparent text-stone-50'
                     : isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100'
-                    : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]'
+                    : 'bg-white border-transparent text-stone-900'
                 } ${isEntireDatePast ? 'opacity-45' : ''}`}
               >
                 <span className="text-sm font-bold tracking-tight leading-none whitespace-nowrap">
@@ -129,7 +129,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                             : 'bg-transparent border-dashed border-stone-300 text-stone-400'
                           : isDark
                           ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                          : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50'
+                          : 'bg-white border-transparent text-stone-900 hover:bg-stone-50'
                       } ${isPast ? 'opacity-45' : ''}`}
                     >
                       {/* 1. Top Metadata Line: Time Window */}

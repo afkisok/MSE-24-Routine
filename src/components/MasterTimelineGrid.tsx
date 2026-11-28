@@ -172,12 +172,22 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
   return (
     <div className="flex flex-col">
       <div
-        className={`relative rounded-2xl overflow-hidden shadow-2xs flex items-stretch select-none border transition-colors ${
+        className={`relative rounded-2xl overflow-hidden flex items-stretch select-none border transition-colors ${
           isDark
             ? 'bg-[#100F0E] border-transparent'
             : 'bg-[#EAE8E2] border-transparent'
         }`}
       >
+      {/* Subtle recessed tray inner shadow overlay (rendered above opaque rail/track edges) */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 rounded-2xl z-30 ${
+          isDark
+            ? 'shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
+            : 'shadow-[inset_0_3px_18px_rgba(24,23,22,0.028),inset_0_1px_6px_rgba(24,23,22,0.015)]'
+        }`}
+      />
+
       {/* Unbroken full-width header divider rendered at z-30 strictly above the edge-fade fogs */}
       <div
         aria-hidden="true"
@@ -271,11 +281,11 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 } ${
                   isToday
                     ? isDark
-                      ? 'bg-stone-100 border-transparent text-stone-900 shadow-xs'
-                      : 'bg-stone-900 border-transparent text-stone-50 shadow-[0_1px_2px_0_rgba(0,0,0,0.12)]'
+                      ? 'bg-stone-100 border-transparent text-stone-900'
+                      : 'bg-stone-900 border-transparent text-stone-50'
                     : isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-                    : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)] hover:bg-stone-50'
+                    : 'bg-white border-transparent text-stone-900 hover:bg-stone-50'
                 }`}
               >
                 <div className="flex items-center justify-center leading-none">

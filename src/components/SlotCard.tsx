@@ -122,14 +122,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
     // Inverted High-Contrast Warm-Stone CT / Exam Surface
     if (isExam) {
       return isDark
-        ? 'bg-stone-100 border-transparent text-stone-900 shadow-xs hover:bg-stone-200'
-        : 'bg-stone-900 border-transparent text-stone-50 shadow-xs hover:bg-stone-800';
+        ? 'bg-stone-100 border-transparent text-stone-900 hover:bg-stone-200'
+        : 'bg-stone-900 border-transparent text-stone-50 hover:bg-stone-800';
     }
 
     // Active Classes (Theory & Lab unified crisp stone surface)
     return isDark
       ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
-      : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50';
+      : 'bg-white border-transparent text-stone-900 hover:bg-stone-50';
   };
 
   // 0. CANCELED SLOT CARD: Quiet, borderless, baseline-aligned strikethrough CourseCode only

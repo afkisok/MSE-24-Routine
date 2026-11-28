@@ -1600,7 +1600,9 @@ export default function App() {
                 {/* One UI-style segmented pill selector with spring-animated sliding indicator (h-9) */}
                 <div
                   className={`h-9 inline-flex items-center p-1 rounded-full overflow-hidden border border-transparent transition-colors box-border shrink-0 ${
-                    isDark ? 'bg-[#100F0E]' : 'bg-[#EAE8E2]'
+                    isDark
+                      ? 'bg-[#100F0E] shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
+                      : 'bg-[#EAE8E2] shadow-[inset_0_3px_18px_rgba(24,23,22,0.028),inset_0_1px_6px_rgba(24,23,22,0.015)]'
                   }`}
                   role="tablist"
                   aria-label="Filter schedule by Section or Lab Group"
@@ -1620,7 +1622,7 @@ export default function App() {
                         }}
                         transition={GROUP_PILL_SPRING}
                         className={`absolute inset-y-0 left-0 rounded-full pointer-events-none will-change-transform ${
-                          isDark ? 'bg-stone-100 shadow-xs' : 'bg-stone-900 shadow-xs'
+                          isDark ? 'bg-stone-100' : 'bg-stone-900'
                         }`}
                       />
                     )}
