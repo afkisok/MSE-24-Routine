@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { animate, motion } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import { SlotCard } from './SlotCard';
-import { UNIFIED_SPRING } from '../utils/springs';
+import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING, UNIFIED_SPRING } from '../utils/springs';
 import {
   DAY_START_MINUTES,
   TOTAL_DAY_MINUTES,
@@ -171,7 +171,10 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
 
   return (
     <div className="flex flex-col">
-      <div
+      <motion.div
+        initial={{ opacity: 0, y: 14, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ ...STARTUP_TEXT_SPRING, delay: 0.33 }}
         className={`relative rounded-2xl overflow-hidden flex items-stretch select-none border transition-colors ${
           isDark
             ? 'bg-[#100F0E] border-transparent'
@@ -233,12 +236,19 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               isScrolled ? 'pointer-events-none' : ''
             }`}
           >
-            Day
+            <motion.span
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...STARTUP_TEXT_SPRING, delay: 0.37 }}
+              className="inline-block"
+            >
+              Day
+            </motion.span>
           </motion.span>
         </div>
 
         {/* Static Day Rows with Spring-Animated rounded-2xl Pill (h-24) */}
-        {days.map((day) => {
+        {days.map((day, dayIdx) => {
           const isToday = day.toLowerCase() === todayName.toLowerCase();
           const dayEventsCount = events.filter((e) => {
             if (e.day.toLowerCase() !== day.toLowerCase()) return false;
@@ -255,6 +265,12 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               key={`static-${day}`}
               className="h-24 py-2 flex items-center justify-center bg-transparent"
             >
+              <motion.div
+                initial={{ opacity: 0, x: -10, scale: 0.92 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                transition={{ ...STARTUP_POP_SPRING, delay: 0.35 + dayIdx * 0.045 }}
+                className="h-full flex items-center justify-center"
+              >
               {/* Centered Day Card / Vertical Pill — synchronized spring physics */}
               <motion.div
                 initial={false}
@@ -320,6 +336,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                   </span>
                 </div>
               </motion.div>
+              </motion.div>
             </div>
           );
         })}
@@ -370,7 +387,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
             }`}
           >
             <div ref={headerAxisRef} className="relative w-full h-full flex items-center">
-              {periodMarkers.map((marker) => {
+              {periodMarkers.map((marker, markerIdx) => {
                 const markerCenterX = (marker.leftPercent / 100) * axisWidthPx;
                 const isCollidingWithNow =
                   nowCenterX !== null && Math.abs(markerCenterX - nowCenterX) <= 48;
@@ -384,7 +401,17 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                       isCollidingWithNow ? 'opacity-0' : 'opacity-100'
                     } ${isDark ? 'text-stone-400' : 'text-stone-500'}`}
                   >
-                    {formatTo12Hour(marker.timeStr)}
+                    <motion.span
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        ...STARTUP_TEXT_SPRING,
+                        delay: Math.min(0.62, 0.36 + markerIdx * 0.025),
+                      }}
+                      className="inline-block"
+                    >
+                      {formatTo12Hour(marker.timeStr)}
+                    </motion.span>
                   </div>
                 );
               })}
@@ -393,15 +420,25 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
               {isNowVisible && nowLeftPercent !== null && currentMinuteOffset !== null && (
                 <>
                   {/* 1.5px vertical stem extending downward from bottom center of pill */}
-                  <div
-                    style={{ left: `${nowLeftPercent}%` }}
+                  <motion.div
+                    initial={{ scaleY: 0, opacity: 0 }}
+                    animate={{ scaleY: 1, opacity: 1 }}
+                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.44 }}
+                    style={{ left: `${nowLeftPercent}%`, transformOrigin: 'top center' }}
                     className="absolute top-[calc(50%+11px)] bottom-0 -translate-x-1/2 w-[1.5px] z-10 pointer-events-none bg-[#9E2C2C]"
                   />
                   <div
                     style={{ left: `${nowLeftPercent}%` }}
-                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-6 px-2.5 rounded-full text-[11px] font-sans font-semibold leading-none tabular-nums inline-flex items-center justify-center whitespace-nowrap shadow-sm z-20 pointer-events-none bg-[#9E2C2C] text-white"
+                    className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 pointer-events-none"
                   >
-                    {formatMinutesTo12Hour(DAY_START_MINUTES + currentMinuteOffset)}
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.72, y: -4 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ ...STARTUP_POP_SPRING, delay: 0.46 }}
+                      className="h-6 px-2.5 rounded-full text-[11px] font-sans font-semibold leading-none tabular-nums inline-flex items-center justify-center whitespace-nowrap shadow-sm bg-[#9E2C2C] text-white"
+                    >
+                      {formatMinutesTo12Hour(DAY_START_MINUTES + currentMinuteOffset)}
+                    </motion.div>
                   </div>
                 </>
               )}
@@ -409,7 +446,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           </div>
 
           {/* Synchronized Day Tracks with symmetric px-6 buffer */}
-          {days.map((day) => {
+          {days.map((day, dayIdx) => {
             const isToday = day.toLowerCase() === todayName.toLowerCase();
             const dayEvents = events.filter(
               (e) => e.day.toLowerCase() === day.toLowerCase()
@@ -424,11 +461,12 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                 <div className="relative w-full h-full">
                   {/* Live Current Time Vertical Line for Today (always pinned above cards) */}
                   {isToday && isNowVisible && nowLeftPercent !== null && (
-                    <div
-                      style={{ left: `${nowLeftPercent}%` }}
-                      className={`absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none bg-[#9E2C2C] ${
-                        isDark ? 'opacity-90' : 'opacity-85'
-                      }`}
+                    <motion.div
+                      initial={{ scaleY: 0, opacity: 0 }}
+                      animate={{ scaleY: 1, opacity: isDark ? 0.9 : 0.85 }}
+                      transition={{ duration: 0.42, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                      style={{ left: `${nowLeftPercent}%`, transformOrigin: 'top center' }}
+                      className="absolute -top-1 -bottom-1 -translate-x-1/2 w-[1.5px] z-30 pointer-events-none bg-[#9E2C2C]"
                     />
                   )}
 
@@ -460,6 +498,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
                             isDimmed={isDimmed}
                             isHighlighted={isHighlighted}
                             totalDayMinutes={safeTotalMinutes}
+                            startupDelay={Math.min(0.66, 0.38 + dayIdx * 0.045 + idx * 0.03)}
                           />
                         );
                       })
@@ -473,7 +512,7 @@ export const MasterTimelineGrid: React.FC<MasterTimelineGridProps> = ({
           </div>
         </div>
       </div>
-    </div>
+      </motion.div>
   </div>
 );
 };

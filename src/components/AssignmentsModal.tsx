@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { RoutineAssignment } from '../types/routine';
 import { BottomSheetModal } from './BottomSheetModal';
 
@@ -72,7 +73,7 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
               isDark ? 'divide-stone-800' : 'divide-stone-200'
             }`}
           >
-            {assignments.map((item) => {
+            {assignments.map((item, idx) => {
               const syllabusLines = (item.syllabus || '')
                 .trim()
                 .split('\n')
@@ -86,7 +87,17 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
               const metaParts = [teacher, ...dueParts].filter(Boolean);
 
               return (
-                <div key={item.id} className="py-3.5 first:pt-2 last:pb-2">
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{
+                    duration: 0.24,
+                    delay: Math.min(idx * 0.045, 0.2),
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="py-3.5 first:pt-2 last:pb-2"
+                >
                   <h3
                     className={`text-sm sm:text-base font-bold tracking-tight leading-snug ${
                       isDark ? 'text-stone-100' : 'text-stone-900'
@@ -113,15 +124,15 @@ export const AssignmentsModal: React.FC<AssignmentsModalProps> = ({
                         isDark ? 'text-stone-400' : 'text-stone-500'
                       }`}
                     >
-                      {metaParts.map((part, idx) => (
-                        <React.Fragment key={`${item.id}-meta-${idx}`}>
-                          {idx > 0 && <span className="text-stone-400">·</span>}
+                      {metaParts.map((part, metaIdx) => (
+                        <React.Fragment key={`${item.id}-meta-${metaIdx}`}>
+                          {metaIdx > 0 && <span className="text-stone-400">·</span>}
                           <span>{part}</span>
                         </React.Fragment>
                       ))}
                     </div>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import { formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
@@ -90,7 +91,10 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
       )}
     >
       {/* Course Title */}
-      <h2
+      <motion.h2
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.24, delay: 0.04, ease: [0.22, 1, 0.36, 1] }}
         className={`text-lg sm:text-xl font-bold tracking-tight leading-snug mb-3 ${
           isCancelled
             ? 'line-through text-stone-500'
@@ -100,7 +104,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
         }`}
       >
         {event.subject}
-      </h2>
+      </motion.h2>
 
       {/* Borderless Vertical Metadata List with 1px Dividers */}
       <div
@@ -110,7 +114,12 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
       >
         {/* SYLLABUS / REPORT DUE (first borderless row above TIME when notes exist) */}
         {syllabusLines.length > 0 && (
-          <div className="py-3 first:pt-1">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            className="py-3 first:pt-1"
+          >
             <div
               className={`text-[11px] font-semibold uppercase tracking-wider ${
                 isDark ? 'text-stone-400' : 'text-stone-500'
@@ -127,11 +136,16 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
                 <p key={i}>{line}</p>
               ))}
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* TIME & ROOM side-by-side 2-column grid */}
-        <div className="py-3 first:pt-1 grid grid-cols-2 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.24, delay: syllabusLines.length > 0 ? 0.12 : 0.08, ease: [0.22, 1, 0.36, 1] }}
+          className="py-3 first:pt-1 grid grid-cols-2 gap-4"
+        >
           <div className="min-w-0">
             <div
               className={`text-[11px] font-semibold uppercase tracking-wider ${
@@ -165,11 +179,16 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
               {event.room || 'Room TBA'}
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* FACULTY (omitted on Term Finals when not provided) */}
         {(!isTermFinal || Boolean((event.teacher || '').trim())) && (
-          <div className="py-3">
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.24, delay: syllabusLines.length > 0 ? 0.16 : 0.12, ease: [0.22, 1, 0.36, 1] }}
+            className="py-3"
+          >
             <div
               className={`text-[11px] font-semibold uppercase tracking-wider ${
                 isDark ? 'text-stone-400' : 'text-stone-500'
@@ -180,7 +199,7 @@ export const EventModal: React.FC<EventModalProps> = ({ event, onClose, theme = 
             <div className={`text-sm font-semibold mt-1 ${isDark ? 'text-stone-100' : 'text-stone-900'}`}>
               {event.teacher || 'Not designated'}
             </div>
-          </div>
+          </motion.div>
         )}
       </div>
     </BottomSheetModal>

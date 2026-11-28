@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'motion/react';
 import { TermFinalExam } from '../types/routine';
 import { formatTo12Hour } from '../utils/timeCalculations';
+import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from '../utils/springs';
 import {
   isTermFinalPast,
   isTermFinalUpcoming,
@@ -55,7 +56,10 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
   }
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 14, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.33 }}
       className={`rounded-2xl p-2 border select-none transition-colors ${
         isDark
           ? 'bg-[#100F0E] border-transparent shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
@@ -68,22 +72,19 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
           const isEntireDatePast = group.exams.every(
             (exam) => exam.status !== 'Cancelled' && isTermFinalPast(exam, nowMs)
           );
+          const rowDelay = 0.37 + Math.min(groupIdx * 0.045, 0.22);
 
           return (
-            <motion.div
+            <div
               key={group.dateISO}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.24,
-                delay: Math.min(groupIdx * 0.03, 0.15),
-                ease: [0.22, 1, 0.36, 1],
-              }}
               className="flex items-stretch gap-2 w-full min-w-0"
             >
               {/* Left Date Badge Tile (Fixed compact w-20, centered vertically) */}
-              <div
-                className={`w-20 shrink-0 rounded-xl px-2 py-2.5 flex flex-col items-center justify-center text-center transition-all border ${
+              <motion.div
+                initial={{ opacity: 0, x: -8, scale: 0.94 }}
+                animate={{ opacity: isEntireDatePast ? 0.45 : 1, x: 0, scale: 1 }}
+                transition={{ ...STARTUP_POP_SPRING, delay: rowDelay }}
+                className={`w-20 shrink-0 rounded-xl px-2 py-2.5 flex flex-col items-center justify-center text-center transition-colors border ${
                   isNextDate
                     ? isDark
                       ? 'bg-stone-100 border-transparent text-stone-900'
@@ -91,7 +92,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                     : isDark
                     ? 'bg-[#1E1D1C] border-transparent text-stone-100'
                     : 'bg-white border-transparent text-stone-900'
-                } ${isEntireDatePast ? 'opacity-45' : ''}`}
+                }`}
               >
                 <span className="text-sm font-bold tracking-tight leading-none whitespace-nowrap">
                   {group.displayDate}
@@ -99,18 +100,21 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                 <span className="mt-1.5 text-[11px] font-medium tracking-normal opacity-80 leading-none">
                   {group.weekdayShort}
                 </span>
-              </div>
+              </motion.div>
 
               {/* Right Full-Width Exam Card(s) */}
               <div className="flex-1 min-w-0 flex flex-col justify-center gap-2">
-                {group.exams.map((exam) => {
+                {group.exams.map((exam, examIdx) => {
                   const isCancelled = exam.status === 'Cancelled';
                   const isPast = !isCancelled && isTermFinalPast(exam, nowMs);
                   const timeWindow = `${formatTo12Hour(exam.startTime)} – ${formatTo12Hour(exam.endTime)}`;
 
                   return (
-                    <div
+                    <motion.div
                       key={exam.id}
+                      initial={{ opacity: 0, y: 10, scale: 0.975 }}
+                      animate={{ opacity: isPast ? 0.45 : 1, y: 0, scale: 1 }}
+                      transition={{ ...STARTUP_TEXT_SPRING, delay: rowDelay + 0.03 + examIdx * 0.03 }}
                       onClick={() => onSelectExam(exam)}
                       role="button"
                       tabIndex={0}
@@ -120,7 +124,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                           onSelectExam(exam);
                         }
                       }}
-                      className={`w-full rounded-xl px-3.5 py-3 sm:px-4 sm:py-3.5 border transition-all duration-150 ease-out active:scale-[0.99] cursor-pointer focus-visible:outline-none focus-visible:ring-1 ${
+                      className={`w-full rounded-xl px-3.5 py-3 sm:px-4 sm:py-3.5 border transition-colors duration-150 ease-out active:scale-[0.99] cursor-pointer focus-visible:outline-none focus-visible:ring-1 ${
                         isDark ? 'focus-visible:ring-stone-100' : 'focus-visible:ring-stone-900'
                       } ${
                         isCancelled
@@ -130,7 +134,7 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                           : isDark
                           ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#242321]'
                           : 'bg-white border-transparent text-stone-900 hover:bg-stone-50'
-                      } ${isPast ? 'opacity-45' : ''}`}
+                      }`}
                     >
                       {/* 1. Top Metadata Line: Time Window */}
                       <div className="flex items-center justify-between gap-2">
@@ -199,14 +203,14 @@ export const TermFinalsList: React.FC<TermFinalsListProps> = ({
                           {exam.room ? `Room ${exam.room}` : 'Room TBA'}
                         </div>
                       )}
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 };

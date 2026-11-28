@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { RoutineEvent } from '../types/routine';
 import {
@@ -7,6 +7,7 @@ import {
   TOTAL_DAY_MINUTES,
 } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
+import { STARTUP_POP_SPRING } from '../utils/springs';
 
 const SLOT_CARD_SPRING = {
   type: 'spring' as const,
@@ -22,6 +23,7 @@ interface SlotCardProps {
   isDimmed?: boolean;
   isHighlighted?: boolean;
   totalDayMinutes?: number;
+  startupDelay?: number;
 }
 
 /**
@@ -96,7 +98,32 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   isDimmed = false,
   isHighlighted = false,
   totalDayMinutes = TOTAL_DAY_MINUTES,
+  startupDelay = 0.38,
 }) => {
+  const [hasEntered, setHasEntered] = useState(false);
+
+  useEffect(() => {
+    if (hasEntered) return;
+    const timer = window.setTimeout(() => {
+      setHasEntered(true);
+    }, Math.round(startupDelay * 1000) + 420);
+    return () => window.clearTimeout(timer);
+  }, [hasEntered, startupDelay]);
+
+  const entryTransition = hasEntered
+    ? SLOT_CARD_SPRING
+    : {
+        opacity: {
+          duration: 0.2,
+          delay: startupDelay,
+          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+        },
+        default: {
+          ...STARTUP_POP_SPRING,
+          delay: startupDelay,
+        },
+      };
+
   const { leftPercent, widthPercent, durationMinutes } = calculateSlotGeometry(
     event.startTime,
     event.endTime,
@@ -144,9 +171,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   if (isCancelled) {
     return (
       <motion.div
-        whileHover={{ scale: 1.014 }}
+        initial={{ opacity: 0, y: 10, scale: 0.93 }}
+        animate={{ opacity: isDimmed ? 0.25 : 1, y: 0, scale: 1 }}
+        whileHover={{ scale: 1.014, opacity: isDimmed ? 0.8 : 1 }}
         whileTap={{ scale: 0.97 }}
-        transition={SLOT_CARD_SPRING}
+        transition={entryTransition}
+        onAnimationComplete={() => {
+          if (!hasEntered) setHasEntered(true);
+        }}
         onClick={(e) => {
           e.stopPropagation();
           onSelect(event);
@@ -166,9 +198,9 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`Canceled: ${event.subject}`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[opacity,background-color] duration-150 ease-out flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-colors duration-150 ease-out flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-100' : 'focus-visible:ring-stone-900'
-        } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'}`}
+        } ${getThemeClasses()}`}
       >
         {/* Invisible top timestamp placeholder matching active tile height */}
         <div
@@ -204,9 +236,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   if (isNarrowExam) {
     return (
       <motion.div
-        whileHover={{ scale: 1.022 }}
+        initial={{ opacity: 0, y: 10, scale: 0.92 }}
+        animate={{ opacity: isDimmed ? 0.25 : 1, y: 0, scale: 1 }}
+        whileHover={{ scale: 1.022, opacity: isDimmed ? 0.8 : 1 }}
         whileTap={{ scale: 0.962 }}
-        transition={SLOT_CARD_SPRING}
+        transition={entryTransition}
+        onAnimationComplete={() => {
+          if (!hasEntered) setHasEntered(true);
+        }}
         onClick={(e) => {
           e.stopPropagation();
           onSelect(event);
@@ -226,9 +263,9 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           }
         }}
         title={`CT / Exam: ${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[opacity,background-color] duration-150 ease-out flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
+        className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-colors duration-150 ease-out flex flex-col justify-between items-center text-center h-[calc(100%-8px)] px-1 py-1 overflow-visible focus-visible:outline-none focus-visible:ring-1 ${
           isDark ? 'focus-visible:ring-stone-900' : 'focus-visible:ring-stone-50'
-        } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
+        } ${getThemeClasses()} ${
           isHighlighted ? 'animate-slot-pulse z-20' : ''
         }`}
       >
@@ -277,9 +314,14 @@ export const SlotCard: React.FC<SlotCardProps> = ({
   // 2. STANDARD & WIDE EXAM SLOT CARD (THREE-TIER VERTICAL STACK)
   return (
     <motion.div
-      whileHover={{ scale: 1.016 }}
+      initial={{ opacity: 0, y: 10, scale: 0.93 }}
+      animate={{ opacity: isDimmed ? 0.25 : 1, y: 0, scale: 1 }}
+      whileHover={{ scale: 1.016, opacity: isDimmed ? 0.8 : 1 }}
       whileTap={{ scale: 0.968 }}
-      transition={SLOT_CARD_SPRING}
+      transition={entryTransition}
+      onAnimationComplete={() => {
+        if (!hasEntered) setHasEntered(true);
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(event);
@@ -299,7 +341,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
         }
       }}
       title={`${event.subject} [${formatTo12Hour(event.startTime)} – ${formatTo12Hour(event.endTime)}]`}
-      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-[opacity,background-color] duration-150 ease-out group flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
+      className={`absolute top-1 bottom-1 z-10 select-none cursor-pointer rounded-lg border transition-colors duration-150 ease-out group flex flex-col justify-between h-[calc(100%-8px)] px-2 py-2.5 focus-visible:outline-none focus-visible:ring-1 ${
         isExam
           ? isDark
             ? 'focus-visible:ring-stone-900'
@@ -307,7 +349,7 @@ export const SlotCard: React.FC<SlotCardProps> = ({
           : isDark
           ? 'focus-visible:ring-stone-100'
           : 'focus-visible:ring-stone-900'
-      } ${getThemeClasses()} ${isDimmed ? 'opacity-25 hover:opacity-80' : 'opacity-100'} ${
+      } ${getThemeClasses()} ${
         isHighlighted ? 'animate-slot-pulse z-20' : ''
       }`}
     >

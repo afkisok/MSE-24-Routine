@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { RoutineEvent, TermFinalExam } from '../types/routine';
 import { timeToMinutes, formatTo12Hour } from '../utils/timeCalculations';
 import { parseAlternatingSchedule } from '../utils/alternatingLabEngine';
+import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from '../utils/springs';
 import {
   getTermFinalRelativeLabel,
   getTermFinalTimestamps,
@@ -51,6 +52,17 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
   const todayDayNum = now.getDay();
   const currentMins = now.getHours() * 60 + now.getMinutes();
 
+  const [hasSwitchedMode, setHasSwitchedMode] = useState(false);
+  const [hasHeroEntered, setHasHeroEntered] = useState(false);
+
+  useEffect(() => {
+    setHasSwitchedMode(true);
+    const timer = window.setTimeout(() => {
+      setHasHeroEntered(true);
+    }, 680);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const VIEW_EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
   const HERO_TILE_PRESS_SPRING = {
     type: 'spring' as const,
@@ -64,10 +76,21 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
     damping: 32,
     mass: 0.95,
   };
+  const heroEntryTransition = hasHeroEntered
+    ? HERO_TILE_PRESS_SPRING
+    : {
+        opacity: { duration: 0.24, delay: 0.22, ease: VIEW_EASE },
+        default: { ...STARTUP_POP_SPRING, delay: 0.22 },
+      };
 
   const renderHeader = (title: string) => (
     <div className="flex items-end justify-between gap-2 mb-3 px-1">
-      <div className="relative pb-0.5 min-w-0">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ ...STARTUP_TEXT_SPRING, delay: 0.17 }}
+        className="relative pb-0.5 min-w-0"
+      >
         <AnimatePresence mode="wait" initial={false}>
           <motion.h2
             key={title}
@@ -82,45 +105,51 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             {title}
           </motion.h2>
         </AnimatePresence>
-      </div>
+      </motion.div>
 
       {onOpenAssignments && (
-        <motion.button
-          type="button"
-          onClick={onOpenAssignments}
-          whileHover={{ y: -1.5, scale: 1.025 }}
-          whileTap={{ scale: 0.94 }}
-          transition={{ type: 'spring', stiffness: 480, damping: 20, mass: 0.7 }}
-          className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-colors duration-150 cursor-pointer select-none ${
-            isDark
-              ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#262523]'
-              : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50'
-          }`}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.88, y: 6 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ ...STARTUP_POP_SPRING, delay: 0.21 }}
         >
-          {assignmentsCount > 0 && (
-            <>
-              <motion.span
-                aria-hidden="true"
-                initial={{ scale: 1, opacity: 0.55 }}
-                animate={{ scale: [1, 2.3], opacity: [0.55, 0] }}
-                transition={{
-                  duration: 2.1,
-                  repeat: Infinity,
-                  repeatDelay: 2.2,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full pointer-events-none bg-[#9E2C2C]"
-              />
-              <span
-                className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none bg-[#9E2C2C] ${
-                  isDark ? 'ring-[#161514]' : 'ring-[#F4F3EF]'
-                }`}
-                aria-hidden="true"
-              />
-            </>
-          )}
-          <span className="leading-none">Assignments</span>
-        </motion.button>
+          <motion.button
+            type="button"
+            onClick={onOpenAssignments}
+            whileHover={{ y: -1.5, scale: 1.025 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: 'spring', stiffness: 480, damping: 20, mass: 0.7 }}
+            className={`relative h-9 px-3.5 py-0 rounded-full text-xs font-medium leading-none inline-flex items-center justify-center border transition-colors duration-150 cursor-pointer select-none ${
+              isDark
+                ? 'bg-[#1E1D1C] border-transparent text-stone-100 hover:bg-[#262523]'
+                : 'bg-white border-transparent text-stone-900 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50'
+            }`}
+          >
+            {assignmentsCount > 0 && (
+              <>
+                <motion.span
+                  aria-hidden="true"
+                  initial={{ scale: 1, opacity: 0.55 }}
+                  animate={{ scale: [1, 2.3], opacity: [0.55, 0] }}
+                  transition={{
+                    duration: 2.1,
+                    repeat: Infinity,
+                    repeatDelay: 2.2,
+                    ease: [0.22, 1, 0.36, 1],
+                  }}
+                  className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full pointer-events-none bg-[#9E2C2C]"
+                />
+                <span
+                  className={`absolute top-0 right-0 w-2.5 h-2.5 rounded-full ring-2 pointer-events-none bg-[#9E2C2C] ${
+                    isDark ? 'ring-[#161514]' : 'ring-[#F4F3EF]'
+                  }`}
+                  aria-hidden="true"
+                />
+              </>
+            )}
+            <span className="leading-none">Assignments</span>
+          </motion.button>
+        </motion.div>
       )}
     </div>
   );
@@ -148,7 +177,12 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
     const isMultiRoom = rooms.length > 1;
 
     return (
-      <div className="shrink-0 text-right mt-[2px]">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 6 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ ...STARTUP_POP_SPRING, delay: 0.31 }}
+        className="shrink-0 text-right mt-[2px]"
+      >
         <div className="text-[10px] font-medium uppercase tracking-wider leading-none text-neutral-400">
           {isMultiRoom ? 'ROOMS' : 'ROOM'}
         </div>
@@ -163,7 +197,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
             </span>
           ))}
         </div>
-      </div>
+      </motion.div>
     );
   };
 
@@ -211,8 +245,17 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
               return (
                 <motion.div
+                  initial={{ opacity: 0, y: 12, scale: 0.975 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  whileHover={{ y: -2, scale: 1.008 }}
                   whileTap={{ scale: 0.985 }}
-                  transition={HERO_TILE_PRESS_SPRING}
+                  transition={heroEntryTransition}
+                  onHoverStart={() => {
+                    if (!hasHeroEntered) setHasHeroEntered(true);
+                  }}
+                  onAnimationComplete={() => {
+                    if (!hasHeroEntered) setHasHeroEntered(true);
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     onSelectTermFinal?.(heroExam);
@@ -234,7 +277,12 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 >
                   {/* Top Row: Course Code + Title (left) & Co-Star ROOM Readout (right) */}
                   <div className="flex justify-between items-start gap-4">
-                    <div className="min-w-0">
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.28 }}
+                      className="min-w-0"
+                    >
                       <div
                         className={`text-xl font-bold tracking-tight leading-none ${
                           isDark ? 'text-stone-100' : 'text-stone-900'
@@ -258,13 +306,16 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                           {heroExam.courseTitle}
                         </div>
                       )}
-                    </div>
+                    </motion.div>
 
                     {renderHeroRoomBlock(heroExam.room)}
                   </div>
 
                   {/* Bottom Row: Live Status Tracker or High-Contrast Day & Time Range */}
-                  <div
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.34 }}
                     className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
                       isDark ? 'border-white/[0.06]' : 'border-black/5'
                     }`}
@@ -310,7 +361,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         {datePrefix} · {timeRange}
                       </span>
                     )}
-                  </div>
+                  </motion.div>
 
                   {/* Flush 2.5px bottom progress bar when exam is currently in session */}
                   {isLiveNow && (
@@ -320,11 +371,13 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]'
                       }`}
                     >
-                      <div
-                        className={`relative overflow-hidden h-full transition-[width] duration-700 ease-out ${
+                      <motion.div
+                        initial={{ width: '0%' }}
+                        animate={{ width: `${liveProgressPercent}%` }}
+                        transition={{ duration: 0.75, delay: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                        className={`relative overflow-hidden h-full ${
                           isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
                         }`}
-                        style={{ width: `${liveProgressPercent}%` }}
                       >
                         <motion.span
                           initial={{ x: '-120%' }}
@@ -337,7 +390,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                           }}
                           className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/55 to-transparent"
                         />
-                      </div>
+                      </motion.div>
                     </div>
                   )}
                 </motion.div>
@@ -351,7 +404,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   isDark ? 'divide-stone-800' : 'divide-stone-200'
                 }`}
               >
-                {remainingExams.map((exam) => {
+                {remainingExams.map((exam, idx) => {
                   const relativeLabel = getTermFinalRelativeLabel(exam, effectiveNowMs);
                   const dateTimeCompact =
                     relativeLabel === 'Active Now'
@@ -361,50 +414,56 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                   return (
                     <motion.div
                       key={exam.id}
-                      whileHover={{ x: 3 }}
-                      whileTap={{ scale: 0.985 }}
-                      transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onSelectTermFinal?.(exam);
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.3 + idx * 0.05 }}
+                    >
+                      <motion.div
+                        whileHover={{ x: 3 }}
+                        whileTap={{ scale: 0.985 }}
+                        transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
+                        onClick={(e) => {
                           e.stopPropagation();
                           onSelectTermFinal?.(exam);
-                        }
-                      }}
-                      className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
-                        isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onSelectTermFinal?.(exam);
+                          }
+                        }}
+                        className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
+                          isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span
+                            className={`text-xs font-medium font-sans tabular-nums shrink-0 ${
+                              isDark ? 'text-stone-400' : 'text-stone-500'
+                            }`}
+                          >
+                            {dateTimeCompact}
+                          </span>
+                          <span
+                            className={`text-xs sm:text-sm font-semibold tracking-normal truncate ${
+                              isDark ? 'text-stone-100' : 'text-stone-900'
+                            }`}
+                          >
+                            {exam.courseCode}
+                          </span>
+                        </div>
+
                         <span
-                          className={`text-xs font-medium font-sans tabular-nums shrink-0 ${
+                          className={`text-xs font-sans tabular-nums shrink-0 ${
                             isDark ? 'text-stone-400' : 'text-stone-500'
                           }`}
                         >
-                          {dateTimeCompact}
+                          {exam.room || 'TBA'}
                         </span>
-                        <span
-                          className={`text-xs sm:text-sm font-semibold tracking-normal truncate ${
-                            isDark ? 'text-stone-100' : 'text-stone-900'
-                          }`}
-                        >
-                          {exam.courseCode}
-                        </span>
-                      </div>
-
-                      <span
-                        className={`text-xs font-sans tabular-nums shrink-0 ${
-                          isDark ? 'text-stone-400' : 'text-stone-500'
-                        }`}
-                      >
-                        {exam.room || 'TBA'}
-                      </span>
+                      </motion.div>
                     </motion.div>
                   );
                 })}
@@ -507,11 +566,11 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
     <section className="mb-6 select-none">
       {renderHeader(isTermFinalMode ? 'Upcoming Exams' : 'Upcoming Classes')}
 
-      <AnimatePresence mode="wait" initial={false}>
+      <AnimatePresence mode="wait">
         {isTermFinalMode ? (
           <motion.div
             key="term-finals-widget"
-            initial={{ opacity: 0, y: 6 }}
+            initial={hasSwitchedMode ? { opacity: 0, y: 6 } : false}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={HERO_VIEW_SPRING}
@@ -521,7 +580,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
         ) : (
           <motion.div
             key="weekly-classes-widget"
-            initial={{ opacity: 0, y: 6 }}
+            initial={hasSwitchedMode ? { opacity: 0, y: 6 } : false}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={HERO_VIEW_SPRING}
@@ -579,8 +638,17 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
 
             return (
               <motion.div
+                initial={{ opacity: 0, y: 12, scale: 0.975 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                whileHover={{ y: -2, scale: 1.008 }}
                 whileTap={{ scale: 0.985 }}
-                transition={HERO_TILE_PRESS_SPRING}
+                transition={heroEntryTransition}
+                onHoverStart={() => {
+                  if (!hasHeroEntered) setHasHeroEntered(true);
+                }}
+                onAnimationComplete={() => {
+                  if (!hasHeroEntered) setHasHeroEntered(true);
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   onSelectEvent(event);
@@ -602,7 +670,12 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
               >
                 {/* Top Row: Course Code + Name (left) & Co-Star ROOM Readout (right) */}
                 <div className="flex justify-between items-start gap-4">
-                  <div className="min-w-0">
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.28 }}
+                    className="min-w-0"
+                  >
                     <div
                       className={`text-xl font-bold tracking-tight leading-none ${
                         isDark ? 'text-stone-100' : 'text-stone-900'
@@ -628,13 +701,16 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         {title}
                       </div>
                     )}
-                  </div>
+                  </motion.div>
 
                   {renderHeroRoomBlock(event.room)}
                 </div>
 
                 {/* Bottom Row: Live Status Tracker or High-Contrast Day & Time Range */}
-                <div
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...STARTUP_TEXT_SPRING, delay: 0.34 }}
                   className={`mt-3 pt-2.5 border-t flex items-center justify-between gap-2 ${
                     isDark ? 'border-white/[0.06]' : 'border-black/5'
                   }`}
@@ -700,7 +776,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       )}
                     </>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Flush 2.5px bottom progress bar when session is currently active */}
                 {isLiveNow && (
@@ -710,11 +786,13 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                       isDark ? 'bg-white/[0.08]' : 'bg-black/[0.06]'
                     }`}
                   >
-                    <div
-                      className={`relative overflow-hidden h-full transition-[width] duration-700 ease-out ${
+                    <motion.div
+                      initial={{ width: '0%' }}
+                      animate={{ width: `${liveProgressPercent}%` }}
+                      transition={{ duration: 0.75, delay: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                      className={`relative overflow-hidden h-full ${
                         isDark ? 'bg-[#C94A4A]' : 'bg-[#9E2C2C]'
                       }`}
-                      style={{ width: `${liveProgressPercent}%` }}
                     >
                       <motion.span
                         initial={{ x: '-120%' }}
@@ -727,7 +805,7 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                         }}
                         className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/55 to-transparent"
                       />
-                    </div>
+                    </motion.div>
                   </div>
                 )}
               </motion.div>
@@ -756,59 +834,65 @@ export const AtAGlanceWidget: React.FC<AtAGlanceWidgetProps> = ({
                 return (
                   <motion.div
                     key={event.id || `${event.day}-${event.startTime}-${index}`}
-                    whileHover={{ x: 3 }}
-                    whileTap={{ scale: 0.985 }}
-                    transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onSelectEvent(event);
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.3 + index * 0.05 }}
+                  >
+                    <motion.div
+                      whileHover={{ x: 3 }}
+                      whileTap={{ scale: 0.985 }}
+                      transition={{ type: 'spring', stiffness: 460, damping: 24, mass: 0.7 }}
+                      onClick={(e) => {
                         e.stopPropagation();
                         onSelectEvent(event);
-                      }
-                    }}
-                    className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
-                      isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onSelectEvent(event);
+                        }
+                      }}
+                      className={`py-2.5 px-2 flex items-center justify-between gap-3 cursor-pointer rounded-lg transition-colors duration-150 ease-out ${
+                        isDark ? 'hover:bg-[#1C1A18]' : 'hover:bg-stone-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`text-xs font-medium font-sans tabular-nums shrink-0 ${
+                            isDark ? 'text-stone-400' : 'text-stone-500'
+                          }`}
+                        >
+                          {formatInlineDayTime(event, relativeLabel, false)}
+                        </span>
+                        <span
+                          className={`text-xs sm:text-sm font-semibold tracking-normal truncate ${
+                            isDark ? 'text-stone-100' : 'text-stone-900'
+                          }`}
+                        >
+                          {code}
+                          {isExamRow && (
+                            <span
+                              className={`font-semibold ${
+                                isDark ? 'text-stone-300' : 'text-stone-600'
+                              }`}
+                            >
+                              {' • Exam'}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+
                       <span
-                        className={`text-xs font-medium font-sans tabular-nums shrink-0 ${
+                        className={`text-xs font-sans tabular-nums shrink-0 ${
                           isDark ? 'text-stone-400' : 'text-stone-500'
                         }`}
                       >
-                        {formatInlineDayTime(event, relativeLabel, false)}
+                        {event.room || 'TBA'}
                       </span>
-                      <span
-                        className={`text-xs sm:text-sm font-semibold tracking-normal truncate ${
-                          isDark ? 'text-stone-100' : 'text-stone-900'
-                        }`}
-                      >
-                        {code}
-                        {isExamRow && (
-                          <span
-                            className={`font-semibold ${
-                              isDark ? 'text-stone-300' : 'text-stone-600'
-                            }`}
-                          >
-                            {' • Exam'}
-                          </span>
-                        )}
-                      </span>
-                    </div>
-
-                    <span
-                      className={`text-xs font-sans tabular-nums shrink-0 ${
-                        isDark ? 'text-stone-400' : 'text-stone-500'
-                      }`}
-                    >
-                      {event.room || 'TBA'}
-                    </span>
+                    </motion.div>
                   </motion.div>
                 );
               })}

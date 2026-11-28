@@ -20,3 +20,23 @@ export const UNIFIED_BACKDROP_TRANSITION: Transition = {
   duration: 0.28,
   ease: [0.22, 1, 0.36, 1],
 };
+
+/**
+ * Subtle editorial lift spring for masthead lines, headings, and card copy on startup.
+ */
+export const STARTUP_TEXT_SPRING = {
+  type: 'spring',
+  stiffness: 380,
+  damping: 30,
+  mass: 0.8,
+} as const;
+
+/**
+ * Playful tactile spring pop for circular actions, pills, day badges, and class tiles on startup.
+ */
+export const STARTUP_POP_SPRING = {
+  type: 'spring',
+  stiffness: 430,
+  damping: 27,
+  mass: 0.72,
+} as const;

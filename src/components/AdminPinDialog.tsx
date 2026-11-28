@@ -117,13 +117,21 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2.5">
-            <div
+            <motion.div
+              initial={{ rotate: -22, scale: 0.8 }}
+              animate={{ rotate: shake ? [-10, 12, -8, 6, 0] : 0, scale: 1 }}
+              transition={{
+                rotate: shake
+                  ? { duration: 0.38, ease: [0.22, 1, 0.36, 1] }
+                  : { type: 'spring', stiffness: 420, damping: 18, mass: 0.7 },
+                scale: { type: 'spring', stiffness: 420, damping: 18, mass: 0.7 },
+              }}
               className={`w-8 h-8 rounded-full flex items-center justify-center ${
                 isDark ? 'bg-[#262523] text-stone-200' : 'bg-stone-100 text-stone-800'
               }`}
             >
               <KeyRound className="w-4 h-4" />
-            </div>
+            </motion.div>
             <div>
               <h2 id="pin-dialog-title" className="text-sm font-semibold tracking-normal leading-tight">
                 Admin Verification
@@ -145,14 +153,27 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
             {[0, 1, 2, 3].map((idx) => {
               const char = pin[idx];
               const isFilled = Boolean(char);
+              const isNextCursor = idx === pin.length && !error;
               return (
-                <div
+                <motion.div
                   key={idx}
-                  className={`w-11 h-12 rounded-xl flex items-center justify-center text-lg font-semibold tabular-nums border transition-all ${
+                  animate={{
+                    scale: isFilled ? [1, 1.08, 1] : isNextCursor ? 1.03 : 1,
+                  }}
+                  transition={
+                    isFilled
+                      ? { duration: 0.24, ease: [0.22, 1, 0.36, 1] }
+                      : { type: 'spring', stiffness: 520, damping: 20, mass: 0.65 }
+                  }
+                  className={`w-11 h-12 rounded-xl flex items-center justify-center text-lg font-semibold tabular-nums border transition-colors ${
                     isFilled
                       ? isDark
                         ? 'border-stone-400 bg-[#262523] text-stone-100'
                         : 'border-stone-900 bg-stone-100 text-stone-900'
+                      : isNextCursor
+                      ? isDark
+                        ? 'border-stone-600 bg-[#262523]'
+                        : 'border-stone-400 bg-white'
                       : isDark
                       ? 'border-transparent bg-[#262523]'
                       : 'border-stone-200 bg-white'
@@ -164,8 +185,21 @@ export const AdminPinDialog: React.FC<AdminPinDialogProps> = ({
                       : ''
                   }`}
                 >
-                  {isFilled ? '•' : ''}
-                </div>
+                  <AnimatePresence mode="wait">
+                    {isFilled && (
+                      <motion.span
+                        key={`pin-dot-${idx}`}
+                        initial={{ scale: 0.2, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.3, opacity: 0 }}
+                        transition={{ type: 'spring', stiffness: 560, damping: 18, mass: 0.6 }}
+                        className="inline-block leading-none"
+                      >
+                        •
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               );
             })}
           </div>

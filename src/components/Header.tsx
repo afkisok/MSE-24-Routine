@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Sun, Moon } from 'lucide-react';
 import { SmoothRefreshIcon } from './SmoothRefreshIcon';
+import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from '../utils/springs';
 
 interface SyncStatus {
   status: 'idle' | 'syncing' | 'success' | 'error';
@@ -25,10 +26,10 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleTheme,
   onTriggerAdminVerification,
   mastheadLines,
-  isMounted = true,
 }) => {
   const isDark = theme === 'dark';
   const [refreshPulseId, setRefreshPulseId] = useState(0);
+  const [isRefreshHovered, setIsRefreshHovered] = useState(false);
   const [dotHopId, setDotHopId] = useState(0);
 
   // Timing and tap counter state for mobile touchscreens (850ms window)
@@ -111,11 +112,7 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   return (
-    <header
-      className={`select-none w-full transition-[opacity,transform] duration-300 ease-out delay-0 ${
-        isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-      }`}
-    >
+    <header className="select-none w-full">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-0 flex flex-col">
         {/* Top Row: Three Equal-Sized Circles (MSE '24 left, Refresh + Theme right) */}
         <div className="flex items-center justify-between gap-3">
@@ -157,92 +154,122 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Header Right Actions: Discreet Manual Refresh + Clean Circular Theme Toggle */}
           <div className="flex items-center gap-2 shrink-0">
             {/* Discreet Manual Refresh Button */}
-            <motion.button
-              onClick={() => {
-                setRefreshPulseId((id) => id + 1);
-                onManualSync();
-              }}
-              disabled={syncStatus.status === 'syncing'}
-              whileTap={syncStatus.status === 'syncing' ? undefined : { scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 520, damping: 30, mass: 0.6 }}
-              type="button"
-              title={
-                syncStatus.status === 'syncing'
-                  ? 'Syncing latest routine data...'
-                  : 'Refresh routine schedule'
-              }
-              aria-label="Refresh routine schedule"
-              className={`relative overflow-hidden w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-colors duration-150 border select-none disabled:cursor-default ${
-                isDark
-                  ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#262523]'
-                  : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
-              }`}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.78, y: -5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ ...STARTUP_POP_SPRING, delay: 0.04 }}
+              className="inline-flex shrink-0"
             >
-              <AnimatePresence>
-                {refreshPulseId > 0 && (
-                  <motion.span
-                    key={refreshPulseId}
-                    aria-hidden="true"
-                    initial={{ scale: 0.45, opacity: isDark ? 0.28 : 0.16 }}
-                    animate={{ scale: 1.55, opacity: 0 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
-                    className={`pointer-events-none absolute inset-0 rounded-full ${
-                      isDark ? 'bg-stone-200' : 'bg-stone-900'
-                    }`}
+              <motion.button
+                onClick={() => {
+                  setRefreshPulseId((id) => id + 1);
+                  onManualSync();
+                }}
+                disabled={syncStatus.status === 'syncing'}
+                onHoverStart={() => setIsRefreshHovered(true)}
+                onHoverEnd={() => setIsRefreshHovered(false)}
+                whileHover={syncStatus.status === 'syncing' ? undefined : { scale: 1.06 }}
+                whileTap={syncStatus.status === 'syncing' ? undefined : { scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 520, damping: 24, mass: 0.65 }}
+                type="button"
+                title={
+                  syncStatus.status === 'syncing'
+                    ? 'Syncing latest routine data...'
+                    : 'Refresh routine schedule'
+                }
+                aria-label="Refresh routine schedule"
+                className={`relative overflow-hidden w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-[background-color,color,box-shadow] duration-150 border select-none disabled:cursor-default ${
+                  isDark
+                    ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:text-stone-100 hover:bg-[#262523]'
+                    : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900 hover:shadow-[0_2px_6px_0_rgba(0,0,0,0.08)]'
+                }`}
+              >
+                <AnimatePresence>
+                  {refreshPulseId > 0 && (
+                    <motion.span
+                      key={refreshPulseId}
+                      aria-hidden="true"
+                      initial={{ scale: 0.45, opacity: isDark ? 0.28 : 0.16 }}
+                      animate={{ scale: 1.55, opacity: 0 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.52, ease: [0.22, 1, 0.36, 1] }}
+                      className={`pointer-events-none absolute inset-0 rounded-full ${
+                        isDark ? 'bg-stone-200' : 'bg-stone-900'
+                      }`}
+                    />
+                  )}
+                </AnimatePresence>
+                <motion.span
+                  animate={{
+                    rotate:
+                      isRefreshHovered &&
+                      syncStatus.status !== 'syncing' &&
+                      syncStatus.status !== 'success'
+                        ? 24
+                        : 0,
+                  }}
+                  transition={{ type: 'spring', stiffness: 460, damping: 22, mass: 0.65 }}
+                  className="inline-flex items-center justify-center"
+                >
+                  <SmoothRefreshIcon
+                    isSyncing={syncStatus.status === 'syncing'}
+                    syncStatus={syncStatus.status}
+                    className="w-4 h-4 block"
+                    showSuccessCheck
+                    successClassName={isDark ? 'text-emerald-400' : 'text-emerald-600'}
                   />
-                )}
-              </AnimatePresence>
-              <SmoothRefreshIcon
-                isSyncing={syncStatus.status === 'syncing'}
-                syncStatus={syncStatus.status}
-                className="w-4 h-4 block"
-                showSuccessCheck
-                successClassName={isDark ? 'text-emerald-400' : 'text-emerald-600'}
-              />
-            </motion.button>
+                </motion.span>
+              </motion.button>
+            </motion.div>
 
             {/* Clean Circular Theme Toggle Button */}
-            <motion.button
-              onClick={(e) => onToggleTheme(e)}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.9 }}
-              transition={{ type: 'spring', stiffness: 520, damping: 24, mass: 0.65 }}
-              type="button"
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-colors duration-150 border select-none overflow-hidden ${
-                isDark
-                  ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:bg-[#262523] hover:text-stone-100'
-                  : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
-              }`}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.78, y: -5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ ...STARTUP_POP_SPRING, delay: 0.09 }}
+              className="inline-flex shrink-0"
             >
-              <AnimatePresence mode="wait" initial={false}>
-                {isDark ? (
-                  <motion.span
-                    key="theme-icon-sun"
-                    initial={{ rotate: -45, scale: 0.65, opacity: 0 }}
-                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                    exit={{ rotate: 45, scale: 0.65, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
-                    className="inline-flex items-center justify-center"
-                  >
-                    <Sun className="w-4 h-4 block" />
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="theme-icon-moon"
-                    initial={{ rotate: 45, scale: 0.65, opacity: 0 }}
-                    animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                    exit={{ rotate: -45, scale: 0.65, opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
-                    className="inline-flex items-center justify-center"
-                  >
-                    <Moon className="w-4 h-4 block" />
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.button>
+              <motion.button
+                onClick={(e) => onToggleTheme(e)}
+                whileHover={{ scale: 1.06 }}
+                whileTap={{ scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 520, damping: 24, mass: 0.65 }}
+                type="button"
+                title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                aria-label={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+                className={`w-10 h-10 p-0 rounded-full inline-flex items-center justify-center leading-none cursor-pointer transition-colors duration-150 border select-none overflow-hidden ${
+                  isDark
+                    ? 'bg-[#1E1D1C] border-transparent text-stone-300 hover:bg-[#262523] hover:text-stone-100'
+                    : 'bg-white border-transparent text-stone-700 shadow-[0_1px_2px_0_rgba(0,0,0,0.04)] hover:bg-stone-50 hover:text-stone-900'
+                }`}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isDark ? (
+                    <motion.span
+                      key="theme-icon-sun"
+                      initial={{ rotate: -45, scale: 0.65, opacity: 0 }}
+                      animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                      exit={{ rotate: 45, scale: 0.65, opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
+                      className="inline-flex items-center justify-center"
+                    >
+                      <Sun className="w-4 h-4 block" />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="theme-icon-moon"
+                      initial={{ rotate: 45, scale: 0.65, opacity: 0 }}
+                      animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                      exit={{ rotate: -45, scale: 0.65, opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 420, damping: 30, mass: 0.7 }}
+                      className="inline-flex items-center justify-center"
+                    >
+                      <Moon className="w-4 h-4 block" />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            </motion.div>
           </div>
         </div>
 
@@ -252,7 +279,14 @@ export const Header: React.FC<HeaderProps> = ({
             isDark ? 'text-stone-100' : 'text-stone-900'
           }`}
         >
-          {mastheadLines[0]}
+          <motion.span
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...STARTUP_TEXT_SPRING, delay: 0.08 }}
+            className="inline-block"
+          >
+            {mastheadLines[0]}
+          </motion.span>
           <br />
           {(() => {
             const secondLine = mastheadLines[1];
@@ -260,7 +294,14 @@ export const Header: React.FC<HeaderProps> = ({
             if (secondLine.endsWith('.')) {
               return (
                 <>
-                  {secondLine.slice(0, -1)}
+                  <motion.span
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
+                    className="inline-block"
+                  >
+                    {secondLine.slice(0, -1)}
+                  </motion.span>
                   <motion.span
                     key={`masthead-dot-${dotHopId}`}
                     initial={dotHopId === 0 ? { y: -9, scale: 0.45, opacity: 0 } : { y: 0, scale: 1 }}
@@ -271,7 +312,7 @@ export const Header: React.FC<HeaderProps> = ({
                     }
                     transition={
                       dotHopId === 0
-                        ? { type: 'spring', stiffness: 440, damping: 14, mass: 0.7, delay: 0.22 }
+                        ? { type: 'spring', stiffness: 420, damping: 19, mass: 0.7, delay: 0.28 }
                         : { duration: 0.42, ease: [0.22, 1, 0.36, 1] }
                     }
                     onClick={() => setDotHopId((n) => n + 1)}
@@ -286,18 +327,28 @@ export const Header: React.FC<HeaderProps> = ({
             if (secondLine.endsWith('?')) {
               return (
                 <>
-                  {secondLine.slice(0, -1)}
+                  <motion.span
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
+                    className="inline-block"
+                  >
+                    {secondLine.slice(0, -1)}
+                  </motion.span>
                   <span
                     onClick={() => setDotHopId((n) => n + 1)}
                     onMouseEnter={() => setDotHopId((n) => n + 1)}
                     className="relative inline-block leading-none cursor-pointer"
                   >
-                    <span
+                    <motion.span
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
                       className="inline-block leading-none"
                       style={{ clipPath: 'inset(0 0 45% 0)' }}
                     >
                       ?
-                    </span>
+                    </motion.span>
                     <motion.span
                       key={`masthead-qdot-${dotHopId}`}
                       aria-hidden="true"
@@ -309,7 +360,7 @@ export const Header: React.FC<HeaderProps> = ({
                       }
                       transition={
                         dotHopId === 0
-                          ? { type: 'spring', stiffness: 440, damping: 14, mass: 0.7, delay: 0.22 }
+                          ? { type: 'spring', stiffness: 420, damping: 19, mass: 0.7, delay: 0.28 }
                           : { duration: 0.4, ease: [0.22, 1, 0.36, 1] }
                       }
                       className={`pointer-events-none select-none absolute inset-0 inline-block leading-none origin-bottom ${crimsonTextClass}`}
@@ -321,7 +372,16 @@ export const Header: React.FC<HeaderProps> = ({
                 </>
               );
             }
-            return secondLine;
+            return (
+              <motion.span
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...STARTUP_TEXT_SPRING, delay: 0.14 }}
+                className="inline-block"
+              >
+                {secondLine}
+              </motion.span>
+            );
           })()}
         </h1>
       </div>

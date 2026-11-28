@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
-import { AnimatePresence, MotionConfig, animate, motion, useMotionValue } from 'motion/react';
+import { AnimatePresence, MotionConfig, animate, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react';
 import { RoutineEvent, RoutineAssignment, TermFinalExam, DEFAULT_ROUTINE_CSV_URL } from './types/routine';
 import { baselineTestData } from './data/baselineData';
 import {
@@ -30,13 +30,13 @@ import { AdminConfigModal } from './components/AdminConfigModal';
 import { AdminPinDialog } from './components/AdminPinDialog';
 import { StandaloneHtmlExporter } from './components/StandaloneHtmlExporter';
 import { BACKDROP_TRANSITION, BOTTOM_SHEET_SPRING } from './components/BottomSheetModal';
+import { STARTUP_POP_SPRING, STARTUP_TEXT_SPRING } from './utils/springs';
 import { Clock, ArrowRight } from 'lucide-react';
 
 const GROUP_PILL_SPRING = {
-  type: 'spring' as const,
-  stiffness: 500,
-  damping: 42,
-  mass: 0.8,
+  stiffness: 460,
+  damping: 38,
+  mass: 0.85,
 };
 
 const CACHED_ROUTINE_SNAPSHOT_KEY = 'mse24_routine_snapshot_v1';
@@ -668,63 +668,125 @@ export default function App() {
     }
   }, [hasUpcomingFinals, viewOverride]);
 
-  // Sliding pill measurement for Group Toggle
+  // Sliding pill measurement for Group Toggle (unscaled local layout coordinates)
+  const shouldReduceMotion = useReducedMotion();
   const groupTrackRef = useRef<HTMLDivElement | null>(null);
   const groupTabRefs = useRef<Record<'All' | 'Group A' | 'Group B', HTMLButtonElement | null>>({
     All: null,
     'Group A': null,
     'Group B': null,
   });
-  const [pillStyle, setPillStyle] = useState<{ left: number; width: number; ready: boolean }>({
-    left: 0,
-    width: 0,
-    ready: false,
+  const hasInitializedGroupPillRef = useRef(false);
+  const prevSelectedGroupRef = useRef<'All' | 'Group A' | 'Group B'>(selectedGroup);
+  const lastGroupPillBoundsRef = useRef<{ trackWidth: number; left: number; right: number }>({
+    trackWidth: 0,
+    left: -1,
+    right: -1,
   });
+  const [isGroupPillReady, setIsGroupPillReady] = useState(false);
+
+  const groupTrackWidthMV = useMotionValue(0);
+  const groupPillLeft = useSpring(0, GROUP_PILL_SPRING);
+  const groupPillRight = useSpring(0, GROUP_PILL_SPRING);
+
+  const clampedGroupPillX = useTransform(
+    [groupPillLeft, groupPillRight, groupTrackWidthMV],
+    ([l, r, tw]: number[]) => {
+      if (tw <= 0) return 0;
+      const safeLeft = Math.max(0, Math.min(l, tw));
+      const safeRight = Math.max(0, Math.min(r, tw));
+      return Math.min(safeLeft, safeRight);
+    }
+  );
+
+  const clampedGroupPillWidth = useTransform(
+    [groupPillLeft, groupPillRight, groupTrackWidthMV],
+    ([l, r, tw]: number[]) => {
+      if (tw <= 0) return 0;
+      const safeLeft = Math.max(0, Math.min(l, tw));
+      const safeRight = Math.max(0, Math.min(r, tw));
+      return Math.max(0, safeRight - safeLeft);
+    }
+  );
 
   useLayoutEffect(() => {
-    if (isTermFinalView) return;
-    const updatePill = () => {
+    if (isTermFinalView) {
+      hasInitializedGroupPillRef.current = false;
+      return;
+    }
+
+    const syncPillToActiveTab = (shouldAnimate: boolean, onlyIfLayoutChanged = false) => {
       const trackEl = groupTrackRef.current;
       const activeEl = groupTabRefs.current[selectedGroup];
       if (!trackEl || !activeEl) return;
-      const trackRect = trackEl.getBoundingClientRect();
-      const activeRect = activeEl.getBoundingClientRect();
-      setPillStyle({
-        left: activeRect.left - trackRect.left,
-        width: activeRect.width,
-        ready: true,
-      });
+
+      const trackWidth = trackEl.offsetWidth;
+      if (trackWidth <= 0) return;
+
+      const targetLeft = Math.max(0, activeEl.offsetLeft);
+      const targetRight = Math.min(trackWidth, targetLeft + activeEl.offsetWidth);
+
+      const prevBounds = lastGroupPillBoundsRef.current;
+      if (
+        onlyIfLayoutChanged &&
+        prevBounds.trackWidth === trackWidth &&
+        prevBounds.left === targetLeft &&
+        prevBounds.right === targetRight
+      ) {
+        return;
+      }
+
+      lastGroupPillBoundsRef.current = {
+        trackWidth,
+        left: targetLeft,
+        right: targetRight,
+      };
+      groupTrackWidthMV.set(trackWidth);
+
+      if (!hasInitializedGroupPillRef.current || !shouldAnimate || shouldReduceMotion) {
+        groupPillLeft.jump(targetLeft);
+        groupPillRight.jump(targetRight);
+        hasInitializedGroupPillRef.current = true;
+      } else {
+        groupPillLeft.set(targetLeft);
+        groupPillRight.set(targetRight);
+      }
+
+      setIsGroupPillReady((prev) => (prev ? prev : true));
     };
 
-    updatePill();
-    const rafId = requestAnimationFrame(updatePill);
-    window.addEventListener('resize', updatePill);
+    const groupChanged = prevSelectedGroupRef.current !== selectedGroup;
+    prevSelectedGroupRef.current = selectedGroup;
+
+    syncPillToActiveTab(groupChanged);
+
+    const handleResize = () => syncPillToActiveTab(false, true);
+    window.addEventListener('resize', handleResize);
+
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && groupTrackRef.current) {
+      observer = new ResizeObserver(handleResize);
+      observer.observe(groupTrackRef.current);
+    }
+
     let cancelled = false;
     if (typeof document !== 'undefined' && document.fonts?.ready) {
       document.fonts.ready.then(() => {
-        if (!cancelled) updatePill();
+        if (!cancelled) syncPillToActiveTab(false, true);
       });
     }
+
     return () => {
       cancelled = true;
-      cancelAnimationFrame(rafId);
-      window.removeEventListener('resize', updatePill);
+      window.removeEventListener('resize', handleResize);
+      observer?.disconnect();
     };
-  }, [selectedGroup, isTermFinalView]);
+  }, [selectedGroup, isTermFinalView, shouldReduceMotion, groupPillLeft, groupPillRight, groupTrackWidthMV]);
 
-  const [isMounted, setIsMounted] = useState(false);
+  const [hasCompletedInitialMount, setHasCompletedInitialMount] = useState(false);
 
   useEffect(() => {
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        setIsMounted(true);
-      });
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      if (raf2) cancelAnimationFrame(raf2);
-    };
+    setHasCompletedInitialMount(true);
   }, []);
 
   const scrollAnimationRef = useRef<{ stop: () => void } | null>(null);
@@ -1487,66 +1549,78 @@ export default function App() {
           onToggleTheme={handleToggleTheme}
           onTriggerAdminVerification={() => setIsPinDialogOpen(true)}
           mastheadLines={mastheadLines}
-          isMounted={isMounted}
         />
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 pt-0 pb-7 flex flex-col overflow-x-hidden">
         {/* 'UP NEXT' UPCOMING SESSIONS DEPARTURES WIDGET */}
-        <div
-          className={`transition-[opacity,transform] duration-300 ease-out delay-[50ms] ${
-            isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-          }`}
-        >
-          <AtAGlanceWidget
-            events={events}
-            onSelectEvent={(evt) => setSelectedEvent(evt)}
-            theme={theme}
-            selectedGroup={selectedGroup}
-            assignmentsCount={assignments.length}
-            onOpenAssignments={() => setIsAssignmentsModalOpen(true)}
-            isTermFinalMode={isAutoTermFinalWindow || isTermFinalView}
-            termFinals={termFinals}
-            nowMs={nowMs}
-            onSelectTermFinal={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
-          />
-        </div>
+        <AtAGlanceWidget
+          events={events}
+          onSelectEvent={(evt) => setSelectedEvent(evt)}
+          theme={theme}
+          selectedGroup={selectedGroup}
+          assignmentsCount={assignments.length}
+          onOpenAssignments={() => setIsAssignmentsModalOpen(true)}
+          isTermFinalMode={isAutoTermFinalWindow || isTermFinalView}
+          termFinals={termFinals}
+          nowMs={nowMs}
+          onSelectTermFinal={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
+        />
 
         {/* UNIFIED SCHEDULE MATRIX / TERM FINALS FULL-WIDTH VIEW */}
         <div>
-          <div
-            className={`flex flex-col mb-3 px-1 transition-[opacity,transform] duration-300 ease-out delay-[100ms] ${
-              isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
-          >
-            <div className="flex items-center justify-between sm:justify-start w-full mb-0">
+          <div className="flex flex-col mb-3 px-1">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...STARTUP_TEXT_SPRING, delay: 0.28 }}
+              className="flex items-center justify-between sm:justify-start w-full mb-0"
+            >
               {hasUpcomingFinals ? (
                 <div
                   className="flex items-center gap-[14px]"
                   role="tablist"
                   aria-label="Schedule view switcher"
                 >
-                  <button
+                  <motion.button
                     type="button"
                     role="tab"
                     aria-selected={!isTermFinalView}
                     onClick={() => setViewOverride('weekly')}
-                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none transition-opacity duration-150 ${
+                    initial={false}
+                    animate={{ opacity: !isTermFinalView ? 1 : 0.4 }}
+                    whileHover={{
+                      y: -1,
+                      scale: !isTermFinalView ? 1.01 : 1.025,
+                      opacity: !isTermFinalView ? 1 : 0.82,
+                    }}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 26, mass: 0.65 }}
+                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none ${
                       isDark ? 'text-stone-100' : 'text-stone-900'
-                    } ${!isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                    }`}
                   >
                     Weekly Routine
-                  </button>
-                  <button
+                  </motion.button>
+                  <motion.button
                     type="button"
                     role="tab"
                     aria-selected={isTermFinalView}
                     onClick={() => setViewOverride('termFinals')}
-                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none transition-opacity duration-150 ${
+                    initial={false}
+                    animate={{ opacity: isTermFinalView ? 1 : 0.4 }}
+                    whileHover={{
+                      y: -1,
+                      scale: isTermFinalView ? 1.01 : 1.025,
+                      opacity: isTermFinalView ? 1 : 0.82,
+                    }}
+                    whileTap={{ scale: 0.96 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 26, mass: 0.65 }}
+                    className={`mb-0 font-['Newsreader',Georgia,serif] text-[1.1875rem] font-semibold tracking-[-0.015em] leading-tight cursor-pointer select-none ${
                       isDark ? 'text-stone-100' : 'text-stone-900'
-                    } ${isTermFinalView ? 'opacity-100' : 'opacity-40 hover:opacity-70'}`}
+                    }`}
                   >
                     Term Finals
-                  </button>
+                  </motion.button>
                 </div>
               ) : (
                 <h2
@@ -1557,13 +1631,13 @@ export default function App() {
                   Weekly Routine
                 </h2>
               )}
-            </div>
+            </motion.div>
 
-            <AnimatePresence initial={false}>
+            <AnimatePresence>
               {!isTermFinalView && (
                 <motion.div
                   key="weekly-controls"
-                  initial={{ height: 0, opacity: 0, y: -4 }}
+                  initial={hasCompletedInitialMount ? { height: 0, opacity: 0, y: -4 } : false}
                   animate={{ height: 'auto', opacity: 1, y: 0 }}
                   exit={{ height: 0, opacity: 0, y: -4 }}
                   transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
@@ -1571,7 +1645,12 @@ export default function App() {
                 >
                   <div className="pb-0.5">
                 {/* Plain borderless muted-gray status line with optically balanced spacing above and below */}
-                <div className="mt-1.5 mb-2.5 flex flex-col gap-0.5 min-w-0">
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...STARTUP_TEXT_SPRING, delay: 0.32 }}
+                  className="mt-1.5 mb-2.5 flex flex-col gap-0.5 min-w-0"
+                >
                   {!outOfOrdinaryNotice ? (
                     <p
                       className={`text-sm leading-5 font-sans font-normal select-none ${
@@ -1597,12 +1676,15 @@ export default function App() {
                       {outOfOrdinaryNotice.label}
                     </motion.button>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Group Selector & Jump to Now Controls (Harmonized h-9 row) */}
                 <div className="flex items-center gap-2 flex-nowrap self-start">
                 {/* One UI-style segmented pill selector with spring-animated sliding indicator (h-9) */}
-                <div
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.93, y: 6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ ...STARTUP_POP_SPRING, delay: 0.35 }}
                   className={`h-9 inline-flex items-center p-1 rounded-full overflow-hidden border border-transparent transition-colors box-border shrink-0 ${
                     isDark
                       ? 'bg-[#100F0E] shadow-[inset_0_4px_22px_rgba(0,0,0,0.13),inset_0_1px_8px_rgba(0,0,0,0.08),inset_0_-1px_0_rgba(255,255,255,0.018)]'
@@ -1616,24 +1698,21 @@ export default function App() {
                     className="relative h-full inline-flex items-center rounded-full overflow-hidden"
                   >
                     {/* Sliding Active Indicator Pill (concentric & clipped inside uniform p-1 outer track) */}
-                    {pillStyle.ready && (
-                      <motion.div
-                        aria-hidden="true"
-                        initial={false}
-                        animate={{
-                          x: pillStyle.left,
-                          width: pillStyle.width,
-                        }}
-                        transition={GROUP_PILL_SPRING}
-                        className={`absolute inset-y-0 left-0 rounded-full pointer-events-none will-change-transform ${
-                          isDark ? 'bg-stone-100' : 'bg-stone-900'
-                        }`}
-                      />
-                    )}
-                    {(['All', 'Group A', 'Group B'] as const).map((groupOption) => {
+                    <motion.div
+                      aria-hidden="true"
+                      style={{
+                        x: clampedGroupPillX,
+                        width: clampedGroupPillWidth,
+                        opacity: isGroupPillReady ? 1 : 0,
+                      }}
+                      className={`absolute inset-y-0 left-0 rounded-full pointer-events-none will-change-transform transform-gpu ${
+                        isDark ? 'bg-stone-100' : 'bg-stone-900'
+                      }`}
+                    />
+                    {(['All', 'Group A', 'Group B'] as const).map((groupOption, groupIdx) => {
                       const isSelected = selectedGroup === groupOption;
                       return (
-                        <button
+                        <motion.button
                           key={groupOption}
                           ref={(el) => {
                             groupTabRefs.current[groupOption] = el;
@@ -1642,24 +1721,40 @@ export default function App() {
                           role="tab"
                           aria-selected={isSelected}
                           onClick={() => handleSelectGroup(groupOption)}
+                          whileHover={!isSelected ? { scale: 1.03 } : undefined}
+                          whileTap={{ scale: 0.96 }}
+                          transition={{ type: 'spring', stiffness: 520, damping: 28, mass: 0.65 }}
                           className={`relative z-10 h-full px-3.5 text-xs font-medium rounded-full transition-colors duration-150 cursor-pointer select-none flex items-center justify-center whitespace-nowrap ${
                             isSelected
                               ? isDark
                                 ? 'text-stone-900'
                                 : 'text-stone-50'
                               : isDark
-                              ? 'text-stone-400 hover:text-stone-100'
-                              : 'text-stone-600 hover:text-stone-900'
+                              ? 'text-stone-400 hover:text-stone-100 hover:bg-white/[0.06]'
+                              : 'text-stone-600 hover:text-stone-900 hover:bg-black/[0.045]'
                           }`}
                         >
-                          {groupOption}
-                        </button>
+                          <motion.span
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ ...STARTUP_TEXT_SPRING, delay: 0.38 + groupIdx * 0.025 }}
+                            className="inline-block"
+                          >
+                            {groupOption}
+                          </motion.span>
+                        </motion.button>
                       );
                     })}
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Compact Tactile Micro-Pill "Now" / "Next" Jump Button (Harmonized h-9) */}
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.88, y: 6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ ...STARTUP_POP_SPRING, delay: 0.4 }}
+                  className="shrink-0"
+                >
                 <motion.button
                   type="button"
                   onClick={() => {
@@ -1709,6 +1804,7 @@ export default function App() {
                     </>
                   )}
                 </motion.button>
+                </motion.div>
               </div>
                   </div>
                 </motion.div>
@@ -1716,51 +1812,45 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <div
-            className={`transition-[opacity,transform] duration-300 ease-out delay-[150ms] ${
-              isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
-            }`}
-          >
-            <AnimatePresence mode="wait" initial={false}>
-              {isTermFinalView ? (
-                <motion.div
-                  key="term-finals-view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <TermFinalsList
-                    termFinals={termFinals}
-                    nowMs={nowMs}
-                    theme={theme}
-                    onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
-                  />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="weekly-routine-view"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <MasterTimelineGrid
-                    days={operationalDays}
-                    events={events}
-                    todayName={todayName}
-                    currentMinuteOffset={currentMinuteOffset}
-                    onSelectEvent={(evt) => setSelectedEvent(evt)}
-                    scrollRef={scrollContainerRef}
-                    theme={theme}
-                    selectedGroup={selectedGroup}
-                    highlightedEventKey={highlightedEventKey}
-                    totalDayMinutes={dynamicTotalDayMinutes}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <AnimatePresence mode="wait">
+            {isTermFinalView ? (
+              <motion.div
+                key="term-finals-view"
+                initial={hasCompletedInitialMount ? { opacity: 0, y: 10 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <TermFinalsList
+                  termFinals={termFinals}
+                  nowMs={nowMs}
+                  theme={theme}
+                  onSelectExam={(exam) => setSelectedEvent(termFinalToRoutineEvent(exam))}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="weekly-routine-view"
+                initial={hasCompletedInitialMount ? { opacity: 0, y: 10 } : false}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <MasterTimelineGrid
+                  days={operationalDays}
+                  events={events}
+                  todayName={todayName}
+                  currentMinuteOffset={currentMinuteOffset}
+                  onSelectEvent={(evt) => setSelectedEvent(evt)}
+                  scrollRef={scrollContainerRef}
+                  theme={theme}
+                  selectedGroup={selectedGroup}
+                  highlightedEventKey={highlightedEventKey}
+                  totalDayMinutes={dynamicTotalDayMinutes}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       </main>
         </div>
